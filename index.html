@@ -83,6 +83,13 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 #atks .atk{flex:1;min-height:6mm}
 .coins{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;text-align:center}
 .coins input{text-align:center;border:1px solid var(--line);border-radius:4px}
+.settings{width:210mm;margin:16px auto 0;background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:8px 8mm 10px}
+.settings summary{cursor:pointer;font:italic 700 15px var(--serif);color:#2a3170}
+.settings summary span{font:12px system-ui,sans-serif;color:var(--soft)}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin-top:8px}
+.sgrid .w2{grid-column:span 2}
+.sgrid input,.sgrid select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:#fff}
+.settings p{margin:8px 0 0;font-size:11px;color:var(--soft)}
 .objs{gap:4px}
 .objs input{flex:none;height:6.5mm;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px 6px}
 .bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0}
@@ -95,6 +102,8 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
  .main,.bottom,.abcols,.idg,.slots{grid-template-columns:1fr}
  .bottom textarea{min-height:40mm}
+ .settings{width:auto;margin:10px 10px 0;padding:8px 12px 10px}
+ .sgrid{grid-template-columns:1fr 1fr}
 }
 @media print{
  html,body{background:#fff}
@@ -116,17 +125,31 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <input type="file" id="file" accept="application/json,.json" hidden>
 </div>
 
+<details class="settings noprint" open>
+ <summary>Paramètres <span>(cette partie n'est pas imprimée)</span></summary>
+ <div class="sgrid">
+  <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
+  <label class="w2"><small>Race (remplit « Espèce »)</small><input data-k="race" list="races" placeholder="Elfe, Nain, Humain…"></label>
+  <label><small>Bonus d'initiative</small><input data-k="b_init" type="number" placeholder="0"></label>
+  <label><small>Bonus de CA</small><input data-k="b_ca" type="number" placeholder="0"></label>
+  <label><small>Bonus au DD de sauvegarde</small><input data-k="b_dd" type="number" placeholder="0"></label>
+  <label><small>Bonus d'attaque de sort</small><input data-k="b_atk" type="number" placeholder="0"></label>
+ </div>
+ <p>Les bonus s'ajoutent au score calculé. La CA de base est 10 + modificateur de Dextérité : ajoute l'armure, le bouclier et les effets magiques dans « Bonus de CA ».</p>
+ <datalist id="races"><option value="Aasimar"><option value="Drakéide"><option value="Elfe"><option value="Demi-elfe"><option value="Demi-orc"><option value="Gnome"><option value="Goliath"><option value="Halfelin"><option value="Humain"><option value="Nain"><option value="Orc"><option value="Tieffelin"></datalist>
+</details>
+
 <!-- PAGE 1 -->
 <main class="page">
  <div class="hero">
   <input class="nom" data-k="nom" placeholder="Nom du personnage" aria-label="Nom du personnage">
   <div class="idg">
-   <div><small>Classe</small><div class="cl"><input data-k="classe" aria-label="Classe"><select class="noprint" id="clsel" data-k="clsel" aria-label="Choisir une classe"></select></div></div>
+   <label><small>Classe</small><input data-k="classe"></label>
    <label><small>Niveau</small><input data-k="niveau" type="number" min="1" max="20" value="1"></label>
    <label><small>Historique</small><input data-k="historique"></label>
-   <label><small>Race / espèce</small><input data-k="race"></label>
+   <label><small>Sous-classe</small><input data-k="sousclasse"></label>
    <label><small>Alignement</small><input data-k="alignement"></label>
-   <label><small>Points d'expérience</small><input data-k="xp" type="number" min="0"></label>
+   <label><small>Espèce</small><input data-k="espece"></label>
   </div>
  </div>
 
@@ -143,7 +166,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 
   <div class="col">
    <div class="tiles">
-    <div class="tile" style="--c:#2f6fd0"><span class="lbl">Classe d'armure</span><input data-k="ca" type="number"></div>
+    <div class="tile" style="--c:#2f6fd0"><span class="lbl">CA</span><span class="calc" id="ca">10</span></div>
     <div class="tile" style="--c:#2e9e5b"><span class="lbl">Initiative</span><span class="calc" id="init">+0</span></div>
     <div class="tile" style="--c:#d8791a"><span class="lbl">Vitesse</span><input data-k="vitesse" placeholder="9 m"></div>
     <div class="tile" style="--c:#7a4fc4"><span class="lbl">Maîtrise</span><span class="calc" id="pb">+2</span></div>
@@ -249,11 +272,13 @@ function calc(){
   const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
   SK.forEach(([n,a],i)=>$('#sk_'+i).textContent=sg(mod[a]+bonus(i)));
   $('#pb').textContent=sg(pb);
-  $('#init').textContent=sg(mod.dex);
+  const nb=k=>parseInt(val(k))||0;
+  $('#init').textContent=sg(mod.dex+nb('b_init'));
+  $('#ca').textContent=10+mod.dex+nb('b_ca');
   $('#pp').textContent=10+mod.sag+bonus(PERC);
   const c=val('cast');
-  $('#dc').textContent=c?8+pb+mod[c]:'—';
-  $('#sab').textContent=c?sg(pb+mod[c]):'—';
+  $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd'):'—';
+  $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')):'—';
 }
 
 // Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
@@ -279,6 +304,7 @@ function apply(obj){
     if(!(e.dataset.k in d))return;
     if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
   });
+  if(!val('espece')&&val('race'))el('espece').value=val('race');
   calc();
 }
 function autosave(){try{localStorage.setItem(STORE,JSON.stringify(collect()))}catch(e){}}
@@ -288,6 +314,7 @@ function onEdit(ev){
   if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
   if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
   if(k==='niveau')setDV();
+  if(k==='race')el('espece').value=val('race');
   calc();autosave();
 }
 document.addEventListener('input',onEdit);
