@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche de personnage D&amp;D 5e</title>
+<style>
+@page{size:A4;margin:0}
+:root{--ink:#1d2033;--soft:#5f6580;--line:#c9cde0;--gold:#d9a21b;--serif:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;color:var(--ink);font:12px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(160deg,#1b1f4b,#3b2a6b 60%,#6b2f6b) fixed}
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:#12142f;color:#fff;box-shadow:0 2px 10px #0006}
+.bar b{font:italic 700 17px var(--serif);margin-right:auto}
+.bar button{font:inherit;font-size:13px;padding:7px 12px;border:1px solid #ffffff55;border-radius:6px;background:transparent;color:#fff;cursor:pointer}
+.bar button:hover,.bar button:focus-visible{background:#ffffff22;outline:2px solid var(--gold)}
+.bar .main{background:var(--gold);border-color:var(--gold);color:#201700;font-weight:600}
+#msg{font-size:12px;color:#cfe3ff}
+
+/* Une page = une feuille A4 : les marges sont dans la page elle-même */
+.page{width:210mm;height:296mm;margin:16px auto;padding:8mm;background:#fff;border-radius:6px;box-shadow:0 4px 24px #0005;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+input,textarea,select{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;width:100%;padding:2px;min-width:0}
+textarea{display:block;background:#fff;border:1px solid var(--line);border-radius:5px;resize:none;padding:5px;line-height:1.4;flex:1 1 0;min-height:12mm}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--c,#3b4fd0);outline-offset:1px}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{display:none}
+small,.lbl{display:block;font-size:10.5px;color:var(--soft)}
+
+/* En-tête */
+.hero{background:#2a3170;color:#fff;border-radius:10px;padding:8px 14px 10px;border-bottom:4px solid var(--gold);flex:none}
+.hero input{color:#fff;border-bottom:1px solid #ffffff66}
+.hero input::placeholder{color:#ffffffaa}
+.hero small{color:#d9defa}
+.hero .nom{font:italic 700 26px var(--serif);border-bottom:2px solid var(--gold);padding:0 2px 2px}
+.idg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;margin-top:6px}
+.cl{display:flex;gap:6px;align-items:flex-end}
+.hero select{width:auto;max-width:48%;color:#fff;background:#ffffff26;border:1px solid #ffffff66;border-radius:5px;padding:2px 4px;font-size:11px}
+.hero select option{color:var(--ink)}
+
+/* Grille principale */
+.main{display:grid;grid-template-columns:1fr 72mm;gap:8px;align-items:stretch;flex:none}
+.abcols{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stack{display:flex;flex-direction:column;gap:6px}
+.abil{display:flex;flex-direction:column;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,#fff);break-inside:avoid}
+.abil header{display:flex;align-items:center;gap:6px;background:var(--c);color:#fff;padding:4px 8px}
+.abil .nm{font:italic 700 14px var(--serif);flex:1}
+.abil .sc{width:42px;text-align:center;font-weight:700;color:#fff;background:#ffffff30;border:0;border-radius:5px;padding:1px}
+.abil .mod{min-width:34px;text-align:center;font:700 17px var(--serif);background:#fff;color:var(--c);border-radius:50%;padding:3px 0}
+.abil .body{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:3px 8px 4px}
+.row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:12px}
+.row .v{width:26px;text-align:right;font-weight:700;color:var(--c);font-variant-numeric:tabular-nums}
+.row .t{flex:1}
+.row.sv{border-bottom:1px dashed var(--c);font-weight:600}
+.row .sp{width:15px;flex:none}
+
+/* Cases : maîtrise (rond) et expertise (losange) */
+input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:13px;height:13px;padding:0;margin:0;border:2px solid var(--c,#3b4fd0);border-radius:50%;background:#fff;cursor:pointer}
+input[type=checkbox]:checked{background:var(--c,#3b4fd0)}
+input[type=checkbox].e{width:11px;height:11px;border-radius:2px;border-color:var(--gold);transform:rotate(45deg);margin:0 2px}
+input[type=checkbox].e:checked{background:var(--gold)}
+input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Cartes */
+.col{display:flex;flex-direction:column;gap:6px;min-height:0}
+.card{display:flex;flex-direction:column;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:#fff;break-inside:avoid;min-height:0}
+.card>h2{margin:0;background:var(--c);color:#fff;font:italic 700 13px var(--serif);padding:3px 10px;flex:none}
+.card .in{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:6px 8px;background:color-mix(in srgb,var(--c) 5%,#fff)}
+.card textarea{border-color:color-mix(in srgb,var(--c) 40%,#fff)}
+.fl{display:flex;flex-direction:column;flex:1;min-height:0}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile{border-top:4px solid var(--c);border-radius:6px;background:color-mix(in srgb,var(--c) 10%,#fff);text-align:center;padding:3px 3px 4px}
+.tile .lbl{color:var(--c);font-weight:600}
+.tile input,.tile .calc{text-align:center;font:700 19px var(--serif);border:0;padding:0}
+.calc{display:block}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.big input{font:700 18px var(--serif);text-align:center}
+.dots{display:flex;gap:6px;align-items:center;font-size:11px}
+.dots span:first-child{width:62px;color:var(--soft)}
+.atk{display:grid;grid-template-columns:2fr 1fr 2fr;gap:5px;align-items:end}
+.atk.h{font-size:10.5px;color:var(--soft)}
+#atks{flex:1;display:flex;flex-direction:column;gap:3px}
+#atks .atk{flex:1;min-height:6mm}
+.coins{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;text-align:center}
+.coins input{text-align:center;border:1px solid var(--line);border-radius:4px}
+.objs{gap:4px}
+.objs input{flex:none;height:6.5mm;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+.bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
+.slot{display:flex;align-items:center;gap:4px}
+.slot b{flex:1;font:italic 700 12px var(--serif);color:var(--c)}
+.slot input{width:44px;text-align:center;border:1px solid var(--line);border-radius:4px}
+
+@media screen and (max-width:860px){
+ .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
+ .main,.bottom,.abcols,.idg,.slots{grid-template-columns:1fr}
+ .bottom textarea{min-height:40mm}
+}
+@media print{
+ html,body{background:#fff}
+ body{font-size:11px}
+ .bar,.noprint{display:none!important}
+ .page{margin:0;box-shadow:none;border-radius:0}
+ .page+.page{break-before:page}
+}
+</style>
+</head>
+<body>
+<div class="bar">
+ <b>Fiche de personnage D&amp;D 5e</b>
+ <span id="msg" role="status"></span>
+ <button class="main" id="bSave">Enregistrer (.json)</button>
+ <button id="bLoad">Charger un .json</button>
+ <button id="bPrint">Exporter en PDF (A4)</button>
+ <button id="bReset">Nouvelle fiche</button>
+ <input type="file" id="file" accept="application/json,.json" hidden>
+</div>
+
+<!-- PAGE 1 -->
+<main class="page">
+ <div class="hero">
+  <input class="nom" data-k="nom" placeholder="Nom du personnage" aria-label="Nom du personnage">
+  <div class="idg">
+   <div><small>Classe</small><div class="cl"><input data-k="classe" aria-label="Classe"><select class="noprint" id="clsel" data-k="clsel" aria-label="Choisir une classe"></select></div></div>
+   <label><small>Niveau</small><input data-k="niveau" type="number" min="1" max="20" value="1"></label>
+   <label><small>Historique</small><input data-k="historique"></label>
+   <label><small>Race / espèce</small><input data-k="race"></label>
+   <label><small>Alignement</small><input data-k="alignement"></label>
+   <label><small>Points d'expérience</small><input data-k="xp" type="number" min="0"></label>
+  </div>
+ </div>
+
+ <div class="main">
+  <div class="abcols">
+   <div class="stack" id="stackA"></div>
+   <div class="stack" id="stackB">
+    <section class="card" style="--c:#c8402f;flex:2 1 auto"><h2>Dés de vie</h2><div class="in two big" style="align-content:center">
+     <label><small>Total</small><input data-k="dvtot" placeholder="1d8"></label>
+     <label><small>Restants</small><input data-k="dvrest"></label>
+    </div></section>
+   </div>
+  </div>
+
+  <div class="col">
+   <div class="tiles">
+    <div class="tile" style="--c:#2f6fd0"><span class="lbl">Classe d'armure</span><input data-k="ca" type="number"></div>
+    <div class="tile" style="--c:#2e9e5b"><span class="lbl">Initiative</span><span class="calc" id="init">+0</span></div>
+    <div class="tile" style="--c:#d8791a"><span class="lbl">Vitesse</span><input data-k="vitesse" placeholder="9 m"></div>
+    <div class="tile" style="--c:#7a4fc4"><span class="lbl">Maîtrise</span><span class="calc" id="pb">+2</span></div>
+    <div class="tile" style="--c:#d6458e"><span class="lbl">Inspiration</span><input data-k="inspi" type="number" min="0"></div>
+    <div class="tile" style="--c:#12968f"><span class="lbl">Perc. passive</span><span class="calc" id="pp">10</span></div>
+   </div>
+   <section class="card" style="--c:#c8402f"><h2>Points de vie</h2><div class="in">
+    <div class="three big">
+     <label><small>Maximum</small><input data-k="pvmax" type="number" min="0"></label>
+     <label><small>Actuels</small><input data-k="pv" type="number"></label>
+     <label><small>Temporaires</small><input data-k="pvtemp" type="number" min="0"></label>
+    </div>
+    <div class="dots" style="--c:#2e9e5b"><span>Réussites</span><input type="checkbox" data-k="ds1"><input type="checkbox" data-k="ds2"><input type="checkbox" data-k="ds3"></div>
+    <div class="dots" style="--c:#c8402f"><span>Échecs</span><input type="checkbox" data-k="df1"><input type="checkbox" data-k="df2"><input type="checkbox" data-k="df3"></div>
+   </div></section>
+   <section class="card" style="--c:#d8791a;flex:1"><h2>Attaques et sorts</h2><div class="in">
+    <div class="atk h"><span>Nom</span><span>Bonus</span><span>Dégâts / type</span></div>
+    <div id="atks"></div>
+   </div></section>
+  </div>
+ </div>
+
+ <div class="bottom">
+  <section class="card" style="--c:#12968f"><h2>Équipement</h2><div class="in">
+   <div class="coins">
+    <label><small>PC</small><input data-k="pc" type="number"></label>
+    <label><small>PA</small><input data-k="pa" type="number"></label>
+    <label><small>PE</small><input data-k="pe" type="number"></label>
+    <label><small>PO</small><input data-k="po" type="number"></label>
+    <label><small>PP</small><input data-k="pp_" type="number"></label>
+   </div>
+   <textarea data-k="equip" aria-label="Équipement"></textarea>
+  </div></section>
+  <section class="card" style="--c:#7a4fc4"><h2>Capacités et traits</h2><div class="in">
+   <textarea data-k="capacites" aria-label="Capacités et traits"></textarea>
+  </div></section>
+  <div class="col">
+   <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
+    <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
+   </div></section>
+   <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
+    <textarea data-k="religion" aria-label="Religion et pactes"></textarea>
+   </div></section>
+   <section class="card" style="--c:#2f6fd0;flex:1.5"><h2>Maîtrises et langues</h2><div class="in">
+    <textarea data-k="langues" aria-label="Maîtrises et langues"></textarea>
+   </div></section>
+  </div>
+ </div>
+</main>
+
+<!-- PAGE 2 -->
+<main class="page">
+ <section class="card" style="--c:#3b4fd0;flex:3"><h2>Incantation</h2><div class="in">
+  <div class="tiles">
+   <label class="tile" style="--c:#3b4fd0"><span class="lbl">Caractéristique</span>
+    <select data-k="cast" style="font-weight:700;border:0"><option value="">—</option><option value="int">Intelligence</option><option value="sag">Sagesse</option><option value="cha">Charisme</option></select></label>
+   <div class="tile" style="--c:#7a4fc4"><span class="lbl">DD de sauvegarde</span><span class="calc" id="dc">—</span></div>
+   <div class="tile" style="--c:#d6458e"><span class="lbl">Bonus d'attaque</span><span class="calc" id="sab">—</span></div>
+  </div>
+  <div class="slots" id="slots"></div>
+  <textarea data-k="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
+ </div></section>
+ <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
+  <textarea data-k="notes" aria-label="Notes"></textarea>
+ </div></section>
+</main>
+
+<script>
+const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
+const SK=[['Acrobaties','dex'],['Arcanes','int'],['Athlétisme','for'],['Discrétion','dex'],['Dressage','sag'],['Escamotage','dex'],['Histoire','int'],['Intimidation','cha'],['Intuition','sag'],['Investigation','int'],['Médecine','sag'],['Nature','int'],['Perception','sag'],['Persuasion','cha'],['Religion','int'],['Représentation','cha'],['Supercherie','cha'],['Survie','sag']];
+const CLS={'Artificier':8,'Barbare':12,'Barde':8,'Clerc':8,'Druide':8,'Ensorceleur':6,'Guerrier':10,'Magicien':6,'Moine':8,'Occultiste':8,'Paladin':10,'Rôdeur':10,'Roublard':8};
+const PERC=SK.findIndex(s=>s[0]==='Perception');
+const STORE='fiche_dnd_v2';
+const $=s=>document.querySelector(s);
+const sg=n=>(n>=0?'+':'')+n;
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',3500)};
+const el=k=>document.querySelector(`[data-k="${k}"]`);
+const val=k=>{const e=el(k);return e?e.value:''};
+const chk=k=>{const e=el(k);return !!(e&&e.checked)};
+
+// Blocs de caractéristiques (compétences groupées) répartis en deux colonnes équilibrées
+const block=([k,n,c])=>{
+  const sk=SK.map((s,i)=>[s,i]).filter(([s])=>s[1]===k);
+  const rows=sk.map(([s,i])=>`<div class="row"><input type="checkbox" class="m" data-k="sk_${i}" title="Maîtrise" aria-label="Maîtrise ${s[0]}"><input type="checkbox" class="e" data-k="ske_${i}" title="Expertise" aria-label="Expertise ${s[0]}"><span class="v" id="sk_${i}">+0</span><span class="t">${s[0]}</span></div>`).join('');
+  return `<section class="abil" style="--c:${c};flex:${sk.length+1} 1 auto"><header><span class="nm">${n}</span><input class="sc" data-k="ab_${k}" type="number" min="1" max="30" value="10" aria-label="Valeur de ${n}"><div class="mod" id="m_${k}">+0</div></header>
+  <div class="body"><div class="row sv"><input type="checkbox" class="m" data-k="sv_${k}" aria-label="Maîtrise du jet de sauvegarde ${n}"><span class="sp"></span><span class="v" id="sv_${k}">+0</span><span class="t">Jet de sauvegarde</span></div>${rows}</div></section>`;
+};
+$('#stackA').innerHTML=AB.slice(0,4).map(block).join('');
+$('#stackB').insertAdjacentHTML('afterbegin',AB.slice(4).map(block).join(''));
+$('#atks').innerHTML=[0,1,2,3,4].map(i=>`<div class="atk"><input data-k="a${i}_n"><input data-k="a${i}_b"><input data-k="a${i}_d"></div>`).join('');
+$('#slots').innerHTML=[1,2,3,4,5,6,7,8,9].map(i=>`<div class="slot"><b>Niveau ${i}</b><input data-k="sl${i}_u" type="number" min="0" placeholder="util." aria-label="Emplacements utilisés niveau ${i}"><input data-k="sl${i}_t" type="number" min="0" placeholder="total" aria-label="Emplacements totaux niveau ${i}"></div>`).join('');
+$('#clsel').innerHTML='<option value="">Choisir…</option>'+Object.entries(CLS).map(([n,d])=>`<option value="${n}">${n} (d${d})</option>`).join('');
+
+function calc(){
+  const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
+  const pb=Math.ceil(lvl/4)+1;
+  const mod={};
+  AB.forEach(([k])=>{
+    mod[k]=Math.floor(((parseInt(val('ab_'+k))||10)-10)/2);
+    $('#m_'+k).textContent=sg(mod[k]);
+    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0));
+  });
+  const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
+  SK.forEach(([n,a],i)=>$('#sk_'+i).textContent=sg(mod[a]+bonus(i)));
+  $('#pb').textContent=sg(pb);
+  $('#init').textContent=sg(mod.dex);
+  $('#pp').textContent=10+mod.sag+bonus(PERC);
+  const c=val('cast');
+  $('#dc').textContent=c?8+pb+mod[c]:'—';
+  $('#sab').textContent=c?sg(pb+mod[c]):'—';
+}
+
+// Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
+function setDV(){
+  const c=val('clsel');
+  if(c&&CLS[c])el('dvtot').value=(Math.min(20,Math.max(1,parseInt(val('niveau'))||1)))+'d'+CLS[c];
+}
+$('#clsel').addEventListener('change',()=>{
+  const c=val('clsel');if(!c)return;
+  el('classe').value=c;setDV();calc();autosave();
+});
+
+// Sérialisation JSON
+function collect(){
+  const d={};
+  document.querySelectorAll('[data-k]').forEach(e=>d[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);
+  return {version:3,type:'fiche-dnd-5e',data:d};
+}
+function apply(obj){
+  const d=obj&&obj.data;
+  if(!d||typeof d!=='object')throw new Error('format');
+  document.querySelectorAll('[data-k]').forEach(e=>{
+    if(!(e.dataset.k in d))return;
+    if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
+  });
+  calc();
+}
+function autosave(){try{localStorage.setItem(STORE,JSON.stringify(collect()))}catch(e){}}
+
+function onEdit(ev){
+  const t=ev.target,k=t.dataset&&t.dataset.k;
+  if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
+  if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
+  if(k==='niveau')setDV();
+  calc();autosave();
+}
+document.addEventListener('input',onEdit);
+document.addEventListener('change',onEdit);
+
+$('#bSave').onclick=()=>{
+  const nom=(val('nom')||'personnage').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`fiche_${nom}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('Fiche enregistrée dans un fichier .json');
+};
+$('#bLoad').onclick=()=>$('#file').click();
+$('#file').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{apply(JSON.parse(r.result));autosave();msg('Fiche chargée : '+f.name)}catch(e){msg('Fichier invalide : choisissez un .json créé par cette fiche')}};
+  r.readAsText(f);ev.target.value='';
+};
+
+// Impression : réduit la police des zones de texte trop remplies pour que rien ne soit coupé
+function fit(){document.querySelectorAll('textarea').forEach(t=>{let s=11;t.style.fontSize=s+'px';while(t.scrollHeight>t.clientHeight+1&&s>6){s-=.5;t.style.fontSize=s+'px'}})}
+function unfit(){document.querySelectorAll('textarea').forEach(t=>t.style.fontSize='')}
+addEventListener('beforeprint',fit);addEventListener('afterprint',unfit);
+$('#bPrint').onclick=()=>window.print();
+
+$('#bReset').onclick=()=>{
+  if(!confirm('Effacer toute la fiche ? Pensez à enregistrer un .json avant.'))return;
+  document.querySelectorAll('[data-k]').forEach(e=>{
+    if(e.type==='checkbox')e.checked=false;
+    else if(e.tagName==='SELECT')e.selectedIndex=0;
+    else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
+  });
+  try{localStorage.removeItem(STORE)}catch(e){}
+  calc();msg('Nouvelle fiche prête');
+};
+
+try{const s=localStorage.getItem(STORE)||localStorage.getItem('fiche_dnd_v1');if(s)apply(JSON.parse(s))}catch(e){}
+calc();
+</script>
+</body>
+</html>
