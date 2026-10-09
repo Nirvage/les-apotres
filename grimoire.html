@@ -35,6 +35,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .racts{display:flex;gap:6px;flex:none}
 .det{padding:0 10px 10px;border-left:6px solid var(--c)}
 .empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
+.srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
 .pill.co{background:#7a4fc4}.pill.ri{background:#12968f}
 
@@ -121,6 +122,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
   </div>
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
+   <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">Manuel des joueurs 2024</option><option value="autre">autres livres et nouveautés</option></select></label>
    <label>Afficher&nbsp;<select id="fo"><option value="">tous les sorts</option><option value="1">ma sélection</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
   </div>
@@ -154,7 +156,7 @@ const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$
 // Les sorts sont lus dans spells.json à l'ouverture de la page
 let DB=[];
 const BYN=new Map();
-const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set()};
+const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
 function setup(data){
   DB=data;
@@ -172,17 +174,18 @@ function setup(data){
   $('#fl').innerHTML=opts('Tous',[0,1,2,3,4,5,6,7,8,9],lvOne);
 }
 
+const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}</div>`:'';
 const pills=s=>(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
 function card(s,remove){
   const col=SC[s.e]||'#2a3170';
   return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
   <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
-  <div class="desc">${s.h}</div>${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
+  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
 }
 
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:!!s.src))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
@@ -210,7 +213,7 @@ function collect(){
     sorts:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
     filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
-function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only}
+function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
 function apply(o){
   const d=o&&o.data;
   if(!d||!Array.isArray(d.sorts))throw new Error('format');
@@ -254,9 +257,9 @@ function setMode(m){
   scrollTo(0,0);
 }
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
-[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
+[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
-$('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only='';syncInputs();renderList();autosave()};
+$('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
   const nom=($('#titre').value||Persos.current().nom||'grimoire').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
