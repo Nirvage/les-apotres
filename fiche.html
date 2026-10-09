@@ -325,7 +325,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 <script>
 const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
 const SK=[['Acrobaties','dex'],['Arcanes','int'],['Athlétisme','for'],['Discrétion','dex'],['Dressage','sag'],['Escamotage','dex'],['Histoire','int'],['Intimidation','cha'],['Intuition','sag'],['Investigation','int'],['Médecine','sag'],['Nature','int'],['Perception','sag'],['Persuasion','cha'],['Religion','int'],['Représentation','cha'],['Supercherie','cha'],['Survie','sag']];
-const CLS={'Artificier':8,'Barbare':12,'Barde':8,'Clerc':8,'Druide':8,'Ensorceleur':6,'Guerrier':10,'Magicien':6,'Moine':8,'Occultiste':8,'Paladin':10,'Rôdeur':10,'Roublard':8};
+const CLS={'Artificier':8,'Barbare':12,'Barde':8,'Chasseur de sang':10,'Clerc':8,'Druide':8,'Ensorceleur':6,'Guerrier':10,'Magicien':6,'Moine':8,'Occultiste':8,'Paladin':10,'Rôdeur':10,'Roublard':8};
 const PERC=SK.findIndex(s=>s[0]==='Perception');
 const $=s=>document.querySelector(s);
 const sg=n=>(n>=0?'+':'')+n;
@@ -373,7 +373,7 @@ function findClass(){
 function castOf(d){
   if(d.lanceur)return {type:d.lanceur,carac:d.carac,mineurs:d.mineurs,prepares:d.prepares};
   const s=d.sous_classe;
-  return s&&chk('sclance')?{type:'tiers',carac:s.carac,mineurs:s.mineurs,prepares:s.prepares}:null;
+  return s&&chk('sclance')?{type:s.type||'tiers',carac:s.carac,mineurs:s.mineurs,prepares:s.prepares,emp:s.emp}:null;
 }
 const bx=(key,n,label)=>Array.from({length:n},(_,j)=>`<input type="checkbox" data-r="${key}_${j}" aria-label="${esc(label)} ${j+1}"${RS[key+'_'+j]?' checked':''}>`).join('');
 function maxOf(m,lvl,mod){
@@ -383,7 +383,8 @@ function maxOf(m,lvl,mod){
 }
 function slotsHTML(cst,lvl){
   if(cst.type==='pacte'){
-    const [n,l]=CD.emplacements.pacte[lvl-1];
+    const [n,l]=(cst.emp||CD.emplacements.pacte)[lvl-1];
+    if(!n)return '<div class="mgnone">Aucun emplacement de sorts à ce niveau.</div>';
     return `<div class="slot pact"><b>Magie de pacte · niveau ${l}</b><span class="bx">${bx('pc',n,'Emplacement de pacte')}</span></div>`;
   }
   const row=CD.emplacements[cst.type][lvl-1]||[];
@@ -868,7 +869,7 @@ function onEdit(ev){
   if(k==='sclasse'){
     el('sousclasse').value=val('sclasse');
     const cl=findClass(),sc=cl&&cl[1].sous_classe;
-    if(sc&&el('sclance'))el('sclance').checked=/occult|arcanique/i.test(val('sclasse'));   // Chevalier occulte, Escroc arcanique
+    if(sc&&el('sclance'))el('sclance').checked=new RegExp(sc.re||'occult|arcanique','i').test(val('sclasse'));   // Chevalier occulte, Escroc arcanique
   }
   if(k==='clsel'||k==='classe')LAST=new WeakMap();
   calc();autosave();
