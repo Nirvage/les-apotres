@@ -72,6 +72,22 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .cards{display:flex;flex-direction:column;gap:10px}
 .none{color:var(--soft);padding:14px;text-align:center}
 
+/* Sorts préparés */
+.prep{margin:12px 0 0;border:1.5px solid #2a3170;border-radius:9px;padding:8px 10px;background:#f3f5ff;font-size:12px}
+.prep h2{margin:0 0 4px;font:italic 700 15px var(--serif);color:#2a3170;display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.prep h2 .cnt{font:700 12px system-ui;background:#2a3170;color:#fff;border-radius:999px;padding:1px 9px}
+.prep h2 .cnt.over{background:#c8402f}
+.prep .ctx{color:var(--soft);margin:0 0 6px}
+.prep .al{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+.prep .ch{border:1px solid #2a3170;background:#fff;border-radius:999px;padding:2px 9px;font-size:11.5px}
+.prep .ch small{color:var(--soft);margin-left:3px}
+.prep .ch.off{opacity:.45;border-style:dashed}
+.prep .ch.nf{border-style:dotted}
+.prep label{display:inline-flex;gap:6px;align-items:center;margin:2px 10px 4px 0}
+.prep select{border:1px solid var(--line);border-radius:5px;padding:3px 6px;background:#fff;font-size:12px}
+.pill.pr{background:#2a3170}.pill.al{background:#b8860b}
+.b.pp{--c:#2a3170}.b.pp.on{background:#2a3170;color:#fff}
+@media print{.prep .noprint{display:none!important}.prep{border-width:1px;margin:0 0 3mm;break-inside:avoid}}
 @media screen and (max-width:760px){
  .fgrid{grid-template-columns:1fr 1fr}.fgrid>:first-child{grid-column:1/-1}
  .row{flex-wrap:wrap}
@@ -123,7 +139,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
    <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">Manuel des joueurs 2024</option><option value="nouv">nouveautés 5.5 (Heroes of Faerûn, 2026…)</option><option value="2014">anciens livres, version 2014</option></select></label>
-   <label>Afficher&nbsp;<select id="fo"><option value="">tous les sorts</option><option value="1">ma sélection</option></select></label>
+   <label>Afficher&nbsp;<select id="fo"><option value="">tous les sorts</option><option value="1">ma sélection</option><option value="p">sorts préparés</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
   </div>
  </section>
@@ -137,6 +153,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
    <input id="titre" placeholder="Nom du grimoire ou du personnage" aria-label="Nom du grimoire">
    <p id="sum"></p>
   </div>
+  <section class="prep" id="prep" aria-label="Sorts préparés"></section>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div id="levels"></div>
  </main>
@@ -154,9 +171,9 @@ const lvOne=l=>l===0?'Tour de magie':'Niveau '+l;
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
 
 // Les sorts sont lus dans spells.json à l'ouverture de la page
-let DB=[];
+let DB=[],AUTO=null,CLS={};
 const BYN=new Map();
-const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+const st={prep:new Set(),terrain:'',sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
 function setup(data){
   DB=data;
@@ -175,28 +192,83 @@ function setup(data){
 }
 
 const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}${s.ed==='2014'?' · sort en version 2014 (règles non mises à jour)':''}</div>`:'';
-const pills=s=>(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
+const pills=s=>(isAuto(s)?'<span class="pill al">Toujours préparé</span>':st.prep.has(s.n)?'<span class="pill pr">Préparé</span>':'')+(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
 function card(s,remove){
   const col=SC[s.e]||'#2a3170';
   return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
   <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
-  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
+  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`${s.l>0&&!isAuto(s)?`<button class="b pp noprint${st.prep.has(s.n)?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)}">${st.prep.has(s.n)?'★ Préparé':'☆ Préparer'}</button> `:''}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
 }
 
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:st.src==='2014'?s.ed==='2014':(!!s.src&&s.ed!=='2014')))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:st.src==='2014'?s.ed==='2014':(!!s.src&&s.ed!=='2014')))&&(!st.only||(st.only==='p'?(st.prep.has(s.n)||isAuto(s)):st.sel.has(s.n))));
+}
+
+// ---- Sorts préparés ----
+const nrm=norm;
+function ficheD(){const f=Persos.part('fiche');return f&&f.data||{}}
+function ctx(){
+  const d=ficheD(),cl=d.clsel||'',sub=d.sclasse||'',lvl=Math.min(20,Math.max(1,parseInt(d.niveau)||1));
+  return {d,cl,sub,lvl,race:d.race||'',lig:d.sespece||''};
+}
+function pickKey(o,k){if(!o||!k)return null;const n=nrm(k);const f=Object.keys(o).find(x=>nrm(x)===n||nrm(x).includes(n)||n.includes(nrm(x)));return f?o[f]:null}
+// Sorts toujours préparés : espèce, classe, sous-classe, terrain
+function autoList(){
+  const c=ctx(),out=[];
+  if(!AUTO)return out;
+  const add=(a,src)=>(a||[]).forEach(e=>out.push({sort:e.sort,niv:e.niv,src,x:e.x}));
+  const E=pickKey(AUTO.especes,c.race);
+  if(E){add(E.base,c.race);const L=pickKey(E.lignages,c.lig);if(L)add(L,c.lig||c.race)}
+  if(c.cl){
+    add(AUTO.classes[c.cl],c.cl);
+    const S=pickKey(AUTO.sousclasses[c.cl],c.sub);if(S)add(S,c.sub);
+    if(c.cl==='Druide'&&/terre/i.test(c.sub)&&st.terrain){const T=AUTO.terrains['Cercle de la Terre'];if(T&&T[st.terrain])add(T[st.terrain],'Terrain : '+st.terrain)}
+  }
+  const seen=new Set();
+  return out.filter(e=>{const k=nrm(e.sort);if(seen.has(k))return false;seen.add(k);return true});
+}
+function autoNames(){
+  const c=ctx(),S=new Set();
+  autoList().forEach(e=>{if(e.niv<=c.lvl){const s=BYN.get(nrm(e.sort));if(s)S.add(s.n)}});
+  return S;
+}
+let AN=new Set();
+const isAuto=s=>AN.has(s.n);
+function prepMax(){
+  const c=ctx(),k=CLS[c.cl];if(!k)return null;
+  if(k.prepares)return k.prepares[c.lvl-1];
+  if(k.sous_classe&&c.d.sclance)return k.sous_classe.prepares[c.lvl-1];
+  return null;
+}
+function renderPrep(){
+  AN=autoNames();
+  const c=ctx(),au=autoList(),max=prepMax();
+  const nb=[...st.prep].filter(n=>{const s=BYN.get(nrm(n));return s&&s.l>0&&!AN.has(s.n)&&st.sel.has(s.n)}).length;
+  const who=[c.cl&&(c.cl+(c.sub?' ('+c.sub+')':'')+' niv. '+c.lvl),c.race&&(c.race+(c.lig?' · '+c.lig:''))].filter(Boolean).join(' — ');
+  const terr=c.cl==='Druide'&&/terre/i.test(c.sub)&&AUTO?`<label>Terrain du Cercle de la Terre <select id="terr" class="noprint"><option value="">— choisir —</option>${Object.keys(AUTO.terrains['Cercle de la Terre']).map(t=>`<option value="${t}"${t===st.terrain?' selected':''}>${t}</option>`).join('')}</select></label>`:'';
+  const chosen=DB.filter(s=>st.prep.has(s.n)&&st.sel.has(s.n)&&s.l>0&&!AN.has(s.n));
+  const missing=au.filter(e=>e.niv<=c.lvl&&BYN.get(nrm(e.sort))&&!st.sel.has(BYN.get(nrm(e.sort)).n)).length;
+  $('#prep').innerHTML=`<h2>Sorts préparés <span class="cnt${max!=null&&nb>max?' over':''}">${nb}${max!=null?' / '+max:''}</span></h2>
+  <p class="ctx">${who?esc(who):'Aucun personnage renseigné dans la fiche : choisis classe, espèce et niveau pour voir les sorts toujours préparés.'}${max==null&&c.cl?' · pas de limite de sorts préparés connue pour cette classe/sous-classe':''}${max!=null&&nb>max?' · <b style="color:#c8402f">limite dépassée : tu peux changer ta liste de sorts préparés à chaque repos long</b>':''}</p>
+  ${terr}
+  ${au.length?`<div><b>Toujours préparés</b> (ne comptent pas dans la limite)</div><div class="al">${au.map(e=>{const s=BYN.get(nrm(e.sort)),off=e.niv>c.lvl;return `<span class="ch${off?' off':''}${s?'':' nf'}" title="${off?'Disponible au niveau '+e.niv:''}">${esc(s?s.name:e.sort)}<small>${esc(e.src)}${e.niv>1?' · niv. '+e.niv:''}${s?'':' · hors liste'}</small></span>`}).join('')}</div>
+  ${missing?`<button class="b noprint" id="bAuto">Ajouter les ${missing} sort${missing>1?'s':''} manquant${missing>1?'s':''} au grimoire</button>`:''}`:''}
+  <div style="margin-top:6px"><b>Préparés au choix</b></div>
+  <div class="al">${chosen.length?chosen.map(s=>`<span class="ch">${esc(s.name)}<small>niv. ${s.l}</small></span>`).join(''):'<span style="color:var(--soft)">Aucun. Dans chaque fiche de sort ci-dessous, clique sur « ☆ Préparer ».</span>'}</div>`;
 }
 function renderList(){
+  AN=autoNames();
   const r=filtered();
   $('#cnt').textContent=r.length+' sort'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans le grimoire';
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=SC[s.e]||'#2a3170';
     return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
-    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
+    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${on&&s.l>0&&!isAuto(s)?`<button class="b pp${st.prep.has(s.n)?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)}">${st.prep.has(s.n)?'★ Préparé':'☆ Préparer'}</button>`:''}<button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
 }
 function renderBook(){
+  renderPrep();
   const by=Array.from({length:10},()=>[]);
   DB.forEach(s=>{if(st.sel.has(s.n))by[s.l].push(s)});
   $('#tabs').innerHTML=by.map((a,l)=>`<button class="tab" role="tab" style="--c:${LC[l]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${l===0?'Tours de magie':'Niv. '+l}<span>${a.length}</span></button>`).join('');
@@ -211,6 +283,8 @@ function collect(){
   return {version:1,type:'grimoire-dnd-5e',data:{
     titre:$('#titre').value,
     sorts:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
+    prepares:DB.filter(s=>st.prep.has(s.n)&&st.sel.has(s.n)).map(s=>s.n),
+    terrain:st.terrain,
     filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
 function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
@@ -221,12 +295,13 @@ function apply(o){
   d.sorts.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
   $('#titre').value=d.titre||'';
   const f=d.filtres||{};
-  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=f.only?'1':'';
+  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=(f.only==='p')?'p':f.only?'1':'';
+  st.prep.clear();(d.prepares||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.prep.add(s.n)});st.terrain=d.terrain||'';
   syncInputs();renderAll();
   return unknown;
 }
 function blank(){
-  st.sel.clear();st.q=st.cls=st.sch=st.lvl=st.only='';
+  st.sel.clear();st.prep.clear();st.terrain='';st.q=st.cls=st.sch=st.lvl=st.only='';
   $('#titre').value='';
   syncInputs();renderAll();
 }
@@ -239,11 +314,13 @@ function autosave(){Persos.save()}
 
 // Événements
 document.addEventListener('click',e=>{
+  if(e.target.id==='bAuto'){const n=autoList().filter(x=>x.niv<=ctx().lvl).map(x=>BYN.get(nrm(x.sort))).filter(Boolean);n.forEach(s=>st.sel.add(s.n));renderAll();msg(n.length+' sort(s) ajouté(s) au grimoire');return}
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,s=DB[+b.dataset.i];
-  if(a==='tog'){st.sel.has(s.n)?st.sel.delete(s.n):st.sel.add(s.n);renderAll()}
+  if(a==='tog'){if(st.sel.has(s.n)){st.sel.delete(s.n);st.prep.delete(s.n)}else st.sel.add(s.n);renderAll()}
   else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
-  else if(a==='rm'){st.sel.delete(s.n);renderAll()}
+  else if(a==='rm'){st.sel.delete(s.n);st.prep.delete(s.n);renderAll()}
+  else if(a==='prep'){st.prep.has(s.n)?st.prep.delete(s.n):st.prep.add(s.n);renderAll()}
   else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
   else if(a==='mode')setMode(b.dataset.m);
 });
@@ -259,6 +336,7 @@ function setMode(m){
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
 [['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
+document.addEventListener('change',e=>{if(e.target.id==='terr'){st.terrain=e.target.value;renderAll()}});
 $('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
@@ -287,7 +365,7 @@ $('#bPrint').onclick=()=>{
 $('#bClear').onclick=()=>{
   if(!st.sel.size)return;
   if(!confirm('Retirer tous les sorts du grimoire de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
-  st.sel.clear();renderAll();msg('Grimoire vidé');
+  st.sel.clear();st.prep.clear();renderAll();msg('Grimoire vidé');
 };
 
 async function boot(){
@@ -302,6 +380,8 @@ async function boot(){
     return;
   }
   setup(data);
+  try{AUTO=await (await fetch('sorts_auto.json')).json()}catch(e){AUTO=null}
+  try{CLS=(await (await fetch('classes.json')).json()).classes||{}}catch(e){CLS={}}
   Persos.init({part:'grimoire',mount:$('#persos'),collect,apply:show,msg});
 }
 boot();

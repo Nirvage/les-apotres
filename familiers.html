@@ -145,9 +145,9 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 
 <script src="persos.js"></script>
 <script>
-const TC={'Appel de familier':'#2e9e5b','Pacte de la chaîne (Occultiste)':'#7a4fc4','Compagnon primordial (Rôdeur)':'#8e5a2b','Défenseur d’acier (Artificier)':'#2f6fd0','Serviteur homoncule (Artificier / Magicien)':'#d8791a'};
+const TC={'Appel de familier':'#2e9e5b','Pacte de la chaîne (Occultiste)':'#7a4fc4','Compagnon primordial (Rôdeur)':'#8e5a2b','Défenseur d’acier (Artificier)':'#2f6fd0','Serviteur homoncule (Artificier / Magicien)':'#d8791a','Autre animal (accord du MJ)':'#b8860b'};
 const TORDER=Object.keys(TC);
-const TSHORT={'Appel de familier':'Appel de familier','Pacte de la chaîne (Occultiste)':'Pacte de la chaîne','Compagnon primordial (Rôdeur)':'Compagnon primordial','Défenseur d’acier (Artificier)':'Défenseur d’acier','Serviteur homoncule (Artificier / Magicien)':'Homoncule'};
+const TSHORT={'Appel de familier':'Appel de familier','Pacte de la chaîne (Occultiste)':'Pacte de la chaîne','Compagnon primordial (Rôdeur)':'Compagnon primordial','Défenseur d’acier (Artificier)':'Défenseur d’acier','Serviteur homoncule (Artificier / Magicien)':'Homoncule','Autre animal (accord du MJ)':'Autre animal'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
@@ -170,12 +170,12 @@ function block(s,full){
   const col=TC[s.o]||'#2a3170',e=st.sel.get(s.n)||{};
   const L=(t,v)=>v?`<div><b>${t}</b> ${esc(v)}</div>`:'';
   return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(full&&e.s?e.s+' — ':'')}${esc(s.n)}</h3><div class="sub">${esc(s.tail)} · ${esc(s.typ)} · ${esc(s.en)}</div></div><span class="lvb" title="Origine">${esc(TSHORT[s.o]||'')}</span></header>
-  <div class="body stat"><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div><dt>Classe d’armure</dt><dd>${esc(s.ca)}</dd></div><div><dt>Points de vie</dt><dd>${esc(s.pv)}</dd></div><div><dt>Vitesse</dt><dd>${esc(s.vit)}</dd></div></div>
+  <div class="body stat"><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div><dt>Classe d’armure</dt><dd>${esc(s.ca)}</dd></div><div><dt>Points de vie</dt><dd>${esc(s.pv)}</dd></div><div><dt>Vitesse</dt><dd>${esc(s.vit)}</dd></div>${s.init?`<div><dt>Initiative</dt><dd>${esc(s.init)}</dd></div>`:''}</div>
   <div class="ab6">${s.car.map((v,i)=>`<div><b>${AN[i]}</b><span>${v} (${mod(v)})</span></div>`).join('')}</div>
-  ${L('Compétences',s.comp)}${L('Résistances / immunités',s.res)}${L('Sens',s.sens)}${L('Langues',s.langues)}${L('Dangerosité',s.dd)}
+  ${L('Jets de sauvegarde',s.sauv)}${L('Compétences',s.comp)}${L('Résistances / immunités',s.res)}${L('Sens',s.sens)}${L('Langues',s.langues)}${L('Dangerosité',s.dd)}
   ${s.traits.length?'<div class="desc">'+s.traits.map(t=>`<p><b><i>${esc(t.n)}.</i></b> ${esc(t.d)}</p>`).join('')+'</div>':''}
   ${s.actions.length?'<div class="desc"><b style="color:var(--c)">Actions</b>'+s.actions.map(t=>`<p><b><i>${esc(t.n)}.</i></b> ${esc(t.d)}</p>`).join('')+'</div>':''}
-  <div class="srcn">${esc(s.note)}${s.v_?' · valeurs reconstituées de mémoire : à vérifier dans le livre':' · statistiques reformulées du SRD 5.1 : à vérifier'}</div>
+  <div class="srcn">${esc(s.note)} · Source : ${esc(s.src||'')}${s.ed==='2014'?' · fiche 2014 (pas de version 2024 trouvée)':''}${(s.r_||s.v_)?' · texte reconstitué à partir d’un résumé : à vérifier dans le livre':' · reformulé : le livre fait foi'}</div>
   ${full?`<div class="fam-in"><label>Surnom<input type="text" data-f="s" data-i="${s.i}" value="${esc(e.s||'')}" placeholder="Nom du familier"></label><label>PV actuels<input type="text" data-f="pv" data-i="${s.i}" value="${esc(e.pv||'')}" size="6"></label><button class="b rm noprint" data-act="rm" data-i="${s.i}" style="align-self:end">Retirer</button></div>`:''}
   </div></article>`;
 }

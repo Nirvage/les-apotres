@@ -256,7 +256,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   </div></section>
   <div class="col">
    <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
-   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques à harmonisation choisis dans la page Objets magiques (5 maximum)">Importer depuis les objets magiques</button>
+   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques de ton personnage : objets liés pour ceux à harmonisation, inventaire pour les autres">Importer depuis les objets magiques</button>
     <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
    </div></section>
    <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
@@ -290,7 +290,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
   <div class="itiles" id="clsInfos" hidden></div>
   <div class="rgrid" id="clsRes" hidden></div>
-  <button type="button" id="bSp" class="noprint" title="Crée un tableau des sorts choisis dans le grimoire (page 3) : niveau, nom, incantation, portée, dégâts / effet, concentration">Importer depuis le grimoire (tableau, page 3)</button>
+  <button type="button" id="bSp" class="noprint" title="Ajoute les sorts choisis dans le grimoire, classés par niveau">Importer depuis le grimoire</button>
   <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
@@ -300,7 +300,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 
 <!-- PAGE 3 -->
 <main class="page" id="pg3">
- <section class="card" style="--c:#3b4fd0" id="xSplC" hidden><h2>Sorts <button type="button" id="bSpDel" class="noprint" style="margin-left:8px;font-size:11px">Retirer le tableau</button></h2><div class="in" id="xSpl"></div></section>
  <div class="xcols">
   <div class="xcol">
    <section class="card" style="--c:#12968f"><h2 id="xSpT">Espèce</h2><div class="in" id="xSp"></div></section>
@@ -556,8 +555,6 @@ function renderExtras(F,lvl,pb,mod,tot){
   }
   setHTML($('#xSp'),h);
   // Tableau de sorts
-  $('#xSplC').hidden=!PX.spl.length;
-  setHTML($('#xSpl'),PX.spl.length?'<table class="spt"><thead><tr><th>Niv.</th><th>Sort</th><th>Incantation</th><th>Portée</th><th>Dégâts / effet</th><th title="Concentration">Conc.</th></tr></thead><tbody>'+PX.spl.map(r=>`<tr><td>${r.l?r.l:'Tour'}</td><td><b>${esc(r.n)}</b>${r.ri?' <small>(rituel)</small>':''}</td><td>${esc(r.t)}</td><td>${esc(r.r)}</td><td>${esc(r.x)}</td><td>${r.c?'●':''}</td></tr>`).join('')+'</tbody></table>':'');
   // Historique
   const B=findBg();
   $('#xBgC').hidden=!B;
@@ -596,7 +593,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
   if(ac)fx+=row('Caractéristiques finales',esc(ac));
   setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
-  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B&&!PX.spl.length);
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B);
 }
 // Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
 function syncChecks(F){
@@ -759,17 +756,21 @@ document.addEventListener('click',async e=>{
   let DBs;
   try{DBs=await (await fetch('spells.json')).json()}catch(x){alert('Impossible de lire la liste des sorts (spells.json).');return}
   const by={};DBs.forEach(s=>by[s.n]=s);
-  PX.spl=L.map(n=>by[n]).filter(Boolean).map(s=>({n:s.n.split('|')[0],l:s.l,t:castShort(s.t),r:s.r,x:spellEffect(s.h),c:!!s.cc,ri:!!s.ri}))
-    .sort((a,b)=>a.l-b.l||a.n.localeCompare(b.n,'fr'));
-  const ta=document.querySelector('[data-k=sorts]');   // retire les anciennes lignes importées en texte
-  ta.value=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x)).join('\n');
-  calc();autosave();msg('Tableau de sorts mis à jour (page 3)');
+  const bl=Array.from({length:10},()=>[]);
+  L.map(n=>by[n]).filter(Boolean).forEach(x=>bl[x.l].push(x.n.split('|')[0]));
+  bl.forEach(a=>a.sort((x,y)=>x.localeCompare(y,'fr')));
+  const lines=bl.map((a,i)=>a.length?(i?'Niveau '+i:'Tours de magie')+' : '+a.join(', '):'').filter(Boolean);
+  const ta=document.querySelector('[data-k=sorts]');   // remplace les anciennes lignes importées
+  const keep=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x));
+  ta.value=lines.concat(keep.filter(x=>x.trim())).join('\n');
+  PX.spl=[];
+  calc();autosave();fire(ta);msg('Sorts du grimoire importés dans Capacités de classe');
 });
 document.addEventListener('click',e=>{
   if(!e.target.closest('#bSpDel'))return;
   PX.spl=[];calc();autosave();
 });
-// Objets magiques à harmonisation -> cases « Objets liés » (5 au maximum)
+// Objets magiques : ceux qui demandent une harmonisation vont dans les cases « Objets liés » (5 max), les autres dans l'inventaire (zone Équipement)
 document.addEventListener('click',async e=>{
   if(!e.target.closest('#bOb'))return;
   Persos.save();
@@ -778,16 +779,40 @@ document.addEventListener('click',async e=>{
   let DBo;
   try{DBo=await (await fetch('objets.json')).json()}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
   const by={};DBo.forEach(s=>by[s.n]=s);
-  const att=L.filter(n=>by[n]&&by[n].a);
-  if(!att.length){alert('Aucun des objets choisis ne demande d’harmonisation.');return}
   const ins=[0,1,2,3,4].map(i=>document.querySelector('[data-k=obj'+i+']'));
-  let skipped=0;
-  att.forEach(n=>{
-    if(ins.some(x=>x.value.trim()===n))return;
-    const free=ins.find(x=>!x.value.trim());
-    if(free){free.value=n;fire(free)}else skipped++;
+  const items=L.map(n=>by[n]||{n,a:''}).sort((x,y)=>!!y.a-!!x.a);
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;max-width:460px;box-shadow:0 10px 40px #0008';
+  const free=ins.filter(x=>!x.value.trim()).length;
+  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Objets magiques</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Les objets à harmonisation vont dans les <b>objets liés</b> ('+free+' emplacement'+(free>1?'s':'')+' libre'+(free>1?'s':'')+' sur 5) ; les autres vont dans l’<b>inventaire</b> (zone Équipement). Décoche ceux que tu ne veux pas ajouter.</p><div id="obl" style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto"></div><p id="obw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="obc">Annuler</button><button type="button" id="obk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Ajouter</button></div>';
+  const box=dlg.querySelector('#obl');
+  items.forEach((s,i)=>{
+    const lab=document.createElement('label');lab.style.cssText='display:flex;gap:8px;align-items:center';
+    const cb=document.createElement('input');cb.type='checkbox';cb.dataset.i=i;cb.checked=true;
+    lab.append(cb,document.createTextNode(s.n+(s.a?' → objets liés':' → inventaire')));
+    box.appendChild(lab);
   });
-  if(skipped)alert('Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) n’ont pas pu être ajouté(s).');
+  document.body.appendChild(dlg);dlg.showModal();
+  dlg.querySelector('#obc').onclick=()=>{dlg.close();dlg.remove()};
+  dlg.querySelector('#obk').onclick=()=>{
+    const chosen=[...box.querySelectorAll('input:checked')].map(c=>items[+c.dataset.i].n);
+    let skipped=0;
+    const inv=document.querySelector('[data-k=equip]');let lines=inv.value.split('\n'),invChanged=false;
+    chosen.forEach(n=>{
+      const s=items.find(x=>x.n===n);
+      if(s&&s.a){
+        if(ins.some(x=>x.value.trim()===n))return;
+        const fr=ins.find(x=>!x.value.trim());
+        if(fr){fr.value=n;fire(fr)}else skipped++;
+      }else{
+        if(lines.some(x=>x.replace(/^\d+×\s*/,'').trim()===n))return;   // déjà dans l'inventaire
+        lines.push('1× '+n);invChanged=true;
+      }
+    });
+    if(invChanged){inv.value=lines.filter((x,i,a)=>x.trim()||(i>0&&i<a.length-1)).join('\n').replace(/^\n+/,'');fire(inv)}
+    if(skipped){dlg.querySelector('#obw').textContent='Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) à harmonisation n’ont pas pu être ajouté(s).';return}
+    dlg.close();dlg.remove();
+  };
 });
 document.addEventListener('click',e=>{
   if(!e.target.closest('#bEq'))return;

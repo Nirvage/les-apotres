@@ -1,0 +1,1224 @@
+{
+ "classes": {
+  "Rôdeur": [
+   {
+    "niv": 1,
+    "sort": "Marque du chasseur"
+   }
+  ],
+  "Paladin": [
+   {
+    "niv": 2,
+    "sort": "Châtiment divin"
+   },
+   {
+    "niv": 5,
+    "sort": "Appel de destrier"
+   }
+  ]
+ },
+ "sousclasses": {
+  "Clerc": {
+   "Domaine de la Vie": [
+    {
+     "niv": 3,
+     "sort": "Assistance"
+    },
+    {
+     "niv": 3,
+     "sort": "Bénédiction"
+    },
+    {
+     "niv": 3,
+     "sort": "Soins"
+    },
+    {
+     "niv": 3,
+     "sort": "Restauration partielle"
+    },
+    {
+     "niv": 5,
+     "sort": "Mot de guérison de groupe"
+    },
+    {
+     "niv": 5,
+     "sort": "Retour à la vie"
+    },
+    {
+     "niv": 7,
+     "sort": "Aura de vie"
+    },
+    {
+     "niv": 7,
+     "sort": "Protection contre la mort"
+    },
+    {
+     "niv": 9,
+     "sort": "Restauration suprême"
+    },
+    {
+     "niv": 9,
+     "sort": "Soins de groupe"
+    }
+   ],
+   "Domaine de la Lumière": [
+    {
+     "niv": 3,
+     "sort": "Lumière"
+    },
+    {
+     "niv": 3,
+     "sort": "Mains brûlantes"
+    },
+    {
+     "niv": 3,
+     "sort": "Lueurs féeriques"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon ardent"
+    },
+    {
+     "niv": 3,
+     "sort": "Détection de l'invisibilité"
+    },
+    {
+     "niv": 5,
+     "sort": "Boule de feu"
+    },
+    {
+     "niv": 5,
+     "sort": "Lumière du jour"
+    },
+    {
+     "niv": 7,
+     "sort": "Oeil du mage"
+    },
+    {
+     "niv": 7,
+     "sort": "Mur de feu"
+    },
+    {
+     "niv": 9,
+     "sort": "Colonne de flamme"
+    },
+    {
+     "niv": 9,
+     "sort": "Scrutation"
+    }
+   ],
+   "Domaine de la Ruse": [
+    {
+     "niv": 3,
+     "sort": "Charme-personne"
+    },
+    {
+     "niv": 3,
+     "sort": "Déguisement"
+    },
+    {
+     "niv": 3,
+     "sort": "Image miroir"
+    },
+    {
+     "niv": 3,
+     "sort": "Passage sans trace"
+    },
+    {
+     "niv": 5,
+     "sort": "Clignotement"
+    },
+    {
+     "niv": 5,
+     "sort": "Dissipation de la magie"
+    },
+    {
+     "niv": 7,
+     "sort": "Porte dimensionnelle"
+    },
+    {
+     "niv": 7,
+     "sort": "Métamorphose"
+    },
+    {
+     "niv": 9,
+     "sort": "Domination de personne"
+    },
+    {
+     "niv": 9,
+     "sort": "Modification de mémoire"
+    }
+   ],
+   "Domaine de la Guerre": [
+    {
+     "niv": 3,
+     "sort": "Trait ensorcelé"
+    },
+    {
+     "niv": 3,
+     "sort": "Arme magique"
+    },
+    {
+     "niv": 3,
+     "sort": "Bouclier de la foi"
+    },
+    {
+     "niv": 3,
+     "sort": "Arme spirituelle"
+    },
+    {
+     "niv": 5,
+     "sort": "Aura du croisé"
+    },
+    {
+     "niv": 5,
+     "sort": "Esprits gardiens"
+    },
+    {
+     "niv": 7,
+     "sort": "Bouclier de feu"
+    },
+    {
+     "niv": 7,
+     "sort": "Liberté de mouvement"
+    },
+    {
+     "niv": 9,
+     "sort": "Immobilisation de monstre"
+    },
+    {
+     "niv": 9,
+     "sort": "Frappe du vent d'acier"
+    }
+   ]
+  },
+  "Druide": {
+   "Cercle de la Lune": [
+    {
+     "niv": 3,
+     "sort": "Soins"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon de lune"
+    },
+    {
+     "niv": 3,
+     "sort": "Volute d'étoiles",
+     "x": 1
+    },
+    {
+     "niv": 5,
+     "sort": "Invocation d'animaux"
+    },
+    {
+     "niv": 7,
+     "sort": "Fontaine de lune"
+    },
+    {
+     "niv": 9,
+     "sort": "Soins de groupe"
+    }
+   ],
+   "Cercle de la Mer": [
+    {
+     "niv": 3,
+     "sort": "Nappe de brouillard"
+    },
+    {
+     "niv": 3,
+     "sort": "Bourrasque"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon de givre"
+    },
+    {
+     "niv": 3,
+     "sort": "Fracassement"
+    },
+    {
+     "niv": 3,
+     "sort": "Vague tonnante"
+    },
+    {
+     "niv": 5,
+     "sort": "Éclair"
+    },
+    {
+     "niv": 5,
+     "sort": "Respiration aquatique"
+    },
+    {
+     "niv": 7,
+     "sort": "Contrôle de l'eau"
+    },
+    {
+     "niv": 7,
+     "sort": "Tempête de grêle"
+    },
+    {
+     "niv": 9,
+     "sort": "Invocation d'élémentaire"
+    },
+    {
+     "niv": 9,
+     "sort": "Immobilisation de monstre"
+    }
+   ],
+   "Cercle des Étoiles": [
+    {
+     "niv": 3,
+     "sort": "Assistance"
+    },
+    {
+     "niv": 3,
+     "sort": "Trait ensorcelé"
+    }
+   ]
+  },
+  "Paladin": {
+   "Serment de Dévotion": [
+    {
+     "niv": 3,
+     "sort": "Protection contre le mal et le bien"
+    },
+    {
+     "niv": 3,
+     "sort": "Bouclier de la foi"
+    },
+    {
+     "niv": 5,
+     "sort": "Aide"
+    },
+    {
+     "niv": 5,
+     "sort": "Zone de vérité"
+    },
+    {
+     "niv": 9,
+     "sort": "Lueur d'espoir"
+    },
+    {
+     "niv": 9,
+     "sort": "Dissipation de la magie"
+    },
+    {
+     "niv": 13,
+     "sort": "Liberté de mouvement"
+    },
+    {
+     "niv": 13,
+     "sort": "Gardien de la foi"
+    },
+    {
+     "niv": 17,
+     "sort": "Communion"
+    },
+    {
+     "niv": 17,
+     "sort": "Colonne de flamme"
+    }
+   ],
+   "Serment de Gloire": [
+    {
+     "niv": 3,
+     "sort": "Rayon traçant"
+    },
+    {
+     "niv": 3,
+     "sort": "Héroïsme"
+    },
+    {
+     "niv": 5,
+     "sort": "Amélioration de caractéristique"
+    },
+    {
+     "niv": 5,
+     "sort": "Arme magique"
+    },
+    {
+     "niv": 9,
+     "sort": "Hâte"
+    },
+    {
+     "niv": 9,
+     "sort": "Protection contre l'énergie"
+    },
+    {
+     "niv": 13,
+     "sort": "Compulsion"
+    },
+    {
+     "niv": 13,
+     "sort": "Liberté de mouvement"
+    },
+    {
+     "niv": 17,
+     "sort": "Mythes et légendes"
+    },
+    {
+     "niv": 17,
+     "sort": "Présence royale de Yolane"
+    }
+   ],
+   "Serment des Anciens": [
+    {
+     "niv": 3,
+     "sort": "Frappe piégeuse"
+    },
+    {
+     "niv": 3,
+     "sort": "Communication avec les animaux"
+    },
+    {
+     "niv": 5,
+     "sort": "Foulée brumeuse"
+    },
+    {
+     "niv": 5,
+     "sort": "Rayon de lune"
+    },
+    {
+     "niv": 9,
+     "sort": "Croissance végétale"
+    },
+    {
+     "niv": 9,
+     "sort": "Protection contre l'énergie"
+    },
+    {
+     "niv": 13,
+     "sort": "Tempête de grêle"
+    },
+    {
+     "niv": 13,
+     "sort": "Peau de pierre"
+    },
+    {
+     "niv": 17,
+     "sort": "Communion avec la nature"
+    },
+    {
+     "niv": 17,
+     "sort": "Passage par les arbres"
+    }
+   ],
+   "Serment de Vengeance": [
+    {
+     "niv": 3,
+     "sort": "Imprécation"
+    },
+    {
+     "niv": 3,
+     "sort": "Marque du chasseur"
+    },
+    {
+     "niv": 5,
+     "sort": "Immobilisation de personne"
+    },
+    {
+     "niv": 5,
+     "sort": "Foulée brumeuse"
+    },
+    {
+     "niv": 9,
+     "sort": "Hâte"
+    },
+    {
+     "niv": 9,
+     "sort": "Protection contre l'énergie"
+    },
+    {
+     "niv": 13,
+     "sort": "Bannissement"
+    },
+    {
+     "niv": 13,
+     "sort": "Porte dimensionnelle"
+    },
+    {
+     "niv": 17,
+     "sort": "Immobilisation de monstre"
+    },
+    {
+     "niv": 17,
+     "sort": "Scrutation"
+    }
+   ]
+  },
+  "Rôdeur": {
+   "Vagabond féerique": [
+    {
+     "niv": 3,
+     "sort": "Charme-personne"
+    },
+    {
+     "niv": 5,
+     "sort": "Foulée brumeuse"
+    },
+    {
+     "niv": 9,
+     "sort": "Convocation de fée"
+    },
+    {
+     "niv": 13,
+     "sort": "Porte dimensionnelle"
+    },
+    {
+     "niv": 17,
+     "sort": "Double illusoire"
+    }
+   ],
+   "Traqueur des ténèbres": [
+    {
+     "niv": 3,
+     "sort": "Déguisement"
+    },
+    {
+     "niv": 5,
+     "sort": "Corde enchantée"
+    },
+    {
+     "niv": 9,
+     "sort": "Peur|Terreur"
+    },
+    {
+     "niv": 13,
+     "sort": "Invisibilité suprême"
+    },
+    {
+     "niv": 17,
+     "sort": "Apparence trompeuse"
+    }
+   ]
+  },
+  "Ensorceleur": {
+   "Sorcellerie aberrante": [
+    {
+     "niv": 3,
+     "sort": "Épine mentale"
+    },
+    {
+     "niv": 3,
+     "sort": "Tentacules de Hadar"
+    },
+    {
+     "niv": 3,
+     "sort": "Apaisement des émotions"
+    },
+    {
+     "niv": 3,
+     "sort": "Détection des pensées"
+    },
+    {
+     "niv": 3,
+     "sort": "Murmures dissonants"
+    },
+    {
+     "niv": 5,
+     "sort": "Voracité de Hadar"
+    },
+    {
+     "niv": 5,
+     "sort": "Message"
+    },
+    {
+     "niv": 7,
+     "sort": "Tentacules noirs d'Evard"
+    },
+    {
+     "niv": 7,
+     "sort": "Convocation d'aberration"
+    },
+    {
+     "niv": 9,
+     "sort": "Lien télépathique de Rary"
+    },
+    {
+     "niv": 9,
+     "sort": "Télékinésie"
+    }
+   ],
+   "Sorcellerie draconique": [
+    {
+     "niv": 3,
+     "sort": "Métamorphose"
+    },
+    {
+     "niv": 3,
+     "sort": "Orbe chromatique"
+    },
+    {
+     "niv": 3,
+     "sort": "Injonction"
+    },
+    {
+     "niv": 3,
+     "sort": "Souffle du dragon"
+    },
+    {
+     "niv": 5,
+     "sort": "Peur|Terreur"
+    },
+    {
+     "niv": 5,
+     "sort": "Vol"
+    },
+    {
+     "niv": 7,
+     "sort": "Oeil du mage"
+    },
+    {
+     "niv": 7,
+     "sort": "Charme-monstre"
+    },
+    {
+     "niv": 9,
+     "sort": "Mythes et légendes"
+    },
+    {
+     "niv": 9,
+     "sort": "Convocation de dragon"
+    }
+   ],
+   "Sorcellerie mécanique": [
+    {
+     "niv": 3,
+     "sort": "Aide"
+    },
+    {
+     "niv": 3,
+     "sort": "Alarme"
+    },
+    {
+     "niv": 3,
+     "sort": "Restauration partielle"
+    },
+    {
+     "niv": 3,
+     "sort": "Protection contre le mal et le bien"
+    },
+    {
+     "niv": 5,
+     "sort": "Dissipation de la magie"
+    },
+    {
+     "niv": 5,
+     "sort": "Protection contre l'énergie"
+    },
+    {
+     "niv": 7,
+     "sort": "Liberté de mouvement"
+    },
+    {
+     "niv": 7,
+     "sort": "Convocation d'artificiel"
+    },
+    {
+     "niv": 9,
+     "sort": "Restauration suprême"
+    },
+    {
+     "niv": 9,
+     "sort": "Mur de force"
+    }
+   ]
+  },
+  "Occultiste": {
+   "Patron de l'Archifée": [
+    {
+     "niv": 3,
+     "sort": "Apaisement des émotions"
+    },
+    {
+     "niv": 3,
+     "sort": "Lueurs féeriques"
+    },
+    {
+     "niv": 3,
+     "sort": "Foulée brumeuse"
+    },
+    {
+     "niv": 3,
+     "sort": "Force fantasmagorique"
+    },
+    {
+     "niv": 3,
+     "sort": "Sommeil"
+    },
+    {
+     "niv": 5,
+     "sort": "Clignotement"
+    },
+    {
+     "niv": 5,
+     "sort": "Croissance végétale"
+    },
+    {
+     "niv": 7,
+     "sort": "Domination de bête"
+    },
+    {
+     "niv": 7,
+     "sort": "Invisibilité suprême"
+    },
+    {
+     "niv": 9,
+     "sort": "Domination de personne"
+    },
+    {
+     "niv": 9,
+     "sort": "Apparence trompeuse"
+    }
+   ],
+   "Patron Céleste": [
+    {
+     "niv": 3,
+     "sort": "Lumière"
+    },
+    {
+     "niv": 3,
+     "sort": "Flamme sacrée"
+    },
+    {
+     "niv": 3,
+     "sort": "Aide"
+    },
+    {
+     "niv": 3,
+     "sort": "Soins"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon traçant"
+    },
+    {
+     "niv": 3,
+     "sort": "Restauration partielle"
+    },
+    {
+     "niv": 5,
+     "sort": "Lumière du jour"
+    },
+    {
+     "niv": 5,
+     "sort": "Retour à la vie"
+    },
+    {
+     "niv": 7,
+     "sort": "Gardien de la foi"
+    },
+    {
+     "niv": 7,
+     "sort": "Mur de feu"
+    },
+    {
+     "niv": 9,
+     "sort": "Restauration suprême"
+    },
+    {
+     "niv": 9,
+     "sort": "Convocation de céleste"
+    }
+   ],
+   "Patron Fiélon": [
+    {
+     "niv": 3,
+     "sort": "Mains brûlantes"
+    },
+    {
+     "niv": 3,
+     "sort": "Injonction"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon ardent"
+    },
+    {
+     "niv": 3,
+     "sort": "Suggestion"
+    },
+    {
+     "niv": 5,
+     "sort": "Boule de feu"
+    },
+    {
+     "niv": 5,
+     "sort": "Nuage nauséabond"
+    },
+    {
+     "niv": 7,
+     "sort": "Bouclier de feu"
+    },
+    {
+     "niv": 7,
+     "sort": "Mur de feu"
+    },
+    {
+     "niv": 9,
+     "sort": "Quête"
+    },
+    {
+     "niv": 9,
+     "sort": "Fléau d'insectes"
+    }
+   ],
+   "Patron Grand Ancien": [
+    {
+     "niv": 3,
+     "sort": "Détection des pensées"
+    },
+    {
+     "niv": 3,
+     "sort": "Murmures dissonants"
+    },
+    {
+     "niv": 3,
+     "sort": "Force fantasmagorique"
+    },
+    {
+     "niv": 3,
+     "sort": "Fou rire de Tasha"
+    },
+    {
+     "niv": 5,
+     "sort": "Clairvoyance"
+    },
+    {
+     "niv": 5,
+     "sort": "Voracité de Hadar"
+    },
+    {
+     "niv": 7,
+     "sort": "Confusion"
+    },
+    {
+     "niv": 7,
+     "sort": "Convocation d'aberration"
+    },
+    {
+     "niv": 9,
+     "sort": "Modification de mémoire"
+    },
+    {
+     "niv": 9,
+     "sort": "Télékinésie"
+    }
+   ]
+  },
+  "Artificier": {
+   "Alchimiste": [
+    {
+     "niv": 3,
+     "sort": "Mot de guérison"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon empoisonné"
+    },
+    {
+     "niv": 5,
+     "sort": "Sphère de feu"
+    },
+    {
+     "niv": 5,
+     "sort": "Flèche acide de Melf"
+    },
+    {
+     "niv": 9,
+     "sort": "Forme gazeuse"
+    },
+    {
+     "niv": 9,
+     "sort": "Mot de guérison de groupe"
+    },
+    {
+     "niv": 13,
+     "sort": "Flétrissement"
+    },
+    {
+     "niv": 13,
+     "sort": "Protection contre la mort"
+    },
+    {
+     "niv": 17,
+     "sort": "Brume mortelle"
+    },
+    {
+     "niv": 17,
+     "sort": "Résurrection"
+    }
+   ],
+   "Armurier": [
+    {
+     "niv": 3,
+     "sort": "Projectile magique"
+    },
+    {
+     "niv": 3,
+     "sort": "Vague tonnante"
+    },
+    {
+     "niv": 5,
+     "sort": "Image miroir"
+    },
+    {
+     "niv": 5,
+     "sort": "Fracassement"
+    },
+    {
+     "niv": 9,
+     "sort": "Motif hypnotique"
+    },
+    {
+     "niv": 9,
+     "sort": "Éclair"
+    },
+    {
+     "niv": 13,
+     "sort": "Bouclier de feu"
+    },
+    {
+     "niv": 13,
+     "sort": "Invisibilité suprême"
+    },
+    {
+     "niv": 17,
+     "sort": "Passe-muraille"
+    },
+    {
+     "niv": 17,
+     "sort": "Mur de force"
+    }
+   ],
+   "Artilleur": [
+    {
+     "niv": 3,
+     "sort": "Bouclier"
+    },
+    {
+     "niv": 3,
+     "sort": "Vague tonnante"
+    },
+    {
+     "niv": 5,
+     "sort": "Rayon ardent"
+    },
+    {
+     "niv": 5,
+     "sort": "Fracassement"
+    },
+    {
+     "niv": 9,
+     "sort": "Boule de feu"
+    },
+    {
+     "niv": 9,
+     "sort": "Mur de vent"
+    },
+    {
+     "niv": 13,
+     "sort": "Tempête de grêle"
+    },
+    {
+     "niv": 13,
+     "sort": "Mur de feu"
+    },
+    {
+     "niv": 17,
+     "sort": "Cône de froid"
+    },
+    {
+     "niv": 17,
+     "sort": "Mur de force"
+    }
+   ],
+   "Forgeron de bataille": [
+    {
+     "niv": 3,
+     "sort": "Héroïsme"
+    },
+    {
+     "niv": 3,
+     "sort": "Bouclier"
+    },
+    {
+     "niv": 5,
+     "sort": "Châtiment de révélation"
+    },
+    {
+     "niv": 5,
+     "sort": "Lien de protection"
+    },
+    {
+     "niv": 9,
+     "sort": "Aura de vitalité"
+    },
+    {
+     "niv": 9,
+     "sort": "Invocation de projectiles|Hérissement"
+    },
+    {
+     "niv": 13,
+     "sort": "Aura de pureté"
+    },
+    {
+     "niv": 13,
+     "sort": "Bouclier de feu"
+    },
+    {
+     "niv": 17,
+     "sort": "Châtiment du ban"
+    },
+    {
+     "niv": 17,
+     "sort": "Soins de groupe"
+    }
+   ]
+  },
+  "Barde": {
+   "Collège du Glamour": [
+    {
+     "niv": 3,
+     "sort": "Charme-personne"
+    },
+    {
+     "niv": 3,
+     "sort": "Manteau de majesté",
+     "x": 1
+    }
+   ]
+  }
+ },
+ "terrains": {
+  "Cercle de la Terre": {
+   "aride": [
+    {
+     "niv": 3,
+     "sort": "Flou"
+    },
+    {
+     "niv": 3,
+     "sort": "Mains brûlantes"
+    },
+    {
+     "niv": 3,
+     "sort": "Trait de feu"
+    },
+    {
+     "niv": 5,
+     "sort": "Boule de feu"
+    },
+    {
+     "niv": 7,
+     "sort": "Flétrissement"
+    },
+    {
+     "niv": 9,
+     "sort": "Mur de pierre"
+    }
+   ],
+   "polaire": [
+    {
+     "niv": 3,
+     "sort": "Nappe de brouillard"
+    },
+    {
+     "niv": 3,
+     "sort": "Immobilisation de personne"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon de givre"
+    },
+    {
+     "niv": 5,
+     "sort": "Tempête de neige"
+    },
+    {
+     "niv": 7,
+     "sort": "Tempête de grêle"
+    },
+    {
+     "niv": 9,
+     "sort": "Cône de froid"
+    }
+   ],
+   "tempéré": [
+    {
+     "niv": 3,
+     "sort": "Foulée brumeuse"
+    },
+    {
+     "niv": 3,
+     "sort": "Poigne électrique"
+    },
+    {
+     "niv": 3,
+     "sort": "Sommeil"
+    },
+    {
+     "niv": 5,
+     "sort": "Éclair"
+    },
+    {
+     "niv": 7,
+     "sort": "Liberté de mouvement"
+    },
+    {
+     "niv": 9,
+     "sort": "Passage par les arbres"
+    }
+   ],
+   "tropical": [
+    {
+     "niv": 3,
+     "sort": "Aspersion d'acide"
+    },
+    {
+     "niv": 3,
+     "sort": "Rayon empoisonné"
+    },
+    {
+     "niv": 3,
+     "sort": "Toile d'araignée"
+    },
+    {
+     "niv": 5,
+     "sort": "Nuage nauséabond"
+    },
+    {
+     "niv": 7,
+     "sort": "Métamorphose"
+    },
+    {
+     "niv": 9,
+     "sort": "Fléau d'insectes"
+    }
+   ]
+  }
+ },
+ "especes": {
+  "Aasimar": {
+   "base": [
+    {
+     "niv": 1,
+     "sort": "Lumière"
+    }
+   ],
+   "lignages": {}
+  },
+  "Elfe": {
+   "base": [],
+   "lignages": {
+    "Drow (elfe noir)": [
+     {
+      "niv": 1,
+      "sort": "Lumières dansantes"
+     },
+     {
+      "niv": 3,
+      "sort": "Lueurs féeriques"
+     },
+     {
+      "niv": 5,
+      "sort": "Ténèbres"
+     }
+    ],
+    "Haut-elfe": [
+     {
+      "niv": 1,
+      "sort": "Prestidigitation"
+     },
+     {
+      "niv": 3,
+      "sort": "Détection de la magie"
+     },
+     {
+      "niv": 5,
+      "sort": "Foulée brumeuse"
+     }
+    ],
+    "Elfe sylvestre": [
+     {
+      "niv": 1,
+      "sort": "Druidisme"
+     },
+     {
+      "niv": 3,
+      "sort": "Grande foulée"
+     },
+     {
+      "niv": 5,
+      "sort": "Passage sans trace"
+     }
+    ]
+   }
+  },
+  "Gnome": {
+   "base": [],
+   "lignages": {
+    "Gnome des forêts": [
+     {
+      "niv": 1,
+      "sort": "Illusion mineure"
+     }
+    ]
+   }
+  },
+  "Tieffelin": {
+   "base": [
+    {
+     "niv": 1,
+     "sort": "Thaumaturgie"
+    }
+   ],
+   "lignages": {
+    "Abyssal": [
+     {
+      "niv": 1,
+      "sort": "Bouffée de poison"
+     },
+     {
+      "niv": 3,
+      "sort": "Rayon de maladie",
+      "x": 1
+     },
+     {
+      "niv": 5,
+      "sort": "Immobilisation de personne"
+     }
+    ],
+    "Chtonien": [
+     {
+      "niv": 1,
+      "sort": "Contact glacial"
+     },
+     {
+      "niv": 3,
+      "sort": "Simulacre de vie"
+     },
+     {
+      "niv": 5,
+      "sort": "Rayon affaiblissant"
+     }
+    ],
+    "Infernal": [
+     {
+      "niv": 1,
+      "sort": "Trait de feu"
+     },
+     {
+      "niv": 3,
+      "sort": "Représailles infernales"
+     },
+     {
+      "niv": 5,
+      "sort": "Ténèbres"
+     }
+    ]
+   }
+  }
+ }
+}
