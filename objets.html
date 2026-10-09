@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grimoire D&amp;D 5e</title>
+<title>Objets magiques D&amp;D 5e</title>
 <link rel="stylesheet" href="style.css">
 <style>
 @page{size:A4;margin:10mm}
@@ -45,7 +45,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .sp .ti{flex:1;min-width:0}
 .sp h3{margin:0;font:italic 700 15px/1.15 var(--serif)}
 .sp .sub{font-size:10.5px;opacity:.92}
-.lvb{flex:none;min-width:26px;height:26px;border-radius:50%;background:#fff;color:var(--c);font:700 15px/26px var(--serif);text-align:center}
+.lvb{flex:none;min-width:26px;height:26px;border-radius:13px;padding:0 7px;background:#fff;color:var(--c);font:700 11px/26px system-ui;text-align:center;white-space:nowrap}
 .sp .body{padding:6px 9px 8px}
 .meta{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
 .meta div{min-width:0}
@@ -97,10 +97,10 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div class="top">
  <div class="bar">
   <a class="home" href="./">← Accueil</a>
-  <b>Grimoire D&amp;D 5e</b>
+  <b>Objets magiques D&amp;D 5e</b>
   <span id="msg" role="status"></span>
-  <button data-act="mode" data-m="choose" aria-pressed="true">Choisir les sorts</button>
-  <button data-act="mode" data-m="book" aria-pressed="false" id="bBook">Mon grimoire (0)</button>
+  <button data-act="mode" data-m="choose" aria-pressed="true">Choisir les objets</button>
+  <button data-act="mode" data-m="book" aria-pressed="false" id="bBook">Mes objets (0)</button>
   <button class="primary" id="bSave">Enregistrer (.json)</button>
   <button id="bLoad">Charger un .json</button>
   <button id="bPrint">Imprimer / PDF</button>
@@ -113,28 +113,28 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <!-- CHOISIR -->
 <div id="choose" class="wrap">
  <section class="panel">
-  <h2>Rechercher des sorts</h2>
+  <h2>Rechercher des objets magiques</h2>
   <div class="fgrid">
-   <label><small>Nom</small><input id="fq" type="search" placeholder="Boule de feu, soins…"></label>
-   <label><small>Classe</small><select id="fc"></select></label>
-   <label><small>Type de sort (école)</small><select id="fs"></select></label>
-   <label><small>Niveau</small><select id="fl"></select></label>
+   <label><small>Nom</small><input id="fq" type="search" placeholder="Sac sans fond, cape, épée…"></label>
+   <label><small>Type</small><select id="fc"></select></label>
+   <label><small>Rareté</small><select id="fs"></select></label>
+   <label><small>Harmonisation</small><select id="fl"><option value="">Indifférent</option><option value="1">Requise</option><option value="0">Non requise</option></select></label>
   </div>
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
-   <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">Manuel des joueurs 2024</option><option value="nouv">nouveautés 5.5 (Heroes of Faerûn, 2026…)</option><option value="2014">anciens livres, version 2014</option></select></label>
-   <label>Afficher&nbsp;<select id="fo"><option value="">tous les sorts</option><option value="1">ma sélection</option></select></label>
+   <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">règles 5.5 (Guide du Maître 2024)</option><option value="2014">anciens livres, version 2014</option></select></label>
+   <label>Afficher&nbsp;<select id="fo"><option value="">tous les objets</option><option value="1">ma sélection</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
   </div>
  </section>
- <div class="list" id="list"><div class="empty-msg">Chargement des sorts…</div></div>
+ <div class="list" id="list"><div class="empty-msg">Chargement des objets…</div></div>
 </div>
 
 <!-- GRIMOIRE -->
 <div id="book" class="wrap">
  <main class="sheet">
   <div class="hero">
-   <input id="titre" placeholder="Nom du grimoire ou du personnage" aria-label="Nom du grimoire">
+   <input id="titre" placeholder="Nom de l’inventaire ou du personnage" aria-label="Nom de l’inventaire">
    <p id="sum"></p>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
@@ -144,16 +144,21 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 
 <script src="persos.js"></script>
 <script>
-const SC={'Abjuration':'#2f6fd0','Divination':'#12968f','Enchantement':'#d6458e','Évocation':'#c8402f','Illusion':'#7a4fc4','Invocation':'#d8791a','Nécromancie':'#2e9e5b','Transmutation':'#b8860b'};
-const LC=['#7a4fc4','#2f6fd0','#12968f','#2e9e5b','#b8860b','#d8791a','#c8402f','#d6458e','#8e3a9d','#2a3170'];
+const RC={'Courant':'#6b7280','Peu courant':'#2e9e5b','Rare':'#2f6fd0','Très rare':'#7a4fc4','Légendaire':'#d8791a','Artefact':'#c8402f'};
+const RA={'Courant':'C','Peu courant':'PC','Rare':'R','Très rare':'TR','Légendaire':'L','Artefact':'A'};
+const TC={'Armure':'#2f6fd0','Arme':'#c8402f','Anneau':'#b8860b','Baguette':'#7a4fc4','Bâton':'#8e3a9d','Sceptre':'#d6458e','Potion':'#2e9e5b','Parchemin':'#12968f','Munition':'#d8791a','Objet merveilleux':'#2a3170'};
+const TORDER=['Armure','Arme','Munition','Anneau','Baguette','Bâton','Sceptre','Potion','Parchemin','Objet merveilleux'];
+const RORDER=['Courant','Peu courant','Rare','Très rare','Légendaire','Artefact'];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
-const lvName=l=>l===0?'Tours de magie':'Niveau '+l;
-const lvOne=l=>l===0?'Tour de magie':'Niveau '+l;
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
+// Rareté « principale » d'un objet (la première citée quand elle varie)
+const rare=s=>RORDER.find(r=>norm(s.q).includes(norm(r)))||'';
+const rcol=s=>RC[rare(s)]||'#2a3170';
+const rabbr=s=>{const m=norm(s.q);const hits=RORDER.filter(r=>m.includes(norm(r)));return hits.length>1?'Var.':(RA[hits[0]]||'Var.')};
 
-// Les sorts sont lus dans spells.json à l'ouverture de la page
+// Les objets sont lus dans objets.json à l'ouverture de la page
 let DB=[];
 const BYN=new Map();
 const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
@@ -161,67 +166,61 @@ const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),s
 function setup(data){
   DB=data;
   DB.forEach((s,i)=>{
-    s.i=i;const p=s.n.split('|');s.name=p[0];s.alias=p[1]||'';
-    s.idx=norm(s.n.replace('|',' '));
-    [s.n,p[0],p[1]].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
+    s.i=i;s.idx=norm(s.n+' '+s.en);
+    [s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
   });
-  // Menus de filtres
-  const classes=[...new Set(DB.flatMap(s=>s.c))].sort((a,b)=>a.localeCompare(b,'fr'));
-  const schools=[...new Set(DB.map(s=>s.e))].sort((a,b)=>a.localeCompare(b,'fr'));
-  const opts=(first,arr,f=x=>x)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(f(x))}</option>`).join('');
-  $('#fc').innerHTML=opts('Toutes',classes);
-  $('#fs').innerHTML=opts('Tous',schools);
-  $('#fl').innerHTML=opts('Tous',[0,1,2,3,4,5,6,7,8,9],lvOne);
+  const opts=(first,arr)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  $('#fc').innerHTML=opts('Tous',TORDER.filter(t=>DB.some(s=>s.t===t)));
+  $('#fs').innerHTML=opts('Toutes',RORDER);
 }
-
-const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}${s.ed==='2014'?' · sort en version 2014 (règles non mises à jour)':''}</div>`:'';
-const pills=s=>(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
+const pills=s=>(s.a?'<span class="pill co">Harmonisation</span>':'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
+const srcNote=s=>`<div class="srcn">Source : ${esc(s.src||'')}${s.ed==='2014'?' · objet en version 2014 (règles non mises à jour)':''}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}</div>`;
 function card(s,remove){
-  const col=SC[s.e]||'#2a3170';
-  return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
-  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
+  const col=rcol(s);
+  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''} · ${esc(s.en)}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div></dl>
+  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button>`:''}</div></article>`;
 }
-
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:st.src==='2014'?s.ed==='2014':(!!s.src&&s.ed!=='2014')))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='2014')===(s.ed==='2014'))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
-  $('#cnt').textContent=r.length+' sort'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans le grimoire';
+  $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire';
   $('#list').innerHTML=r.length?r.map(s=>{
-    const on=st.sel.has(s.n),op=st.open.has(s.n),col=SC[s.e]||'#2a3170';
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
+    const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
     <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
-  }).join(''):'<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
+  }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
 function renderBook(){
-  const by=Array.from({length:10},()=>[]);
-  DB.forEach(s=>{if(st.sel.has(s.n))by[s.l].push(s)});
-  $('#tabs').innerHTML=by.map((a,l)=>`<button class="tab" role="tab" style="--c:${LC[l]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${l===0?'Tours de magie':'Niv. '+l}<span>${a.length}</span></button>`).join('');
-  $('#levels').innerHTML=by.map((a,l)=>`<section class="lvl${l===st.tab?' on':''}${a.length?'':' empty'}" style="--c:${LC[l]}"><h2>${lvName(l)} <span>(${a.length})</span></h2>${a.length?`<div class="cards">${a.map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun sort à ce niveau. Utilise « Choisir les sorts » pour en ajouter.</div>'}</section>`).join('');
-  $('#sum').textContent=st.sel.size?st.sel.size+' sort'+(st.sel.size>1?'s':'')+' sélectionné'+(st.sel.size>1?'s':''):'Aucun sort sélectionné';
-  $('#bBook').textContent='Mon grimoire ('+st.sel.size+')';
+  const by=TORDER.map(()=>[]);
+  DB.forEach(s=>{if(st.sel.has(s.n))by[TORDER.indexOf(s.t)].push(s)});
+  by.forEach(a=>a.sort((x,y)=>RORDER.indexOf(rare(x))-RORDER.indexOf(rare(y))||x.n.localeCompare(y.n,'fr')));
+  $('#tabs').innerHTML=TORDER.map((t,l)=>`<button class="tab" role="tab" style="--c:${TC[t]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${t}<span>${by[l].length}</span></button>`).join('');
+  $('#levels').innerHTML=TORDER.map((t,l)=>`<section class="lvl${l===st.tab?' on':''}${by[l].length?'':' empty'}" style="--c:${TC[t]}"><h2>${t} <span>(${by[l].length})</span></h2>${by[l].length?`<div class="cards">${by[l].map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun objet de ce type. Utilise « Choisir les objets » pour en ajouter.</div>'}</section>`).join('');
+  $('#sum').textContent=st.sel.size?st.sel.size+' objet'+(st.sel.size>1?'s':'')+' magique'+(st.sel.size>1?'s':''):'Aucun objet sélectionné';
+  $('#bBook').textContent='Mes objets ('+st.sel.size+')';
 }
 function renderAll(){renderList();renderBook();autosave()}
 
 // Données du personnage (sauvegarde .json et enregistrement dans le navigateur)
 function collect(){
-  return {version:1,type:'grimoire-dnd-5e',data:{
+  return {version:1,type:'objets-dnd-5e',data:{
     titre:$('#titre').value,
-    sorts:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
+    objets:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
     filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
 function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
 function apply(o){
   const d=o&&o.data;
-  if(!d||!Array.isArray(d.sorts))throw new Error('format');
+  if(!d||!Array.isArray(d.objets))throw new Error('format');
   st.sel.clear();let unknown=0;
-  d.sorts.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
+  d.objets.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
   $('#titre').value=d.titre||'';
   const f=d.filtres||{};
-  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=f.only?'1':'';
+  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
   syncInputs();renderAll();
   return unknown;
 }
@@ -230,14 +229,12 @@ function blank(){
   $('#titre').value='';
   syncInputs();renderAll();
 }
-// Affiche le grimoire d'un personnage (obj vaut null pour un personnage vierge)
 function show(obj){
   st.open.clear();st.tab=0;
   if(obj)apply(obj);else blank();
 }
 function autosave(){Persos.save()}
 
-// Événements
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,s=DB[+b.dataset.i];
@@ -251,8 +248,8 @@ function setMode(m){
   document.body.dataset.mode=m;
   document.querySelectorAll('[data-act=mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m));
   if(m==='book'){
-    const cnt=l=>DB.some(s=>s.l===l&&st.sel.has(s.n));
-    if(!cnt(st.tab)){const f=[0,1,2,3,4,5,6,7,8,9].find(cnt);if(f!==undefined){st.tab=f;renderBook()}}
+    const cnt=l=>DB.some(s=>s.t===TORDER[l]&&st.sel.has(s.n));
+    if(!cnt(st.tab)){const f=TORDER.findIndex((t,l)=>cnt(l));if(f>=0){st.tab=f;renderBook()}}
   }
   scrollTo(0,0);
 }
@@ -262,13 +259,13 @@ $('#titre').addEventListener('input',autosave);
 $('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
-  const nom=($('#titre').value||Persos.current().nom||'grimoire').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const nom=($('#titre').value||Persos.current().nom||'objets').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
   const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=`grimoire_${nom}.json`;
+  a.href=URL.createObjectURL(blob);a.download=`objets_${nom}.json`;
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  msg('Grimoire enregistré dans un fichier .json');
+  msg('Objets enregistrés dans un fichier .json');
 };
 $('#bLoad').onclick=()=>$('#file').click();
 $('#file').onchange=ev=>{
@@ -276,33 +273,33 @@ $('#file').onchange=ev=>{
   const r=new FileReader();
   r.onload=()=>{try{
     const u=apply(JSON.parse(r.result));
-    msg('Grimoire chargé : '+st.sel.size+' sort'+(st.sel.size>1?'s':'')+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
+    msg('Objets chargés : '+st.sel.size+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
   }catch(e){msg('Fichier invalide : choisis un .json créé par cette page')}};
   r.readAsText(f);ev.target.value='';
 };
 $('#bPrint').onclick=()=>{
-  if(!st.sel.size){msg('Ajoute d’abord des sorts à ton grimoire');return}
+  if(!st.sel.size){msg('Ajoute d’abord des objets à ton inventaire');return}
   window.print();
 };
 $('#bClear').onclick=()=>{
   if(!st.sel.size)return;
-  if(!confirm('Retirer tous les sorts du grimoire de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
-  st.sel.clear();renderAll();msg('Grimoire vidé');
+  if(!confirm('Retirer tous les objets de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
+  st.sel.clear();renderAll();msg('Inventaire vidé');
 };
 
 async function boot(){
   let data;
   try{
-    const r=await fetch('spells.json');
+    const r=await fetch('objets.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){
     $('#cnt').textContent='';
-    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste des sorts (spells.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
+    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste des objets (objets.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
     return;
   }
   setup(data);
-  Persos.init({part:'grimoire',mount:$('#persos'),collect,apply:show,msg});
+  Persos.init({part:'objets',mount:$('#persos'),collect,apply:show,msg});
 }
 boot();
 </script>

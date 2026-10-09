@@ -131,7 +131,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .don .dh{display:flex;gap:8px;align-items:baseline}
 .don .dh b{font:italic 700 12px var(--serif);color:var(--c)}
 .don .dh span{flex:1;font-size:10px;color:var(--soft)}
-.don p{margin:0;font-size:11px}
+.don p{margin:0;font-size:11px;white-space:pre-line}
 .xbar{display:flex;gap:6px}
 .xbar select{border:1px solid var(--line);border-radius:5px;background:#fff;padding:3px}
 .xbar button,.don button{font-size:11px;padding:3px 10px;border:1.5px solid var(--c);border-radius:6px;background:#fff;color:var(--c);font-weight:600;cursor:pointer}
@@ -462,13 +462,13 @@ function resMax(r,lvl,pb,mod){
 }
 // Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
-  const F={ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp(),cl:findClass()};
+  const F={cap:{},ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp(),cl:findClass()};
   const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
       if(f.niv&&lvl<f.niv)continue;
       const v=f.c?ch[f.c]:null;
-      if(f.t==='carac'){if(v){add(F.ab,v,1);F.lines.push([src,ABN[v]+' +1'])}}
+      if(f.t==='carac'){if(v){add(F.ab,v,1);F.cap[v]=Math.max(F.cap[v]||20,f.max||20);F.lines.push([src,ABN[v]+' +1'])}}
       else if(f.t==='sv'){if(v){F.sv[v]=1;F.lines.push([src,'maîtrise du jet de sauvegarde de '+ABN[v]])}}
       else if(f.t==='comp'){const i=skIdx(v);if(i>=0){F.sk[i]=Math.max(F.sk[i]||0,1);F.lines.push([src,'maîtrise : '+v])}}
       else if(f.t==='exp'){const i=skIdx(v);if(i>=0){F.sk[i]=2;F.lines.push([src,'expertise : '+v])}}
@@ -612,7 +612,7 @@ function calc(){
   const mod={},tot={};
   AB.forEach(([k])=>{
     const base=parseInt(val('ab_'+k))||10;
-    tot[k]=F.ab[k]?Math.max(base,Math.min(20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20
+    tot[k]=F.ab[k]?Math.max(base,Math.min(F.cap[k]||20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20 (30 pour une faveur épique)
     mod[k]=Math.floor((tot[k]-10)/2);
     $('#m_'+k).textContent=sg(mod[k]);
     el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, dons)':'';
