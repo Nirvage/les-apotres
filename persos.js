@@ -179,7 +179,35 @@ addEventListener('storage',function(e){
   }else render();
 });
 
+/* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
+var PARTS=['fiche','grimoire','objets','equipement'];
+function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
+function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
+function exportActive(){
+  var s=load(),p=s.persos[s.actif],o={version:1,type:'personnage-dnd-5e',nom:p.nom};
+  PARTS.forEach(function(k){o[k]=p[k]||null});
+  return o;
+}
+function importPerso(o){
+  if(!o||o.type!=='personnage-dnd-5e')throw new Error('format');
+  var s=load(),p={id:uid(),nom:String(o.nom||'Personnage importé')};
+  PARTS.forEach(function(k){p[k]=o[k]&&o[k].data?o[k]:null});
+  s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
+  return p;
+}
+// Parties qui contiennent quelque chose à imprimer pour le personnage actif
+function printable(){
+  var s=load(),p=s.persos[s.actif],r=[];
+  function d(k){return p[k]&&p[k].data}
+  if(d('fiche'))r.push('fiche');
+  if(d('grimoire')&&(d('grimoire').sorts||[]).length)r.push('grimoire');
+  if(d('objets')&&(d('objets').objets||[]).length)r.push('objets');
+  if(d('equipement')&&(d('equipement').objets||[]).length)r.push('equipement');
+  return r;
+}
+
 window.Persos={
+  list:listAll,activate:activate,exportActive:exportActive,importPerso:importPerso,printable:printable,
   init:init,
   save:flush,
   setName:setName,

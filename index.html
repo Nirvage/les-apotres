@@ -19,6 +19,15 @@ header p{margin:8px 0 0;color:#d9defa}
 .card .go{margin:6px 16px 16px;align-self:flex-start;background:var(--c);color:#fff;font-weight:600;border-radius:7px;padding:7px 14px}
 .card:nth-child(2){--c:#7a4fc4}
 .card:nth-child(3){--c:#d8791a}
+.card:nth-child(4){--c:#2e9e5b}
+#chips{display:flex;flex-wrap:wrap;gap:6px}
+.perso{width:100%;max-width:1000px;background:#1d2150;border:1px solid #ffffff22;border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff}
+.prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.pl{font-size:12px;color:#cfd4f5}
+.perso button:not(.pc){font-size:13px;padding:7px 12px;border:1px solid #ffffff55;border-radius:6px;background:transparent;color:#fff;cursor:pointer}
+.perso button:not(.pc):hover,.perso button:not(.pc):focus-visible{background:#ffffff22;outline:2px solid var(--gold)}
+.perso .primary{background:var(--gold);border-color:var(--gold);color:#201700;font-weight:600}
+#msg{font-size:12px;color:#cfd4f5}
 footer{color:#b9bfe6;font-size:12px}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
@@ -29,23 +38,82 @@ footer{color:#b9bfe6;font-size:12px}
  <h1>Outils D&amp;D 5e</h1>
  <p>Prépare ton personnage et ton grimoire.</p>
 </header>
+<section class="perso" aria-label="Mon personnage">
+ <div class="prow"><span class="pl">Personnage</span><div class="pchips" id="chips" role="group" aria-label="Choisir un personnage"></div></div>
+ <div class="prow">
+  <button class="primary" id="bExp">Exporter le personnage (.json)</button>
+  <button id="bImp">Importer un personnage</button>
+  <button id="bPrintAll">Imprimer le personnage</button>
+  <span id="msg" role="status"></span>
+ </div>
+ <input type="file" id="file" accept="application/json,.json" hidden>
+ <iframe id="pf" title="Impression" style="position:fixed;left:-9999px;top:0;width:1100px;height:900px;border:0" aria-hidden="true"></iframe>
+</section>
 <nav class="cards" aria-label="Pages">
  <a class="card" href="fiche.html">
   <h2>Fiche de personnage</h2>
-  <p>Caractéristiques, compétences, combat, équipement et notes. Export PDF A4 et sauvegarde JSON.</p>
+  <p>Caractéristiques, compétences, combat, dons, espèce et notes.</p>
   <span class="go">Ouvrir la fiche</span>
  </a>
  <a class="card" href="grimoire.html">
   <h2>Grimoire de sorts</h2>
-  <p>Choisis tes sorts par nom, classe, école et niveau, puis imprime-les ou enregistre ta liste en JSON.</p>
+  <p>Choisis tes sorts par nom, classe, école et niveau.</p>
   <span class="go">Ouvrir le grimoire</span>
  </a>
  <a class="card" href="objets.html">
   <h2>Objets magiques</h2>
-  <p>Tous les objets magiques et leurs effets : choisis ceux de ton personnage, imprime-les ou enregistre ta liste en JSON.</p>
+  <p>Tous les objets magiques et leurs effets : choisis ceux de ton personnage.</p>
   <span class="go">Ouvrir les objets</span>
+ </a>
+ <a class="card" href="equipement.html">
+  <h2>Équipement</h2>
+  <p>Armes, armures, potions de soins, matériel, outils, montures : choisis ton équipement avec les quantités, le poids et la valeur totale.</p>
+  <span class="go">Ouvrir l’équipement</span>
  </a>
 </nav>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
+<script src="persos.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',5000)};
+function chips(){
+  $('#chips').innerHTML='';
+  Persos.list().forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className='pc';b.textContent=p.nom;b.title=p.nom;
+    b.setAttribute('aria-pressed',p.actif);b.onclick=()=>{Persos.activate(p.id);chips()};
+    $('#chips').appendChild(b);
+  });
+}
+chips();
+$('#bExp').onclick=()=>{
+  const o=Persos.exportActive(),nom=(o.nom||'personnage').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));
+  a.download='personnage_'+nom+'.json';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('Personnage complet exporté (fiche, grimoire, objets, équipement)');
+};
+$('#bImp').onclick=()=>$('#file').click();
+$('#file').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const p=Persos.importPerso(JSON.parse(r.result));chips();msg('« '+p.nom+' » importé')}
+    catch(e){msg('Fichier invalide : choisis un .json exporté depuis cette page')}};
+  r.readAsText(f);ev.target.value='';
+};
+// Impression : chaque partie remplie est chargée dans un cadre caché puis imprimée
+const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html'};
+$('#bPrintAll').onclick=async()=>{
+  const parts=Persos.printable();
+  if(!parts.length){msg('Rien à imprimer : remplis d’abord la fiche ou ajoute des éléments');return}
+  const fr=$('#pf');
+  for(const k of parts){
+    await new Promise(res=>{fr.onload=()=>setTimeout(res,700);fr.src=PAGES[k]});
+    msg('Impression : '+k+'…');
+    fr.contentWindow.focus();fr.contentWindow.print();
+  }
+  msg('Impression terminée');
+};
+</script>
 </body>
 </html>
