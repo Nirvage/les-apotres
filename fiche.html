@@ -4,32 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fiche de personnage D&amp;D 5e</title>
+<link rel="stylesheet" href="style.css">
 <style>
 @page{size:A4;margin:0}
-:root{--ink:#1d2033;--soft:#5f6580;--line:#c9cde0;--gold:#d9a21b;--serif:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif}
-*{box-sizing:border-box}
-html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{margin:0;color:var(--ink);font:12px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(160deg,#1b1f4b,#3b2a6b 60%,#6b2f6b) fixed}
-.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:#12142f;color:#fff;box-shadow:0 2px 10px #0006}
-.bar b{font:italic 700 17px var(--serif);margin-right:auto}
-.bar button{font:inherit;font-size:13px;padding:7px 12px;border:1px solid #ffffff55;border-radius:6px;background:transparent;color:#fff;cursor:pointer}
-.bar button:hover,.bar button:focus-visible{background:#ffffff22;outline:2px solid var(--gold)}
-.bar .main{background:var(--gold);border-color:var(--gold);color:#201700;font-weight:600}
-#msg{font-size:12px;color:#cfe3ff}
+body{font-size:12px;line-height:1.3}
 
 /* Une page = une feuille A4 : les marges sont dans la page elle-même */
 .page{width:210mm;height:296mm;margin:16px auto;padding:8mm;background:#fff;border-radius:6px;box-shadow:0 4px 24px #0005;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-input,textarea,select{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;width:100%;padding:2px;min-width:0}
+input,textarea,select{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;width:100%;padding:2px;min-width:0}
 textarea{display:block;background:#fff;border:1px solid var(--line);border-radius:5px;resize:none;padding:5px;line-height:1.4;flex:1 1 0;min-height:12mm}
-input:focus,textarea:focus,select:focus{outline:2px solid var(--c,#3b4fd0);outline-offset:1px}
 input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-inner-spin-button{display:none}
 small,.lbl{display:block;font-size:10.5px;color:var(--soft)}
 
 /* En-tête */
-.hero{background:#2a3170;color:#fff;border-radius:10px;padding:8px 14px 10px;border-bottom:4px solid var(--gold);flex:none;font:italic 700 14px var(--serif)}
+.hero{flex:none;font:italic 700 14px var(--serif)}
 .hero input{color:#fff;border-bottom:1px solid #ffffff66}
-.hero input::placeholder{color:#ffffffaa}
 .hero small{color:#d9defa}
 .hero .nom{font:italic 700 26px var(--serif);border-bottom:2px solid var(--gold);padding:0 2px 2px}
 .idg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;margin-top:6px}
@@ -83,7 +73,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 #atks .atk{flex:1;min-height:6mm}
 .coins{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;text-align:center}
 .coins input{text-align:center;border:1px solid var(--line);border-radius:4px}
-.settings{width:210mm;margin:16px auto 0;background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:8px 8mm 10px}
+.settings{width:210mm;margin:16px auto 0;padding:8px 8mm 10px}
 .settings summary{cursor:pointer;font:italic 700 15px var(--serif);color:#2a3170}
 .settings summary span{font:12px system-ui,sans-serif;color:var(--soft)}
 .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin-top:8px}
@@ -106,26 +96,28 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  .sgrid{grid-template-columns:1fr 1fr}
 }
 @media print{
- html,body{background:#fff}
  body{font-size:11px}
- .bar,.noprint{display:none!important}
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
 }
 </style>
 </head>
 <body>
-<div class="bar">
- <b>Fiche de personnage D&amp;D 5e</b>
- <span id="msg" role="status"></span>
- <button class="main" id="bSave">Enregistrer (.json)</button>
- <button id="bLoad">Charger un .json</button>
- <button id="bPrint">Exporter en PDF (A4)</button>
- <button id="bReset">Nouvelle fiche</button>
- <input type="file" id="file" accept="application/json,.json" hidden>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Fiche de personnage D&amp;D 5e</b>
+  <span id="msg" role="status"></span>
+  <button class="primary" id="bSave">Enregistrer (.json)</button>
+  <button id="bLoad">Charger un .json</button>
+  <button id="bPrint">Exporter en PDF (A4)</button>
+  <button id="bReset">Vider la fiche</button>
+  <input type="file" id="file" accept="application/json,.json" hidden>
+ </div>
+ <div class="persos" id="persos"></div>
 </div>
 
-<details class="settings noprint" open>
+<details class="settings panel noprint" open>
  <summary>Paramètres <span>(cette partie n'est pas imprimée)</span></summary>
  <div class="sgrid">
   <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
@@ -234,12 +226,12 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  </div></section>
 </main>
 
+<script src="persos.js"></script>
 <script>
 const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
 const SK=[['Acrobaties','dex'],['Arcanes','int'],['Athlétisme','for'],['Discrétion','dex'],['Dressage','sag'],['Escamotage','dex'],['Histoire','int'],['Intimidation','cha'],['Intuition','sag'],['Investigation','int'],['Médecine','sag'],['Nature','int'],['Perception','sag'],['Persuasion','cha'],['Religion','int'],['Représentation','cha'],['Supercherie','cha'],['Survie','sag']];
 const CLS={'Artificier':8,'Barbare':12,'Barde':8,'Clerc':8,'Druide':8,'Ensorceleur':6,'Guerrier':10,'Magicien':6,'Moine':8,'Occultiste':8,'Paladin':10,'Rôdeur':10,'Roublard':8};
 const PERC=SK.findIndex(s=>s[0]==='Perception');
-const STORE='fiche_dnd_v2';
 const $=s=>document.querySelector(s);
 const sg=n=>(n>=0?'+':'')+n;
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',3500)};
@@ -307,10 +299,26 @@ function apply(obj){
   if(!val('espece')&&val('race'))el('espece').value=val('race');
   calc();
 }
-function autosave(){try{localStorage.setItem(STORE,JSON.stringify(collect()))}catch(e){}}
+// Remet tous les champs à leur valeur par défaut (utilisé pour « Vider » et pour changer de personnage)
+function reset(){
+  document.querySelectorAll('[data-k]').forEach(e=>{
+    if(e.type==='checkbox')e.checked=false;
+    else if(e.tagName==='SELECT')e.selectedIndex=0;
+    else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
+  });
+}
+// Le nom du personnage (sélecteur) fait foi pour le champ « Nom » de la fiche
+function show(obj,perso){
+  reset();
+  if(obj)apply(obj);
+  el('nom').value=perso.nom;
+  calc();
+}
+function autosave(){Persos.save()}
 
 function onEdit(ev){
   const t=ev.target,k=t.dataset&&t.dataset.k;
+  if(k==='nom')Persos.setName(val('nom'));
   if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
   if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
   if(k==='niveau')setDV();
@@ -333,7 +341,11 @@ $('#bLoad').onclick=()=>$('#file').click();
 $('#file').onchange=ev=>{
   const f=ev.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{try{apply(JSON.parse(r.result));autosave();msg('Fiche chargée : '+f.name)}catch(e){msg('Fichier invalide : choisissez un .json créé par cette fiche')}};
+  r.onload=()=>{try{
+    apply(JSON.parse(r.result));
+    if(val('nom').trim())Persos.setName(val('nom'));else el('nom').value=Persos.current().nom;
+    autosave();msg('Fiche chargée : '+f.name);
+  }catch(e){msg('Fichier invalide : choisissez un .json créé par cette fiche')}};
   r.readAsText(f);ev.target.value='';
 };
 
@@ -344,18 +356,19 @@ addEventListener('beforeprint',fit);addEventListener('afterprint',unfit);
 $('#bPrint').onclick=()=>window.print();
 
 $('#bReset').onclick=()=>{
-  if(!confirm('Effacer toute la fiche ? Pensez à enregistrer un .json avant.'))return;
-  document.querySelectorAll('[data-k]').forEach(e=>{
-    if(e.type==='checkbox')e.checked=false;
-    else if(e.tagName==='SELECT')e.selectedIndex=0;
-    else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
-  });
-  try{localStorage.removeItem(STORE)}catch(e){}
-  calc();msg('Nouvelle fiche prête');
+  const p=Persos.current();
+  if(!confirm('Effacer toute la fiche de « '+p.nom+' » ? Pensez à enregistrer un .json avant.'))return;
+  show(null,p);autosave();msg('Fiche vidée');
 };
 
-try{const s=localStorage.getItem(STORE)||localStorage.getItem('fiche_dnd_v1');if(s)apply(JSON.parse(s))}catch(e){}
-calc();
+Persos.init({
+  part:'fiche',
+  mount:$('#persos'),
+  collect,
+  apply:show,
+  onName:n=>{el('nom').value=n},
+  msg
+});
 </script>
 </body>
 </html>
