@@ -116,7 +116,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .pool input{width:46px;text-align:center;font-weight:700;border:1px solid var(--line);border-radius:4px}
 
 /* Page 3 : espèce, sous-classe, dons */
-#pg3{height:auto;min-height:296mm;overflow:visible}
+#pg3,#pg4{height:auto;min-height:296mm;overflow:visible}
 .xcols{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
 .xcol{display:flex;flex-direction:column;gap:8px}
 .xl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:11px}
@@ -139,7 +139,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .fxs b{font-weight:600}
 .v.fx{text-decoration:underline dotted}
 @media screen and (max-width:860px){
- #pg3{min-height:0}
+ #pg3,#pg4{min-height:0}
  .xcols{grid-template-columns:1fr}
  .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
  .main,.bottom,.abcols,.idg,.slots,.rgrid{grid-template-columns:1fr}
@@ -152,7 +152,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  body{font-size:11px}
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
- #pg3.empty{display:none}
+ #pg3.empty,#pg4.empty{display:none}
 }
 </style>
 </head>
@@ -175,15 +175,15 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <summary>Paramètres <span>(cette partie n'est pas imprimée)</span></summary>
  <div class="sgrid">
   <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
-  <label><small>Espèce (remplit « Espèce »)</small><input data-k="race" list="races" placeholder="Elfe, Nain, Humain…"></label>
-  <label><small>Sous-classe</small><select id="sclasse" data-k="sclasse"><option value="">—</option></select></label>
+  <label class="w2"><small>Espèce</small><select id="race" data-k="race"><option value="">Choisir…</option></select></label>
+  <label class="w2"><small>Sous-espèce / lignage</small><select id="sespece" data-k="sespece" disabled><option value="">—</option></select></label>
+  <label class="w2"><small>Sous-classe (remplit « Sous-classe »)</small><select id="sclasse" data-k="sclasse"><option value="">—</option></select></label>
   <label><small>Bonus d'initiative</small><input data-k="b_init" type="number" placeholder="0"></label>
   <label><small>Bonus de CA</small><input data-k="b_ca" type="number" placeholder="0"></label>
   <label><small>Bonus au DD de sauvegarde</small><input data-k="b_dd" type="number" placeholder="0"></label>
   <label><small>Bonus d'attaque de sort</small><input data-k="b_atk" type="number" placeholder="0"></label>
  </div>
  <p>Les bonus s'ajoutent au score calculé. La CA de base est 10 + modificateur de Dextérité : ajoute l'armure, le bouclier et les effets magiques dans « Bonus de CA ».</p>
- <datalist id="races"><option value="Aasimar"><option value="Drakéide"><option value="Elfe"><option value="Gnome"><option value="Goliath"><option value="Halfelin"><option value="Humain"><option value="Nain"><option value="Orc"><option value="Tieffelin"></datalist>
 </details>
 
 <!-- PAGE 1 -->
@@ -309,6 +309,11 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  </div>
 </main>
 
+<!-- PAGE 4 -->
+<main class="page" id="pg4" hidden>
+ <section class="card" style="--c:#3b4fd0"><h2 id="xClsT">Capacités de classe</h2><div class="in" id="xCls"></div></section>
+</main>
+
 <script src="persos.js"></script>
 <script>
 const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
@@ -431,26 +436,37 @@ function renderMagic(mod,pb,lvl,cl,cst){
 }
 
 
-// ---------- Espèce, sous-classe et dons (données dans especes.json, sousclasses.json, dons.json) ----------
-let ESPD=null,DOND=null,SCD=null;
-const newPX=()=>({sp:{k:'',ch:{},auto:''},dons:[]});
+// ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
+let ESPD=null,DOND=null,SCD=null,CAPD=null;
+const newPX=()=>({sp:{k:'',ch:{}},dons:[],auto:{}});
 let PX=newPX();
 const rid=()=>Math.random().toString(36).slice(2,8);
 const fm=n=>String(n).replace('.',',');
 const skIdx=n=>SK.findIndex(s=>s[0]===n);
 const optObj=o=>typeof o==='string'?{v:o}:o;
+const short=v=>String(v).split(' (')[0];
 function findEsp(){
-  const v=norm(val('race')||val('espece'));
+  const v=norm(val('race'));
   if(!ESPD||!v)return null;
   for(const n in ESPD)if(norm(n)===v)return [n,ESPD[n]];
   return null;
 }
-// Calcule tous les effets (espèce, sous-choix, dons) ; calc() les applique ensuite aux valeurs de la fiche
+const lignOpt=E=>E&&E[1].lignage?E[1].lignage.opts.find(o=>o.v===val('sespece')):null;
+function resMax(r,lvl,pb,mod){
+  const m=r.max;
+  if(m==='pb')return pb;
+  if(typeof m==='number')return m;
+  if(Array.isArray(m))return m[lvl-1]||0;
+  if(m&&m.mod)return Math.max(m.min||0,mod[m.mod]||0);
+  return 0;
+}
+// Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
-  const F={ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp()};
+  const F={ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp(),cl:findClass()};
   const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
+      if(f.niv&&lvl<f.niv)continue;
       const v=f.c?ch[f.c]:null;
       if(f.t==='carac'){if(v){add(F.ab,v,1);F.lines.push([src,ABN[v]+' +1'])}}
       else if(f.t==='sv'){if(v){F.sv[v]=1;F.lines.push([src,'maîtrise du jet de sauvegarde de '+ABN[v]])}}
@@ -460,21 +476,23 @@ function fxCompute(lvl,pb){
       else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
       else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
       else if(f.t==='ca'){F.ca+=f.n;F.lines.push([src,'CA +'+f.n])}
-      else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max==='pb'?pb:f.max,repos:f.repos});
+      else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max,repos:f.repos,niv:f.niv});
     }
   };
   if(F.E){
-    const [n,d]=F.E,ch=PX.sp.ch;
+    const [n,d]=F.E,ch=PX.sp.ch,o=lignOpt(F.E);
     run(d.fx,ch,n,'e_');
-    for(const c of d.choix)if(c.t==='liste'){
-      const o=c.opts.map(optObj).find(o=>o.v===ch[c.id]);
-      if(o&&o.fx)run(o.fx,ch,n+' ('+o.v+')','e_');
-    }
+    if(o)run(o.fx||[],ch,n+' ('+short(o.v)+')','e_');
   }
   if(DOND)for(const g of PX.dons){
     const dd=DOND.find(x=>x.id===g.id);
     if(dd)run(dd.fx,g.ch,dd.nom,'d'+g.u+'_');
   }
+  const sf=F.cl&&SCD&&SCD[F.cl[0]]&&SCD[F.cl[0]][val('sclasse')];
+  if(sf)run(sf.fx||[],{},val('sclasse'),'s_');
+  // capacités de classe : seuls les effets sur les valeurs de la fiche (les réserves de classe sont déjà au-dessus)
+  if(F.cl&&CAPD&&CAPD[F.cl[0]])for(const f of CAPD[F.cl[0]])
+    if(f.niv<=lvl)run((f.fx||[]).filter(x=>x.t!=='res').map(x=>({...x,niv:0})),{},f.nom,'c_');
   return F;
 }
 function chHTML(path,c,cur){
@@ -490,21 +508,23 @@ const poolHTML=r=>{
   const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
   return `<div class="rs" style="--c:#12968f"><div class="rh"><b>${esc(r.nom)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${r.key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${r.max}</span></div><small>${esc(r.repos||'')}</small></div>`;
 };
+const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc)}</li>`).join('')}</ul>`;
+const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${esc(f.desc)}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
 function renderExtras(F,lvl,pb,mod,tot){
-  const E=F.E,cl=findClass();
+  const E=F.E,cl=F.cl;
+  const RES=F.res.map(r=>({...r,max:resMax(r,lvl,pb,mod)})).filter(r=>r.max>0);
   // Espèce
-  $('#xSpT').textContent=E?'Espèce — '+E[0]:'Espèce';
+  const lo=lignOpt(E);
+  $('#xSpT').textContent=E?'Espèce — '+E[0]+(lo?' ('+short(lo.v)+')':''):'Espèce';
   let h;
   if(!ESPD)h='<p class="xh">Les données d’espèces n’ont pas pu être chargées.</p>';
   else if(!E)h=`<p class="xh">${val('race').trim()?'Espèce non reconnue : aucun trait automatique.':'Choisissez une espèce dans les paramètres.'}</p>`;
   else{
     const d=E[1],ch=PX.sp.ch;
-    h=`<p class="xh">Taille : ${esc(d.taille)} · Vitesse de base : ${fm(d.vit)} m</p><ul class="xl">${d.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc)}</li>`).join('')}</ul>`;
-    h+=d.choix.map(c=>{
-      const o=c.t==='liste'?c.opts.map(optObj).find(o=>o.v===ch[c.id]):null;
-      return `<div class="chs">${chHTML('sp',c,ch[c.id])}</div>`+(o&&o.txt?`<p class="chn">${esc(o.txt)}</p>`:'');
-    }).join('');
-    h+=F.res.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
+    h=`<p class="xh">Taille : ${esc(d.taille)} · Vitesse de base : ${fm(d.vit)} m</p>`+traitsHTML(d.traits);
+    if(d.lignage)h+=lo?`<p class="xh"><b>${esc(d.lignage.lbl)} : ${esc(lo.v)}</b></p>`+traitsHTML(lo.traits||[{nom:lo.v,desc:lo.txt||''}]):`<p class="xh">Choisissez un ${esc(d.lignage.lbl.toLowerCase())} dans les paramètres (sous-espèce).</p>`;
+    if(d.choix.length)h+=`<div class="chs">${d.choix.map(c=>chHTML('sp',c,ch[c.id])).join('')}</div>`;
+    h+=RES.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
   }
   setHTML($('#xSp'),h);
   // Sous-classe
@@ -512,8 +532,12 @@ function renderExtras(F,lvl,pb,mod,tot){
   $('#xSubC').hidden=!sf;
   if(sf){
     $('#xSubT').textContent='Sous-classe — '+sn;
-    setHTML($('#xSub'),'<ul class="xl">'+sf.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${esc(f.desc)}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>');
+    setHTML($('#xSub'),featsHTML(sf.feats,lvl)+RES.filter(r=>r.key.startsWith('s_')).map(poolHTML).join(''));
   }
+  // Capacités de classe (page 4)
+  const cf=cl&&CAPD&&CAPD[cl[0]];
+  $('#pg4').classList.toggle('empty',!cf);$('#pg4').hidden=!cf;
+  if(cf){$('#xClsT').textContent='Capacités de classe — '+cl[0]+' (niveau '+lvl+')';setHTML($('#xCls'),featsHTML(cf,lvl))}
   // Dons
   let dh='';
   if(!DOND)dh='<p class="xh">Les données de dons n’ont pas pu être chargées.</p>';
@@ -522,24 +546,60 @@ function renderExtras(F,lvl,pb,mod,tot){
     if(!dd)return '';
     return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}</span><button type="button" class="noprint" data-del="${g.u}">Retirer</button></div><p>${esc(dd.desc)}</p>`
       +(dd.choix.length?`<div class="chs">${dd.choix.map(c=>chHTML('d'+g.u,c,g.ch[c.id])).join('')}</div>`:'')
-      +F.res.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
-  }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus.</p>';
+      +RES.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
+  }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus (un même don peut être pris plusieurs fois).</p>';
   setHTML($('#xDons'),dh);
   // Effets appliqués
-  const spd=F.E?F.E[1].vit+F.vit:F.vit?9+F.vit:null;
+  const spd=E?E[1].vit+F.vit:F.vit?9+F.vit:null;
   const row=(a,b)=>`<b>${a}</b><span>${b}</span>`;
-  let fx=F.lines.length?F.lines.map(([a,b])=>row(esc(a),esc(b))).join(''):'';
+  let fx=F.lines.map(([a,b])=>row(esc(a),esc(b))).join('');
   if(spd!=null)fx+=row('Vitesse',fm(spd)+' m');
   const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
   if(ac)fx+=row('Caractéristiques finales',esc(ac));
-  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, de maîtrise et d’initiative sont déjà inclus dans les valeurs de la fiche. Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
+  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
   $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf);
+}
+// Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
+function syncChecks(F){
+  const A=PX.auto=PX.auto||{};
+  const sync=(cb,want,store,key)=>{
+    if(!cb)return;
+    if(want&&!cb.checked){cb.checked=true;store[key]=1}
+    if(!want&&store[key]){cb.checked=false;delete store[key]}
+    if(cb.dataset.t0===undefined)cb.dataset.t0=cb.title||'';
+    cb.disabled=!!want;
+    cb.title=want?'Accordée par un effet (espèce, don…)':cb.dataset.t0;
+  };
+  A.sk=A.sk||{};A.ske=A.ske||{};A.sv=A.sv||{};
+  SK.forEach((s,i)=>{
+    const x=F.sk[i]===2,m=x||F.sk[i]>=1;
+    sync(el('sk_'+i),m,A.sk,i);sync(el('ske_'+i),x,A.ske,i);
+  });
+  AB.forEach(([k])=>sync(el('sv_'+k),!!F.sv[k],A.sv,k));
 }
 function fillSub(){
   const cl=findClass(),sel=$('#sclasse'),keep=sel.value;
   const names=cl&&SCD&&SCD[cl[0]]?Object.keys(SCD[cl[0]]):[];
   setHTML(sel,'<option value="">—</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''));
+  if(sel.value!==keep){
+    sel.value=keep;
+    if(sel.value!==keep&&val('sousclasse')===keep)el('sousclasse').value='';   // la classe a changé : la sous-classe n'existe plus
+  }
+}
+function fillSpec(){
+  const E=findEsp(),sel=$('#sespece'),keep=sel.value,l=E&&E[1].lignage;
+  setHTML(sel,l?`<option value="">${esc(l.lbl)}…</option>`+l.opts.map(o=>`<option value="${esc(o.v)}">${esc(o.v)}</option>`).join(''):'<option value="">— (aucune sous-espèce)</option>');
+  sel.disabled=!l;
   if(sel.value!==keep)sel.value=keep;
+}
+function ensureRace(v){
+  const sel=$('#race');
+  if(v&&![...sel.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (personnalisé)';sel.appendChild(o)}
+}
+// Champ « Espèce » de la page 1 : espèce + sous-espèce
+function syncEspece(){
+  const r=val('race'),l=val('sespece');
+  el('espece').value=r?(l?r+' ('+short(l)+')':r):'';
 }
 
 function calc(){
@@ -547,6 +607,8 @@ function calc(){
   const pb=Math.ceil(lvl/4)+1;
   fillSub();
   const F=fxCompute(lvl,pb);
+  syncChecks(F);
+  fillSpec();
   const mod={},tot={};
   AB.forEach(([k])=>{
     const base=parseInt(val('ab_'+k))||10;
@@ -554,10 +616,10 @@ function calc(){
     mod[k]=Math.floor((tot[k]-10)/2);
     $('#m_'+k).textContent=sg(mod[k]);
     el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, dons)':'';
-    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)||F.sv[k]?pb:0));
+    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0));
     $('#sv_'+k).classList.toggle('fx',!!F.sv[k]);
   });
-  const bonus=i=>(chk('ske_'+i)||F.sk[i]===2)?2*pb:(chk('sk_'+i)||F.sk[i])?pb:0;
+  const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
   SK.forEach(([n,a],i)=>{$('#sk_'+i).textContent=sg(mod[a]+bonus(i));$('#sk_'+i).classList.toggle('fx',!!F.sk[i])});
   $('#pb').textContent=sg(pb);
   const nb=k=>parseInt(val(k))||0;
@@ -593,11 +655,11 @@ function collect(){
 function apply(obj){
   const d=obj&&obj.data;
   if(!d||typeof d!=='object')throw new Error('format');
+  ensureRace(d.race);
   document.querySelectorAll('[data-k]').forEach(e=>{
     if(!(e.dataset.k in d))return;
     if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
   });
-  if(!val('espece')&&val('race'))el('espece').value=val('race');
   setRS(d.ress&&typeof d.ress==='object'?JSON.parse(JSON.stringify(d.ress)):{});
   PX=newPX();
   if(d.extras&&typeof d.extras==='object'){
@@ -605,15 +667,17 @@ function apply(obj){
     PX.sp=Object.assign(PX.sp,x.sp||{});
     PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
     PX.dons.forEach(g=>{g.ch=g.ch||{}});
+    PX.auto=x.auto&&typeof x.auto==='object'?x.auto:{};
     if(!PX.sp.ch)PX.sp.ch={};
   }
   fillSub();el('sclasse').value=d.sclasse||'';
+  fillSpec();el('sespece').value=d.sespece||'';
   calc();
 }
 // Remet tous les champs à leur valeur par défaut (utilisé pour « Vider » et pour changer de personnage)
 function reset(){
   document.querySelectorAll('[data-k]').forEach(e=>{
-    if(e.type==='checkbox')e.checked=false;
+    if(e.type==='checkbox'){e.checked=false;e.disabled=false}
     else if(e.tagName==='SELECT')e.selectedIndex=0;
     else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
   });
@@ -651,15 +715,18 @@ function onEdit(ev){
   if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
   if(k==='niveau')setDV();
   if(k==='race'){
-    el('espece').value=val('race');
     const E=findEsp(),kk=E?E[0]:'';
-    if(kk!==PX.sp.k){   // autre espèce : les choix de lignage repartent de zéro, la vitesse suit si elle n'a pas été modifiée
+    if(kk!==PX.sp.k){   // autre espèce : les choix repartent de zéro, la vitesse suit si elle n'a pas été modifiée
       PX.sp={k:kk,ch:{},auto:PX.sp.auto};
+      el('sespece').value='';
       const v=E?fm(E[1].vit)+' m':'';
       if(!val('vitesse').trim()||val('vitesse')===PX.sp.auto){el('vitesse').value=v;PX.sp.auto=v}
     }
+    syncEspece();
   }
+  if(k==='sespece')syncEspece();
   if(k==='sclasse'){
+    el('sousclasse').value=val('sclasse');
     const cl=findClass(),sc=cl&&cl[1].sous_classe;
     if(sc&&el('sclance'))el('sclance').checked=/occult|arcanique/i.test(val('sclasse'));   // Chevalier occulte, Escroc arcanique
   }
@@ -698,7 +765,6 @@ $('#bPrint').onclick=()=>window.print();
 $('#bDon').onclick=()=>{
   const id=$('#donSel').value;
   if(!id||!DOND)return;
-  if(id!=='asi'&&PX.dons.some(g=>g.id===id)){msg('Ce don est déjà pris');return}
   PX.dons.push({u:rid(),id,ch:{}});
   calc();autosave();
 };
@@ -720,11 +786,13 @@ $('#bReset').onclick=()=>{
 // Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
 async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  const [a,b,c,d]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json'].map(get));
+  const [a,b,c,d,e]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json','capacites.json'].map(get));
   if(a.status==='fulfilled')CD=a.value;else CDFAIL=true;
   if(b.status==='fulfilled')ESPD=b.value;
   if(c.status==='fulfilled')DOND=c.value;
   if(d.status==='fulfilled')SCD=d.value;
+  if(e.status==='fulfilled')CAPD=e.value;
+  if(ESPD)$('#race').innerHTML='<option value="">Choisir…</option>'+Object.keys(ESPD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
   if(DOND){
     const cats=[];DOND.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
     $('#donSel').innerHTML='<option value="">Choisir un don…</option>'+cats.map(c=>`<optgroup label="${esc(c)}">${DOND.filter(x=>x.cat===c).map(x=>`<option value="${x.id}">${esc(x.nom)}</option>`).join('')}</optgroup>`).join('');
