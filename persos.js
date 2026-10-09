@@ -190,7 +190,7 @@ function fmap(){
   var m=[],i;
   function add(k,sec,lab){m.push([k,sec,lab])}
   [['nom','identité','nom'],['classe','identité','classe'],['sousclasse','identité','sous-classe'],['espece','identité','espèce'],['historique','identité','historique'],['alignement','identité','alignement'],['niveau','identité','niveau'],
-   ['clsel','choix_dans_les_paramètres','classe'],['race','choix_dans_les_paramètres','espèce'],['sespece','choix_dans_les_paramètres','sous-espèce'],['sclasse','choix_dans_les_paramètres','sous-classe'],
+   ['clsel','choix_dans_les_paramètres','classe'],['race','choix_dans_les_paramètres','espèce'],['sespece','choix_dans_les_paramètres','sous-espèce'],['sclasse','choix_dans_les_paramètres','sous-classe'],['bgsel','choix_dans_les_paramètres','historique'],
    ['b_init','bonus_divers','initiative'],['b_ca','bonus_divers','classe_d_armure'],['b_dd','bonus_divers','DD_de_sauvegarde'],['b_atk','bonus_divers','attaque_de_sort'],
    ['dvtot','combat','dés_de_vie_total'],['dvrest','combat','dés_de_vie_restants'],['vitesse','combat','vitesse'],['inspi','combat','inspiration'],['pvmax','combat','pv_max'],['pv','combat','pv_actuels'],['pvtemp','combat','pv_temporaires'],
    ['ds1','jets_contre_la_mort','réussite_1'],['ds2','jets_contre_la_mort','réussite_2'],['ds3','jets_contre_la_mort','réussite_3'],['df1','jets_contre_la_mort','échec_1'],['df2','jets_contre_la_mort','échec_2'],['df3','jets_contre_la_mort','échec_3'],

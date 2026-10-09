@@ -1,0 +1,968 @@
+{
+ "Acolyte": {
+  "desc": "Vous avez consacré votre jeunesse au service d’un temple, à accomplir des rites sacrés et à servir les prêtres.",
+  "carac": [
+   "int",
+   "sag",
+   "cha"
+  ],
+  "comp": [
+   "Intuition",
+   "Religion"
+  ],
+  "outil": "Outils de calligraphe",
+  "don": "initie_magie",
+  "don_ch": {
+   "liste": "Clerc"
+  },
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "int",
+     "sag",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "int",
+     "sag",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Intuition"
+   },
+   {
+    "t": "comp",
+    "v": "Religion"
+   }
+  ]
+ },
+ "Artisan": {
+  "desc": "Vous avez appris un métier auprès d’un maître et travaillé dans un atelier, au contact des marchands et des clients.",
+  "carac": [
+   "for",
+   "dex",
+   "int"
+  ],
+  "comp": [
+   "Investigation",
+   "Persuasion"
+  ],
+  "outil": "Un outil d’artisan au choix",
+  "don": "artisan",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "dex",
+     "int"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "dex",
+     "int"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Investigation"
+   },
+   {
+    "t": "comp",
+    "v": "Persuasion"
+   }
+  ]
+ },
+ "Charlatan": {
+  "desc": "Vous avez appris très tôt à manipuler les gens, à jouer sur leurs espoirs et à vivre de leurs illusions.",
+  "carac": [
+   "dex",
+   "con",
+   "cha"
+  ],
+  "comp": [
+   "Supercherie",
+   "Escamotage"
+  ],
+  "outil": "Matériel de contrefaçon",
+  "don": "qualifie",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "dex",
+     "con",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "dex",
+     "con",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Supercherie"
+   },
+   {
+    "t": "comp",
+    "v": "Escamotage"
+   }
+  ]
+ },
+ "Criminel": {
+  "desc": "Vous avez vécu de petits larcins et de coups tordus, en marge de la loi, dans les ruelles et les bas-fonds.",
+  "carac": [
+   "dex",
+   "con",
+   "int"
+  ],
+  "comp": [
+   "Escamotage",
+   "Discrétion"
+  ],
+  "outil": "Outils de voleur",
+  "don": "vigilant",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "dex",
+     "con",
+     "int"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "dex",
+     "con",
+     "int"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Escamotage"
+   },
+   {
+    "t": "comp",
+    "v": "Discrétion"
+   }
+  ]
+ },
+ "Artiste": {
+  "desc": "Vous avez gagné votre vie sur scène, devant un public, par la musique, la danse, le chant ou le conte.",
+  "carac": [
+   "for",
+   "dex",
+   "cha"
+  ],
+  "comp": [
+   "Acrobaties",
+   "Représentation"
+  ],
+  "outil": "Un instrument de musique au choix",
+  "don": "musicien",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "dex",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "dex",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Acrobaties"
+   },
+   {
+    "t": "comp",
+    "v": "Représentation"
+   }
+  ]
+ },
+ "Fermier": {
+  "desc": "Vous avez grandi près de la terre, à soigner les bêtes et les cultures au rythme des saisons.",
+  "carac": [
+   "for",
+   "con",
+   "sag"
+  ],
+  "comp": [
+   "Dressage",
+   "Nature"
+  ],
+  "outil": "Outils de charpentier",
+  "don": "robuste",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "con",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "con",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Dressage"
+   },
+   {
+    "t": "comp",
+    "v": "Nature"
+   }
+  ]
+ },
+ "Garde": {
+  "desc": "Vous avez veillé sur une cité, un château ou une caravane, l’œil toujours attentif aux menaces.",
+  "carac": [
+   "for",
+   "int",
+   "sag"
+  ],
+  "comp": [
+   "Athlétisme",
+   "Perception"
+  ],
+  "outil": "Un jeu au choix",
+  "don": "vigilant",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "int",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "int",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Athlétisme"
+   },
+   {
+    "t": "comp",
+    "v": "Perception"
+   }
+  ]
+ },
+ "Guide": {
+  "desc": "Vous avez grandi dans la nature sauvage et appris à vous y orienter et à y survivre, puis à y mener les autres.",
+  "carac": [
+   "dex",
+   "con",
+   "sag"
+  ],
+  "comp": [
+   "Discrétion",
+   "Survie"
+  ],
+  "outil": "Outils de cartographe",
+  "don": "initie_magie",
+  "don_ch": {
+   "liste": "Druide"
+  },
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "dex",
+     "con",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "dex",
+     "con",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Discrétion"
+   },
+   {
+    "t": "comp",
+    "v": "Survie"
+   }
+  ]
+ },
+ "Ermite": {
+  "desc": "Vous avez vécu à l’écart du monde, en reclus, pour la contemplation, la méditation ou le repentir.",
+  "carac": [
+   "con",
+   "sag",
+   "cha"
+  ],
+  "comp": [
+   "Médecine",
+   "Religion"
+  ],
+  "outil": "Matériel d’herboriste",
+  "don": "guerisseur",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "con",
+     "sag",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "con",
+     "sag",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Médecine"
+   },
+   {
+    "t": "comp",
+    "v": "Religion"
+   }
+  ]
+ },
+ "Marchand": {
+  "desc": "Vous avez été l’apprenti d’un négociant, voyageant entre les marchés et apprenant à acheter, vendre et marchander.",
+  "carac": [
+   "con",
+   "int",
+   "cha"
+  ],
+  "comp": [
+   "Dressage",
+   "Persuasion"
+  ],
+  "outil": "Outils de navigateur",
+  "don": "chanceux",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "con",
+     "int",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "con",
+     "int",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Dressage"
+   },
+   {
+    "t": "comp",
+    "v": "Persuasion"
+   }
+  ]
+ },
+ "Noble": {
+  "desc": "Vous avez grandi dans le luxe, entouré de privilèges, de conventions sociales et d’intrigues de cour.",
+  "carac": [
+   "for",
+   "int",
+   "cha"
+  ],
+  "comp": [
+   "Histoire",
+   "Persuasion"
+  ],
+  "outil": "Un jeu au choix",
+  "don": "qualifie",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "int",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "int",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Histoire"
+   },
+   {
+    "t": "comp",
+    "v": "Persuasion"
+   }
+  ]
+ },
+ "Sage": {
+  "desc": "Vous avez passé des années à étudier dans des bibliothèques, chez des maîtres ou dans une académie.",
+  "carac": [
+   "con",
+   "int",
+   "sag"
+  ],
+  "comp": [
+   "Arcanes",
+   "Histoire"
+  ],
+  "outil": "Outils de calligraphe",
+  "don": "initie_magie",
+  "don_ch": {
+   "liste": "Magicien"
+  },
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "con",
+     "int",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "con",
+     "int",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Arcanes"
+   },
+   {
+    "t": "comp",
+    "v": "Histoire"
+   }
+  ]
+ },
+ "Marin": {
+  "desc": "Vous avez vécu en mer, sur un navire marchand ou de guerre, et appris à tenir debout dans la tempête.",
+  "carac": [
+   "for",
+   "dex",
+   "sag"
+  ],
+  "comp": [
+   "Acrobaties",
+   "Perception"
+  ],
+  "outil": "Outils de navigateur",
+  "don": "bagarreur",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "dex",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "dex",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Acrobaties"
+   },
+   {
+    "t": "comp",
+    "v": "Perception"
+   }
+  ]
+ },
+ "Scribe": {
+  "desc": "Vous avez travaillé dans un scriptorium ou une administration, à copier et à rédiger des textes avec un soin extrême.",
+  "carac": [
+   "dex",
+   "int",
+   "sag"
+  ],
+  "comp": [
+   "Investigation",
+   "Perception"
+  ],
+  "outil": "Outils de calligraphe",
+  "don": "qualifie",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "dex",
+     "int",
+     "sag"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "dex",
+     "int",
+     "sag"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Investigation"
+   },
+   {
+    "t": "comp",
+    "v": "Perception"
+   }
+  ]
+ },
+ "Soldat": {
+  "desc": "Vous avez été formé à la guerre, enrôlé dans une armée ou une milice, et vous avez connu le champ de bataille.",
+  "carac": [
+   "for",
+   "dex",
+   "con"
+  ],
+  "comp": [
+   "Athlétisme",
+   "Intimidation"
+  ],
+  "outil": "Un jeu au choix",
+  "don": "attaquant_sauvage",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "for",
+     "dex",
+     "con"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "for",
+     "dex",
+     "con"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Athlétisme"
+   },
+   {
+    "t": "comp",
+    "v": "Intimidation"
+   }
+  ]
+ },
+ "Voyageur": {
+  "desc": "Vous avez grandi sans toit fixe, de route en route, en vous débrouillant par la ruse et la chance.",
+  "carac": [
+   "dex",
+   "sag",
+   "cha"
+  ],
+  "comp": [
+   "Intuition",
+   "Discrétion"
+  ],
+  "outil": "Outils de voleur",
+  "don": "chanceux",
+  "don_ch": {},
+  "equip": "Équipement de départ : un lot d’objets propre à l’historique (voir le Manuel des joueurs) ou 50 po.",
+  "choix": [
+   {
+    "id": "mode",
+    "t": "liste",
+    "lbl": "Répartition des bonus",
+    "opts": [
+     "+2 / +1",
+     "+1 / +1 / +1"
+    ]
+   },
+   {
+    "id": "a2",
+    "t": "carac",
+    "lbl": "+2 en",
+    "opts": [
+     "dex",
+     "sag",
+     "cha"
+    ]
+   },
+   {
+    "id": "a1",
+    "t": "carac",
+    "lbl": "+1 en",
+    "opts": [
+     "dex",
+     "sag",
+     "cha"
+    ]
+   }
+  ],
+  "fx": [
+   {
+    "t": "bg_carac"
+   },
+   {
+    "t": "comp",
+    "v": "Intuition"
+   },
+   {
+    "t": "comp",
+    "v": "Discrétion"
+   }
+  ]
+ }
+}

@@ -177,6 +177,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
   <label class="w2"><small>Espèce</small><select id="race" data-k="race"><option value="">Choisir…</option></select></label>
   <label class="w2"><small>Sous-espèce / lignage</small><select id="sespece" data-k="sespece" disabled><option value="">—</option></select></label>
+  <label class="w2"><small>Historique (remplit « Historique », ajoute bonus, compétences et don)</small><select id="bgsel" data-k="bgsel"><option value="">—</option></select></label>
   <label class="w2"><small>Sous-classe (remplit « Sous-classe »)</small><select id="sclasse" data-k="sclasse"><option value="">—</option></select></label>
   <label><small>Bonus d'initiative</small><input data-k="b_init" type="number" placeholder="0"></label>
   <label><small>Bonus de CA</small><input data-k="b_ca" type="number" placeholder="0"></label>
@@ -253,6 +254,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   </div></section>
   <div class="col">
    <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
+   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques à harmonisation choisis dans la page Objets magiques (5 maximum)">Importer depuis les objets magiques</button>
     <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
    </div></section>
    <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
@@ -286,6 +288,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
   <div class="itiles" id="clsInfos" hidden></div>
   <div class="rgrid" id="clsRes" hidden></div>
+  <button type="button" id="bSp" class="noprint" title="Ajoute les sorts choisis dans le grimoire, classés par niveau">Importer depuis le grimoire</button>
   <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
@@ -298,6 +301,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <div class="xcols">
   <div class="xcol">
    <section class="card" style="--c:#12968f"><h2 id="xSpT">Espèce</h2><div class="in" id="xSp"></div></section>
+   <section class="card" style="--c:#2f6fd0" id="xBgC" hidden><h2 id="xBgT">Historique</h2><div class="in" id="xBg"></div></section>
    <section class="card" style="--c:#7a4fc4" id="xSubC"><h2 id="xSubT">Sous-classe</h2><div class="in" id="xSub"></div></section>
    <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
   </div>
@@ -438,8 +442,20 @@ function renderMagic(mod,pb,lvl,cl,cst){
 
 
 // ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
-let ESPD=null,DOND=null,SCD=null,CAPD=null;
-const newPX=()=>({sp:{k:'',ch:{}},dons:[],auto:{}});
+let ESPD=null,DOND=null,SCD=null,CAPD=null,BGD=null;
+const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],auto:{}});
+function findBg(){return BGD&&PX.bg.k&&BGD[PX.bg.k]?[PX.bg.k,BGD[PX.bg.k]]:null}
+// Le don d'origine de l'historique est ajouté automatiquement (et retiré si l'historique change)
+function syncBgFeat(){
+  const b=findBg();
+  PX.dons=PX.dons.filter(g=>{
+    if(!g.bg)return true;
+    const ok=b&&g.id===b[1].don;
+    if(!ok)Object.keys(RS).forEach(k=>{if(k.startsWith('d'+g.u+'_'))delete RS[k]});
+    return ok;
+  });
+  if(b&&DOND&&!PX.dons.some(g=>g.bg)&&DOND.some(x=>x.id===b[1].don))PX.dons.unshift({u:rid(),id:b[1].don,ch:Object.assign({},b[1].don_ch),bg:1});
+}
 let PX=newPX();
 const rid=()=>Math.random().toString(36).slice(2,8);
 const fm=n=>String(n).replace('.',',');
@@ -468,8 +484,14 @@ function fxCompute(lvl,pb){
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
       if(f.niv&&lvl<f.niv)continue;
-      const v=f.c?ch[f.c]:null;
+      const v=f.v||(f.c?ch[f.c]:null);
       if(f.t==='carac'){if(v){add(F.ab,v,1);F.cap[v]=Math.max(F.cap[v]||20,f.max||20);F.lines.push([src,ABN[v]+' +1'])}}
+      else if(f.t==='bg_carac'){
+        const m=ch.mode||'+2 / +1',abl=(PX.bg.k&&BGD&&BGD[PX.bg.k]?BGD[PX.bg.k].carac:[]);
+        const give=(k,n)=>{add(F.ab,k,n);F.cap[k]=Math.max(F.cap[k]||20,20);F.lines.push([src,ABN[k]+' +'+n])};
+        if(m==='+1 / +1 / +1')abl.forEach(k=>give(k,1));
+        else{if(ch.a2)give(ch.a2,2);if(ch.a1&&ch.a1!==ch.a2)give(ch.a1,1)}
+      }
       else if(f.t==='sv'){if(v){F.sv[v]=1;F.lines.push([src,'maîtrise du jet de sauvegarde de '+ABN[v]])}}
       else if(f.t==='comp'){const i=skIdx(v);if(i>=0){F.sk[i]=Math.max(F.sk[i]||0,1);F.lines.push([src,'maîtrise : '+v])}}
       else if(f.t==='exp'){const i=skIdx(v);if(i>=0){F.sk[i]=2;F.lines.push([src,'expertise : '+v])}}
@@ -485,6 +507,8 @@ function fxCompute(lvl,pb){
     run(d.fx,ch,n,'e_');
     if(o)run(o.fx||[],ch,n+' ('+short(o.v)+')','e_');
   }
+  const B=findBg();
+  if(B)run(B[1].fx,PX.bg.ch,'Historique ('+B[0]+')','h_');
   if(DOND)for(const g of PX.dons){
     const dd=DOND.find(x=>x.id===g.id);
     if(dd)run(dd.fx,g.ch,dd.nom,'d'+g.u+'_');
@@ -528,6 +552,14 @@ function renderExtras(F,lvl,pb,mod,tot){
     h+=RES.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
   }
   setHTML($('#xSp'),h);
+  // Historique
+  const B=findBg();
+  $('#xBgC').hidden=!B;
+  if(B){
+    const d=B[1],dn=DOND&&DOND.find(x=>x.id===d.don);
+    $('#xBgT').textContent='Historique — '+B[0];
+    setHTML($('#xBg'),`<p class="xh">${esc(d.desc)}</p><ul class="xl"><li><b>Caractéristiques</b> — ${d.carac.map(k=>ABN[k]).join(', ')} : +2 / +1, ou +1 à chacune</li><li><b>Compétences</b> — ${d.comp.join(', ')}</li><li><b>Outil</b> — ${esc(d.outil)}</li><li><b>Don d’origine</b> — ${esc(dn?dn.nom:d.don)} (ajouté dans la liste des dons)</li></ul><p class="xh">${esc(d.equip)}</p><div class="chs">${d.choix.map(c=>chHTML('bg',c,PX.bg.ch[c.id])).join('')}</div>`);
+  }
   // Sous-classe
   const sn=val('sclasse'),sf=cl&&SCD&&SCD[cl[0]]&&SCD[cl[0]][sn];
   $('#xSubC').hidden=!sf;
@@ -545,7 +577,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   else dh=PX.dons.map(g=>{
     const dd=DOND.find(x=>x.id===g.id);
     if(!dd)return '';
-    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}</span><button type="button" class="noprint" data-del="${g.u}">Retirer</button></div><p>${esc(dd.desc)}</p>`
+    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}${g.bg?' · de l’historique':''}</span>${g.bg?'':`<button type="button" class="noprint" data-del="${g.u}">Retirer</button>`}</div><p>${esc(dd.desc)}</p>`
       +(dd.choix.length?`<div class="chs">${dd.choix.map(c=>chHTML('d'+g.u,c,g.ch[c.id])).join('')}</div>`:'')
       +RES.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
   }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus (un même don peut être pris plusieurs fois).</p>';
@@ -558,7 +590,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
   if(ac)fx+=row('Caractéristiques finales',esc(ac));
   setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
-  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf);
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B);
 }
 // Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
 function syncChecks(F){
@@ -607,6 +639,7 @@ function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
   const pb=Math.ceil(lvl/4)+1;
   fillSub();
+  syncBgFeat();
   const F=fxCompute(lvl,pb);
   syncChecks(F);
   fillSpec();
@@ -666,6 +699,7 @@ function apply(obj){
   if(d.extras&&typeof d.extras==='object'){
     const x=JSON.parse(JSON.stringify(d.extras));
     PX.sp=Object.assign(PX.sp,x.sp||{});
+    PX.bg=Object.assign(PX.bg,x.bg||{});if(!PX.bg.ch)PX.bg.ch={};
     PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
     PX.dons.forEach(g=>{g.ch=g.ch||{}});
     PX.auto=x.auto&&typeof x.auto==='object'?x.auto:{};
@@ -693,6 +727,48 @@ function show(obj,perso){
 }
 function autosave(){Persos.save()}
 // Reprend l'équipement choisi sur la page Équipement (« 2× Potion de guérison »), sans doublon
+const fire=e=>e.dispatchEvent(new Event('input',{bubbles:true}));
+// Sorts du grimoire -> zone « Sorts », une ligne par niveau (les lignes déjà importées sont remplacées)
+document.addEventListener('click',async e=>{
+  if(!e.target.closest('#bSp'))return;
+  Persos.save();
+  const g=Persos.part('grimoire'),L=g&&g.data&&g.data.sorts||[];
+  if(!L.length){alert('Aucun sort choisi pour ce personnage : ajoute-en d’abord dans le grimoire.');return}
+  let DBs;
+  try{DBs=await (await fetch('spells.json')).json()}catch(x){alert('Impossible de lire la liste des sorts (spells.json).');return}
+  const by={};DBs.forEach(s=>by[s.n]=s);
+  const lv={};
+  L.forEach(n=>{const s=by[n];if(!s)return;(lv[s.l]=lv[s.l]||[]).push(s.n.split('|')[0])});
+  const ta=document.querySelector('[data-k=sorts]');
+  let lines=ta.value.split('\n');
+  Object.keys(lv).sort((a,b)=>a-b).forEach(l=>{
+    const pre=l==0?'Tours de magie : ':'Niveau '+l+' : ',txt=pre+lv[l].sort((a,b)=>a.localeCompare(b,'fr')).join(', ');
+    const i=lines.findIndex(x=>x.startsWith(pre));
+    if(i>=0)lines[i]=txt;else lines.push(txt);
+  });
+  ta.value=lines.filter((x,i)=>x.trim()||(i>0&&i<lines.length-1)).join('\n');
+  fire(ta);
+});
+// Objets magiques à harmonisation -> cases « Objets liés » (5 au maximum)
+document.addEventListener('click',async e=>{
+  if(!e.target.closest('#bOb'))return;
+  Persos.save();
+  const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];
+  if(!L.length){alert('Aucun objet magique choisi pour ce personnage : ajoute-en d’abord sur la page Objets magiques.');return}
+  let DBo;
+  try{DBo=await (await fetch('objets.json')).json()}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
+  const by={};DBo.forEach(s=>by[s.n]=s);
+  const att=L.filter(n=>by[n]&&by[n].a);
+  if(!att.length){alert('Aucun des objets choisis ne demande d’harmonisation.');return}
+  const ins=[0,1,2,3,4].map(i=>document.querySelector('[data-k=obj'+i+']'));
+  let skipped=0;
+  att.forEach(n=>{
+    if(ins.some(x=>x.value.trim()===n))return;
+    const free=ins.find(x=>!x.value.trim());
+    if(free){free.value=n;fire(free)}else skipped++;
+  });
+  if(skipped)alert('Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) n’ont pas pu être ajouté(s).');
+});
 document.addEventListener('click',e=>{
   if(!e.target.closest('#bEq'))return;
   Persos.save();
@@ -720,7 +796,7 @@ function onEdit(ev){
   }
   if(t.dataset&&t.dataset.x!==undefined){   // choix d'espèce ou de don
     const [p,id]=t.dataset.x.split('|');
-    const ch=p==='sp'?PX.sp.ch:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
+    const ch=p==='sp'?PX.sp.ch:p==='bg'?PX.bg.ch:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
     if(!ch)return;
     ch[id]=t.value;
     if(t.type==='text'){autosave();return}   // texte libre : pas de recalcul (garde le curseur)
@@ -741,6 +817,9 @@ function onEdit(ev){
     syncEspece();
   }
   if(k==='sespece')syncEspece();
+  if(k==='bgsel'){
+    if(val('bgsel')!==PX.bg.k){PX.bg={k:val('bgsel'),ch:{}};el('historique').value=val('bgsel')}
+  }
   if(k==='sclasse'){
     el('sousclasse').value=val('sclasse');
     const cl=findClass(),sc=cl&&cl[1].sous_classe;
@@ -802,7 +881,8 @@ $('#bReset').onclick=()=>{
 // Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
 async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  const [a,b,c,d,e]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json','capacites.json'].map(get));
+  const [a,b,c,d,e,h]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json','capacites.json','historiques.json'].map(get));
+  if(h.status==='fulfilled'){BGD=h.value;$('#bgsel').innerHTML='<option value="">—</option>'+Object.keys(BGD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
   if(a.status==='fulfilled')CD=a.value;else CDFAIL=true;
   if(b.status==='fulfilled')ESPD=b.value;
   if(c.status==='fulfilled')DOND=c.value;
