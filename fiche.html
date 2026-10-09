@@ -86,11 +86,39 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
 .slot{display:flex;align-items:center;gap:4px}
 .slot b{flex:1;font:italic 700 12px var(--serif);color:var(--c)}
-.slot input{width:44px;text-align:center;border:1px solid var(--line);border-radius:4px}
+.slot input:not([type=checkbox]){width:44px;text-align:center;border:1px solid var(--line);border-radius:4px}
+
+/* Incantation et capacités selon la classe */
+[hidden]{display:none!important}
+.mgbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:11px;color:var(--soft)}
+.mgbar label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.mgbar .sp{flex:1}
+.mgbar button{font-size:11px;padding:3px 10px;border:1.5px solid var(--c);border-radius:6px;background:#fff;color:var(--c);font-weight:600;cursor:pointer}
+.mgbar button:hover{background:color-mix(in srgb,var(--c) 10%,#fff)}
+.mgnote{font-size:11px;color:var(--soft)}
+.tiles.t5{grid-template-columns:repeat(5,1fr)}
+.sec{display:flex;gap:8px;align-items:baseline;font:italic 700 12px var(--serif);color:var(--c);margin-top:2px}
+.sec span{font:10.5px system-ui,sans-serif;color:var(--soft)}
+.slot .bx{display:flex;gap:4px;flex-wrap:wrap}
+#slotsAuto .slot b{flex:none;min-width:52px}
+#slotsAuto .slot.pact b{min-width:0}
+.slot.pact{grid-column:1/-1}
+.mgnone{grid-column:1/-1;font-size:11px;color:var(--soft)}
+.itiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(30mm,1fr));gap:6px}
+.itiles .tile .calc{font-size:15px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.rs{display:flex;flex-direction:column;gap:1px}
+.rs .rh{display:flex;align-items:center;flex-wrap:wrap;gap:3px 8px}
+.rs b{flex:none;font:italic 700 12px var(--serif);color:var(--c)}
+.rs .bx{display:flex;gap:4px;flex-wrap:wrap}
+.rs small{font-size:10px;line-height:1.2}
+.pool{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--soft)}
+.pool input{width:46px;text-align:center;font-weight:700;border:1px solid var(--line);border-radius:4px}
 
 @media screen and (max-width:860px){
  .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
- .main,.bottom,.abcols,.idg,.slots{grid-template-columns:1fr}
+ .main,.bottom,.abcols,.idg,.slots,.rgrid{grid-template-columns:1fr}
+ .tiles.t5{grid-template-columns:repeat(3,1fr)}
  .bottom textarea{min-height:40mm}
  .settings{width:auto;margin:10px 10px 0;padding:8px 12px 10px}
  .sgrid{grid-template-columns:1fr 1fr}
@@ -211,15 +239,28 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 
 <!-- PAGE 2 -->
 <main class="page">
- <section class="card" style="--c:#3b4fd0;flex:3"><h2>Incantation</h2><div class="in">
-  <div class="tiles">
+ <section class="card" style="--c:#3b4fd0;flex:3"><h2 id="mgTitle">Incantation</h2><div class="in">
+  <div class="mgbar noprint" id="mgBar" hidden>
+   <label id="sclWrap" hidden><input type="checkbox" data-k="sclance"><span id="sclTxt"></span></label>
+   <span class="sp"></span>
+   <button type="button" id="bLong" title="Récupère tous les emplacements de sorts et toutes les ressources">Repos long</button>
+  </div>
+  <div class="mgnote" id="mgNote" hidden></div>
+  <div class="tiles" id="castTiles">
    <label class="tile" style="--c:#3b4fd0"><span class="lbl">Caractéristique</span>
-    <select data-k="cast" style="font-weight:700;border:0"><option value="">—</option><option value="int">Intelligence</option><option value="sag">Sagesse</option><option value="cha">Charisme</option></select></label>
+    <select data-k="cast" style="font-weight:700;border:0"><option value="">—</option><option value="for">Force</option><option value="int">Intelligence</option><option value="sag">Sagesse</option><option value="cha">Charisme</option></select></label>
    <div class="tile" style="--c:#7a4fc4"><span class="lbl">DD de sauvegarde</span><span class="calc" id="dc">—</span></div>
    <div class="tile" style="--c:#d6458e"><span class="lbl">Bonus d'attaque</span><span class="calc" id="sab">—</span></div>
+   <div class="tile" style="--c:#2e9e5b" id="tMin" hidden><span class="lbl">Sorts mineurs</span><span class="calc" id="nmin">—</span></div>
+   <div class="tile" style="--c:#d8791a" id="tPrep" hidden><span class="lbl">Sorts préparés</span><span class="calc" id="nprep">—</span></div>
   </div>
   <div class="slots" id="slots"></div>
-  <textarea data-k="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
+  <div class="sec" id="secSlots" hidden>Emplacements de sorts <span>cochez ceux que vous avez utilisés</span></div>
+  <div class="slots" id="slotsAuto" hidden></div>
+  <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
+  <div class="itiles" id="clsInfos" hidden></div>
+  <div class="rgrid" id="clsRes" hidden></div>
+  <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
   <textarea data-k="notes" aria-label="Notes"></textarea>
@@ -252,6 +293,101 @@ $('#atks').innerHTML=[0,1,2,3,4].map(i=>`<div class="atk"><input data-k="a${i}_n
 $('#slots').innerHTML=[1,2,3,4,5,6,7,8,9].map(i=>`<div class="slot"><b>Niveau ${i}</b><input data-k="sl${i}_u" type="number" min="0" placeholder="util." aria-label="Emplacements utilisés niveau ${i}"><input data-k="sl${i}_t" type="number" min="0" placeholder="total" aria-label="Emplacements totaux niveau ${i}"></div>`).join('');
 $('#clsel').innerHTML='<option value="">Choisir…</option>'+Object.entries(CLS).map(([n,d])=>`<option value="${n}">${n} (d${d})</option>`).join('');
 
+// ---------- Incantation et capacités selon la classe (données dans classes.json) ----------
+let CD=null,CDFAIL=false;   // données de classes, chargées au démarrage
+let RS={};                  // cases cochées et réserves (emplacements, ressources de classe)
+// Le bloc n'est reconstruit que si son contenu change : un simple « change » sur un autre champ
+// ne doit pas remplacer le champ que l'on vient de sélectionner. Le cache est vidé quand RS change.
+let LAST=new WeakMap();
+const setRS=o=>{RS=o;LAST=new WeakMap()};
+const setHTML=(e,h)=>{if(LAST.get(e)!==h){e.innerHTML=h;LAST.set(e,h)}};
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const at=(a,l)=>Array.isArray(a)?a[l-1]:undefined;
+const ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
+const RCOL=['#c8402f','#2e9e5b','#d8791a','#7a4fc4','#d6458e','#12968f'];
+
+// Classe reconnue d'après le champ « Classe » (nom exact) ; sinon saisie manuelle
+function findClass(){
+  const v=norm(val('classe'));
+  if(!CD||!v)return null;
+  for(const [n,d] of Object.entries(CD.classes))
+    if(norm(n)===v||(d.alias||[]).some(a=>norm(a)===v))return [n,d];
+  return null;
+}
+// Incantation de la classe, ou de sa sous-classe (Guerrier, Roublard) si la case est cochée
+function castOf(d){
+  if(d.lanceur)return {type:d.lanceur,carac:d.carac,mineurs:d.mineurs,prepares:d.prepares};
+  const s=d.sous_classe;
+  return s&&chk('sclance')?{type:'tiers',carac:s.carac,mineurs:s.mineurs,prepares:s.prepares}:null;
+}
+const bx=(key,n,label)=>Array.from({length:n},(_,j)=>`<input type="checkbox" data-r="${key}_${j}" aria-label="${esc(label)} ${j+1}"${RS[key+'_'+j]?' checked':''}>`).join('');
+function maxOf(m,lvl,mod){
+  if(Array.isArray(m))return m[lvl-1]||0;
+  if(m&&m.mod)return lvl>=(m.niv||1)?Math.max(1,mod[m.mod]):0;
+  return 0;
+}
+function slotsHTML(cst,lvl){
+  if(cst.type==='pacte'){
+    const [n,l]=CD.emplacements.pacte[lvl-1];
+    return `<div class="slot pact"><b>Magie de pacte · niveau ${l}</b><span class="bx">${bx('pc',n,'Emplacement de pacte')}</span></div>`;
+  }
+  const row=CD.emplacements[cst.type][lvl-1]||[];
+  return row.map((n,i)=>n?`<div class="slot"><b>Niveau ${i+1}</b><span class="bx">${bx('sl'+(i+1),n,'Emplacement de niveau '+(i+1))}</span></div>`:'').join('')
+    ||'<div class="mgnone">Aucun emplacement de sorts à ce niveau.</div>';
+}
+function infosHTML(d,lvl,mod,pb){
+  return (d.infos||[]).map((x,i)=>{
+    let v;
+    if(x.calc==='dd:sag')v=lvl>=(x.niv||1)?8+pb+mod.sag:null;
+    else if(x.calc==='moitie_sup')v=Math.ceil(lvl/2);
+    else v=x.val[lvl-1];
+    return v==null?'':`<div class="tile" style="--c:${RCOL[(i+3)%RCOL.length]}"><span class="lbl">${esc(x.nom)}</span><span class="calc">${esc(v)}</span></div>`;
+  }).join('');
+}
+function resHTML(d,lvl,mod){
+  return (d.ressources||[]).map((r,i)=>{
+    const m=maxOf(r.max,lvl,mod);
+    if(!m)return '';
+    const key='r_'+r.id;
+    let ctl;
+    if(r.mode==='reserve'){   // réserve : on saisit ce qu'il reste (pleine tant qu'on n'y touche pas)
+      const v=RS[key]===undefined?m:Math.min(m,Math.max(0,+RS[key]||0));
+      ctl=`<span class="pool"><input type="number" min="0" max="${m}" data-r="${key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${m}${r.unite?' '+r.unite:''}</span>`;
+    }else ctl=`<span class="bx">${bx(key,m,r.nom)}</span>`;   // cases : on coche ce qui est dépensé
+    return `<div class="rs" style="--c:${RCOL[i%RCOL.length]}"><div class="rh"><b>${esc(r.nom)}</b>${ctl}</div><small>${esc(r.repos||'')}</small></div>`;
+  }).join('');
+}
+function renderMagic(mod,pb,lvl,cl,cst){
+  const d=cl&&cl[1],auto=!!cl;
+  const vis=(id,on)=>{$(id).hidden=!on};
+  const sub=auto&&d.sous_classe;
+  vis('#mgBar',auto);
+  vis('#sclWrap',!!sub);
+  if(sub)$('#sclTxt').textContent='Sous-classe lanceuse de sorts ('+sub.nom+')';
+  vis('#castTiles',!auto||!!cst);
+  $('#castTiles').className='tiles'+(auto?' t5':'');
+  vis('#tMin',auto);vis('#tPrep',auto);
+  vis('#slots',!auto);                       // saisie manuelle des emplacements : classe non reconnue seulement
+  vis('#secSlots',auto&&!!cst);vis('#slotsAuto',auto&&!!cst);
+  const note=$('#mgNote');
+  if(CDFAIL){note.textContent='Les données de classes n’ont pas pu être chargées : saisie manuelle.';note.hidden=false}
+  else if(!auto&&CD&&val('classe').trim()){note.textContent='Classe non reconnue (multiclasse, classe maison…) : emplacements à saisir à la main.';note.hidden=false}
+  else note.hidden=true;
+  el('cast').options[0].textContent=cst?'Auto : '+ABN[cst.carac]:'—';
+  $('#mgTitle').textContent=auto?(cst?'Incantation et capacités':'Capacités de classe')+' — '+cl[0]:'Incantation';
+  $('#sorts').placeholder=!auto||cst?'Tours de magie, sorts préparés…':'Options choisies, notes de classe…';
+  if(!auto){vis('#secCls',false);vis('#clsInfos',false);vis('#clsRes',false);return}
+  if(cst){
+    $('#nmin').textContent=at(cst.mineurs,lvl)||'—';
+    $('#nprep').textContent=at(cst.prepares,lvl)||'—';
+    setHTML($('#slotsAuto'),slotsHTML(cst,lvl));
+  }
+  const inf=infosHTML(d,lvl,mod,pb),res=resHTML(d,lvl,mod);
+  setHTML($('#clsInfos'),inf);setHTML($('#clsRes'),res);
+  vis('#clsInfos',!!inf);vis('#clsRes',!!res);vis('#secCls',!!(inf||res));
+}
+
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
   const pb=Math.ceil(lvl/4)+1;
@@ -268,9 +404,11 @@ function calc(){
   $('#init').textContent=sg(mod.dex+nb('b_init'));
   $('#ca').textContent=10+mod.dex+nb('b_ca');
   $('#pp').textContent=10+mod.sag+bonus(PERC);
-  const c=val('cast');
+  const cl=findClass(),cst=cl?castOf(cl[1]):null;
+  const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
   $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd'):'—';
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')):'—';
+  renderMagic(mod,pb,lvl,cl,cst);
 }
 
 // Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
@@ -287,7 +425,8 @@ $('#clsel').addEventListener('change',()=>{
 function collect(){
   const d={};
   document.querySelectorAll('[data-k]').forEach(e=>d[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);
-  return {version:3,type:'fiche-dnd-5e',data:d};
+  d.ress=RS;
+  return {version:4,type:'fiche-dnd-5e',data:d};
 }
 function apply(obj){
   const d=obj&&obj.data;
@@ -297,6 +436,7 @@ function apply(obj){
     if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
   });
   if(!val('espece')&&val('race'))el('espece').value=val('race');
+  setRS(d.ress&&typeof d.ress==='object'?JSON.parse(JSON.stringify(d.ress)):{});
   calc();
 }
 // Remet tous les champs à leur valeur par défaut (utilisé pour « Vider » et pour changer de personnage)
@@ -306,6 +446,7 @@ function reset(){
     else if(e.tagName==='SELECT')e.selectedIndex=0;
     else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
   });
+  setRS({});
 }
 // Le nom du personnage (sélecteur) fait foi pour le champ « Nom » de la fiche
 function show(obj,perso){
@@ -318,6 +459,14 @@ function autosave(){Persos.save()}
 
 function onEdit(ev){
   const t=ev.target,k=t.dataset&&t.dataset.k;
+  if(t.dataset&&t.dataset.r!==undefined){   // case ou réserve de la section « Incantation et capacités »
+    const r=t.dataset.r;
+    if(t.type==='checkbox'){if(t.checked)RS[r]=1;else delete RS[r]}
+    else if(t.value==='')delete RS[r];
+    else RS[r]=Math.max(0,parseInt(t.value)||0);
+    LAST=new WeakMap();
+    autosave();return;
+  }
   if(k==='nom')Persos.setName(val('nom'));
   if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
   if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
@@ -361,14 +510,25 @@ $('#bReset').onclick=()=>{
   show(null,p);autosave();msg('Fiche vidée');
 };
 
-Persos.init({
-  part:'fiche',
-  mount:$('#persos'),
-  collect,
-  apply:show,
-  onName:n=>{el('nom').value=n},
-  msg
-});
+$('#bLong').onclick=()=>{setRS({});calc();autosave();msg('Repos long : emplacements et ressources récupérés')};
+
+// Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
+async function boot(){
+  try{
+    const r=await fetch('classes.json');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    CD=await r.json();
+  }catch(e){CDFAIL=true}
+  Persos.init({
+    part:'fiche',
+    mount:$('#persos'),
+    collect,
+    apply:show,
+    onName:n=>{el('nom').value=n},
+    msg
+  });
+}
+boot();
 </script>
 </body>
 </html>
