@@ -20,6 +20,8 @@ header p{margin:8px 0 0;color:#d9defa}
 .card:nth-child(2){--c:#7a4fc4}
 .card:nth-child(3){--c:#d8791a}
 .card:nth-child(4){--c:#2e9e5b}
+.card:nth-child(5){--c:#12968f}
+.card:nth-child(6){--c:#c8402f}
 #chips{display:flex;flex-wrap:wrap;gap:6px}
 .perso{width:100%;max-width:1000px;background:#1d2150;border:1px solid #ffffff22;border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff}
 .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
@@ -81,6 +83,16 @@ footer{color:#b9bfe6;font-size:12px}
   <p>Armes, armures, potions de soins, matériel, outils, montures : choisis ton équipement avec les quantités, le poids et la valeur totale.</p>
   <span class="go">Ouvrir l’équipement</span>
  </a>
+ <a class="card" href="familiers.html">
+  <h2>Familiers et compagnons</h2>
+  <p>Choisis tes familiers (Appel de familier, Pacte de la chaîne, compagnons de Rôdeur…) avec leurs statistiques complètes.</p>
+  <span class="go">Ouvrir les familiers</span>
+ </a>
+ <a class="card" href="guide.html">
+  <h2>Guide du débutant</h2>
+  <p>Les notions de base : dés, caractéristiques, combat, magie, repos, création de personnage et vocabulaire.</p>
+  <span class="go">Ouvrir le guide</span>
+ </a>
 </nav>
 <div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
@@ -115,7 +127,7 @@ $('#file').onchange=ev=>{
 };
 // Impression : chaque partie remplie est chargée dans un cadre caché, son rendu est copié (avec ses styles,
 // isolés dans un shadow DOM) dans un seul document, puis le tout est imprimé en une fois
-const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html'};
+const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html',familiers:'familiers.html'};
 function inlineCss(t){
   return t.replace(/@page\s*[^{]*\{[^}]*\}/g,'').replace(/:root/g,':host')
     .replace(/(^|[\s,{};])(body|html)(?=[\s\[.:,{>+~])/g,'$1.__b');

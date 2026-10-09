@@ -35,6 +35,8 @@ small,.lbl{display:block;font-size:10.5px;color:var(--soft)}
 .abil header{display:flex;align-items:center;gap:6px;background:var(--c);color:#fff;padding:4px 8px}
 .abil .nm{font:italic 700 14px var(--serif);flex:1}
 .abil .sc{width:42px;text-align:center;font-weight:700;color:#fff;background:#ffffff30;border:0;border-radius:5px;padding:1px}
+.spt{width:100%;border-collapse:collapse;font-size:11px}.spt th,.spt td{border-bottom:1px solid #d5d8ee;padding:2px 5px;text-align:left;vertical-align:top}.spt th{background:#eceefb;color:#2a3170;font-size:10px}.spt td:first-child,.spt td:last-child,.spt th:last-child{text-align:center;white-space:nowrap}.spt tr{break-inside:avoid;page-break-inside:avoid}
+.abil .fin{font:700 12px system-ui;color:#fff;background:#00000040;border-radius:5px;padding:2px 5px;white-space:nowrap}
 .abil .mod{min-width:34px;text-align:center;font:700 17px var(--serif);background:#fff;color:var(--c);border-radius:50%;padding:3px 0}
 .abil .body{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:3px 8px 4px}
 .row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:12px}
@@ -288,7 +290,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
   <div class="itiles" id="clsInfos" hidden></div>
   <div class="rgrid" id="clsRes" hidden></div>
-  <button type="button" id="bSp" class="noprint" title="Ajoute les sorts choisis dans le grimoire, classés par niveau">Importer depuis le grimoire</button>
+  <button type="button" id="bSp" class="noprint" title="Crée un tableau des sorts choisis dans le grimoire (page 3) : niveau, nom, incantation, portée, dégâts / effet, concentration">Importer depuis le grimoire (tableau, page 3)</button>
   <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
@@ -298,6 +300,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 
 <!-- PAGE 3 -->
 <main class="page" id="pg3">
+ <section class="card" style="--c:#3b4fd0" id="xSplC" hidden><h2>Sorts <button type="button" id="bSpDel" class="noprint" style="margin-left:8px;font-size:11px">Retirer le tableau</button></h2><div class="in" id="xSpl"></div></section>
  <div class="xcols">
   <div class="xcol">
    <section class="card" style="--c:#12968f"><h2 id="xSpT">Espèce</h2><div class="in" id="xSp"></div></section>
@@ -336,7 +339,7 @@ const chk=k=>{const e=el(k);return !!(e&&e.checked)};
 const block=([k,n,c])=>{
   const sk=SK.map((s,i)=>[s,i]).filter(([s])=>s[1]===k);
   const rows=sk.map(([s,i])=>`<div class="row"><input type="checkbox" class="m" data-k="sk_${i}" title="Maîtrise" aria-label="Maîtrise ${s[0]}"><input type="checkbox" class="e" data-k="ske_${i}" title="Expertise" aria-label="Expertise ${s[0]}"><span class="v" id="sk_${i}">+0</span><span class="t">${s[0]}</span></div>`).join('');
-  return `<section class="abil" style="--c:${c};flex:${sk.length+1} 1 auto"><header><span class="nm">${n}</span><input class="sc" data-k="ab_${k}" type="number" min="1" max="30" value="10" aria-label="Valeur de ${n}"><div class="mod" id="m_${k}">+0</div></header>
+  return `<section class="abil" style="--c:${c};flex:${sk.length+1} 1 auto"><header><span class="nm">${n}</span><input class="sc" data-k="ab_${k}" type="number" min="1" max="30" value="10" aria-label="Valeur de ${n}"><span class="fin" id="f_${k}" hidden></span><div class="mod" id="m_${k}">+0</div></header>
   <div class="body"><div class="row sv"><input type="checkbox" class="m" data-k="sv_${k}" aria-label="Maîtrise du jet de sauvegarde ${n}"><span class="sp"></span><span class="v" id="sv_${k}">+0</span><span class="t">Jet de sauvegarde</span></div>${rows}</div></section>`;
 };
 $('#stackA').innerHTML=AB.slice(0,4).map(block).join('');
@@ -353,7 +356,7 @@ let RS={};                  // cases cochées et réserves (emplacements, ressou
 let LAST=new WeakMap();
 const setRS=o=>{RS=o;LAST=new WeakMap()};
 const setHTML=(e,h)=>{if(LAST.get(e)!==h){e.innerHTML=h;LAST.set(e,h)}};
-const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const at=(a,l)=>Array.isArray(a)?a[l-1]:undefined;
 const ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
@@ -443,7 +446,7 @@ function renderMagic(mod,pb,lvl,cl,cst){
 
 // ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
 let ESPD=null,DOND=null,SCD=null,CAPD=null,BGD=null;
-const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],auto:{}});
+const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{}});
 function findBg(){return BGD&&PX.bg.k&&BGD[PX.bg.k]?[PX.bg.k,BGD[PX.bg.k]]:null}
 // Le don d'origine de l'historique est ajouté automatiquement (et retiré si l'historique change)
 function syncBgFeat(){
@@ -552,6 +555,9 @@ function renderExtras(F,lvl,pb,mod,tot){
     h+=RES.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
   }
   setHTML($('#xSp'),h);
+  // Tableau de sorts
+  $('#xSplC').hidden=!PX.spl.length;
+  setHTML($('#xSpl'),PX.spl.length?'<table class="spt"><thead><tr><th>Niv.</th><th>Sort</th><th>Incantation</th><th>Portée</th><th>Dégâts / effet</th><th title="Concentration">Conc.</th></tr></thead><tbody>'+PX.spl.map(r=>`<tr><td>${r.l?r.l:'Tour'}</td><td><b>${esc(r.n)}</b>${r.ri?' <small>(rituel)</small>':''}</td><td>${esc(r.t)}</td><td>${esc(r.r)}</td><td>${esc(r.x)}</td><td>${r.c?'●':''}</td></tr>`).join('')+'</tbody></table>':'');
   // Historique
   const B=findBg();
   $('#xBgC').hidden=!B;
@@ -590,7 +596,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
   if(ac)fx+=row('Caractéristiques finales',esc(ac));
   setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
-  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B);
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B&&!PX.spl.length);
 }
 // Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
 function syncChecks(F){
@@ -649,7 +655,8 @@ function calc(){
     tot[k]=F.ab[k]?Math.max(base,Math.min(F.cap[k]||20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20 (30 pour une faveur épique)
     mod[k]=Math.floor((tot[k]-10)/2);
     $('#m_'+k).textContent=sg(mod[k]);
-    el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, dons)':'';
+    {const fe=$('#f_'+k);fe.hidden=tot[k]===base;fe.textContent='→ '+tot[k];fe.title='Valeur finale avec les bonus (espèce, historique, dons)'}
+    el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, historique, dons)':'';
     $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0));
     $('#sv_'+k).classList.toggle('fx',!!F.sv[k]);
   });
@@ -699,6 +706,7 @@ function apply(obj){
   if(d.extras&&typeof d.extras==='object'){
     const x=JSON.parse(JSON.stringify(d.extras));
     PX.sp=Object.assign(PX.sp,x.sp||{});
+    PX.spl=Array.isArray(x.spl)?x.spl.filter(r=>r&&r.n):[];
     PX.bg=Object.assign(PX.bg,x.bg||{});if(!PX.bg.ch)PX.bg.ch={};
     PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
     PX.dons.forEach(g=>{g.ch=g.ch||{}});
@@ -728,7 +736,21 @@ function show(obj,perso){
 function autosave(){Persos.save()}
 // Reprend l'équipement choisi sur la page Équipement (« 2× Potion de guérison »), sans doublon
 const fire=e=>e.dispatchEvent(new Event('input',{bubbles:true}));
-// Sorts du grimoire -> zone « Sorts », une ligne par niveau (les lignes déjà importées sont remplacées)
+// Sorts du grimoire -> tableau (page 3) : niveau, nom, incantation, portée, dégâts / effet, concentration
+const SAV={Force:'For',Dextérité:'Dex',Constitution:'Con',Intelligence:'Int',Sagesse:'Sag',Charisme:'Cha'};
+function spellEffect(h){
+  const t=String(h).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().split(/Emplacement de niveau supérieur|Amélioration de sort mineur/)[0].trim();
+  const p=[];
+  const dm=t.match(/(\d+d\d+(?:\s*[+×x]\s*\d+)?)\s*(?:points? de\s+)?dégâts?\s+(?:d[e’' ]\s*|d')?([a-zéèêûôï]+)/i);
+  if(dm)p.push(dm[1].replace(/\s+/g,' ')+' '+dm[2]);
+  const hl=t.match(/récupèr\w*[^.]*?(\d+d\d+(?:\s*\+\s*\d+)?)/i);
+  if(hl&&!dm)p.push('Soin '+hl[1]);
+  const sv=t.match(/jet de sauvegarde de (Force|Dextérité|Constitution|Intelligence|Sagesse|Charisme)/i);
+  if(sv)p.push('JS '+SAV[sv[1][0].toUpperCase()+sv[1].slice(1).toLowerCase()]);
+  if(!p.length){let s=t.split(/(?<=[.!?])\s/)[0];if(s.length>95)s=s.slice(0,92).replace(/\s\S*$/,'')+'…';return s}
+  return p.join(' · ');
+}
+const castShort=t=>String(t).split(',')[0].replace(/\s+ou Rituel/i,'');
 document.addEventListener('click',async e=>{
   if(!e.target.closest('#bSp'))return;
   Persos.save();
@@ -737,17 +759,15 @@ document.addEventListener('click',async e=>{
   let DBs;
   try{DBs=await (await fetch('spells.json')).json()}catch(x){alert('Impossible de lire la liste des sorts (spells.json).');return}
   const by={};DBs.forEach(s=>by[s.n]=s);
-  const lv={};
-  L.forEach(n=>{const s=by[n];if(!s)return;(lv[s.l]=lv[s.l]||[]).push(s.n.split('|')[0])});
-  const ta=document.querySelector('[data-k=sorts]');
-  let lines=ta.value.split('\n');
-  Object.keys(lv).sort((a,b)=>a-b).forEach(l=>{
-    const pre=l==0?'Tours de magie : ':'Niveau '+l+' : ',txt=pre+lv[l].sort((a,b)=>a.localeCompare(b,'fr')).join(', ');
-    const i=lines.findIndex(x=>x.startsWith(pre));
-    if(i>=0)lines[i]=txt;else lines.push(txt);
-  });
-  ta.value=lines.filter((x,i)=>x.trim()||(i>0&&i<lines.length-1)).join('\n');
-  fire(ta);
+  PX.spl=L.map(n=>by[n]).filter(Boolean).map(s=>({n:s.n.split('|')[0],l:s.l,t:castShort(s.t),r:s.r,x:spellEffect(s.h),c:!!s.cc,ri:!!s.ri}))
+    .sort((a,b)=>a.l-b.l||a.n.localeCompare(b.n,'fr'));
+  const ta=document.querySelector('[data-k=sorts]');   // retire les anciennes lignes importées en texte
+  ta.value=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x)).join('\n');
+  calc();autosave();msg('Tableau de sorts mis à jour (page 3)');
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#bSpDel'))return;
+  PX.spl=[];calc();autosave();
 });
 // Objets magiques à harmonisation -> cases « Objets liés » (5 au maximum)
 document.addEventListener('click',async e=>{

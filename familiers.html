@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Équipement D&amp;D 5e</title>
+<title>Familiers D&amp;D 5e</title>
 <link rel="stylesheet" href="style.css">
 <style>
 @page{size:A4;margin:10mm}
@@ -38,7 +38,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
 .qty{display:inline-flex;align-items:center;gap:4px;font-weight:700}.qty button{width:26px;height:26px;padding:0}.qin{width:56px;padding:4px;text-align:center;border:1px solid var(--line);border-radius:5px;font-weight:700}
-.tot{margin-top:10px;padding:8px 12px;border-radius:8px;background:#eef0fb;color:#2a3170;font-weight:600;font-size:13px}
+.stat{font-size:12px;line-height:1.4}.ab6{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;text-align:center;margin:6px 0;padding:4px 0;border-top:1px solid var(--c);border-bottom:1px solid var(--c)}.ab6 b{display:block;font:700 10px system-ui;color:var(--c)}.ab6 span{font-size:12px}.fam-in{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.fam-in label{display:flex;flex-direction:column;font-size:11px;color:var(--soft)}.fam-in input{border:1px solid var(--line);border-radius:5px;padding:4px 6px;font-size:13px}.tot{margin-top:10px;padding:8px 12px;border-radius:8px;background:#eef0fb;color:#2a3170;font-weight:600;font-size:13px}
 .pr{font-size:11.5px;font-weight:600;color:#2a3170;white-space:nowrap}
 
 /* Fiche de sort */
@@ -99,10 +99,10 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div class="top">
  <div class="bar">
   <a class="home" href="./">← Accueil</a>
-  <b>Équipement D&amp;D 5e</b>
+  <b>Familiers D&amp;D 5e</b>
   <span id="msg" role="status"></span>
-  <button data-act="mode" data-m="choose" aria-pressed="true">Choisir l’équipement</button>
-  <button data-act="mode" data-m="book" aria-pressed="false" id="bBook">Mon équipement (0)</button>
+  <button data-act="mode" data-m="choose" aria-pressed="true">Choisir les familiers</button>
+  <button data-act="mode" data-m="book" aria-pressed="false" id="bBook">Mes familiers (0)</button>
   <button class="primary" id="bSave">Enregistrer (.json)</button>
   <button id="bLoad">Charger un .json</button>
   <button id="bPrint">Imprimer / PDF</button>
@@ -115,16 +115,16 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <!-- CHOISIR -->
 <div id="choose" class="wrap">
  <section class="panel">
-  <h2>Rechercher de l’équipement</h2>
+  <h2>Rechercher des familiers et compagnons</h2>
   <div class="fgrid">
-   <label><small>Nom</small><input id="fq" type="search" placeholder="Potion de soins, épée longue, cotte de mailles…"></label>
-   <label><small>Catégorie</small><select id="fc"></select></label>
-   <label><small>Sous-catégorie</small><select id="fs"></select></label>
-   <label><small>Prix maximum (po)</small><input id="fl" type="number" min="0" step="any" placeholder="illimité"></label>
+   <label><small>Nom</small><input id="fq" type="search" placeholder="Chat, diablotin, bête du ciel…"></label>
+   <label><small>Origine</small><select id="fc"></select></label>
+   <label><small>Type de créature</small><select id="fs"></select></label>
+   <label><small>Taille</small><select id="fl"></select></label>
   </div>
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
-      <label>Afficher&nbsp;<select id="fo"><option value="">tout l’équipement</option><option value="1">ma sélection</option></select></label>
+      <label>Afficher&nbsp;<select id="fo"><option value="">tous les familiers</option><option value="1">ma sélection</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
   </div>
  </section>
@@ -135,89 +135,87 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div id="book" class="wrap">
  <main class="sheet">
   <div class="hero">
-   <input id="titre" placeholder="Nom de l’inventaire ou du personnage" aria-label="Nom de l’inventaire">
+   <input id="titre" placeholder="Nom de la ménagerie ou du personnage" aria-label="Nom de l’inventaire">
    <p id="sum"></p>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div id="levels"></div>
-  <div class="tot" id="tot"></div>
  </main>
 </div>
 
 <script src="persos.js"></script>
 <script>
-const TC={'Arme':'#c8402f','Armure':'#2f6fd0','Munition':'#d8791a','Équipement d’aventurier':'#2e9e5b','Paquetage':'#12968f','Outil':'#7a4fc4','Monture et véhicule':'#8e5a2b'};
+const TC={'Appel de familier':'#2e9e5b','Pacte de la chaîne (Occultiste)':'#7a4fc4','Compagnon primordial (Rôdeur)':'#8e5a2b','Défenseur d’acier (Artificier)':'#2f6fd0','Serviteur homoncule (Artificier / Magicien)':'#d8791a'};
 const TORDER=Object.keys(TC);
+const TSHORT={'Appel de familier':'Appel de familier','Pacte de la chaîne (Occultiste)':'Pacte de la chaîne','Compagnon primordial (Rôdeur)':'Compagnon primordial','Défenseur d’acier (Artificier)':'Défenseur d’acier','Serviteur homoncule (Artificier / Magicien)':'Homoncule'};
 const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
-const fmt=n=>(Math.round(n*100)/100).toLocaleString('fr-FR');
-const fkg=n=>fmt(n)+' kg';
+const mod=n=>{const m=Math.floor((n-10)/2);return (m>=0?'+':'−')+Math.abs(m)};
+const AN=['FOR','DEX','CON','INT','SAG','CHA'];
 let DB=[];const BYN=new Map();
 const st={sel:new Map(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set()};
-const qty=s=>st.sel.get(s.n)||0;
+const has=s=>st.sel.has(s.n);
 
 function setup(data){
   DB=data;
-  DB.forEach((s,i)=>{s.i=i;s.idx=norm(s.n+' '+s.en+' '+s.c);[s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)})});
-  $('#fc').innerHTML='<option value="">Toutes</option>'+TORDER.filter(t=>DB.some(s=>s.t===t)).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  fillSub();
+  DB.forEach((s,i)=>{s.i=i;s.idx=norm(s.n+' '+s.en+' '+s.typ);[s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)})});
+  const opts=(first,arr)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  $('#fc').innerHTML=opts('Toutes',TORDER.filter(t=>DB.some(s=>s.o===t)));
+  $('#fs').innerHTML=opts('Tous',[...new Set(DB.map(s=>s.typ.split(' ')[0]))]);
+  $('#fl').innerHTML=opts('Toutes',[...new Set(DB.map(s=>s.tail))]);
 }
-function fillSub(){
-  const subs=[...new Set(DB.filter(s=>!st.cls||s.t===st.cls).map(s=>s.c))];
-  if(st.sch&&!subs.includes(st.sch))st.sch='';
-  $('#fs').innerHTML='<option value="">Toutes</option>'+subs.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  $('#fs').value=st.sch;
-}
-function card(s,remove){
-  const col=TC[s.t]||'#2a3170',q=qty(s);
-  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}</h3><div class="sub">${esc(s.c)} · ${esc(s.en)}</div></div><span class="lvb">${remove?'× '+q:esc(s.p)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Coût</dt><dd>${esc(s.p)}</dd></div><div><dt>Poids</dt><dd>${s.kg?fkg(s.kg):'—'}</dd></div><div><dt>Catégorie</dt><dd>${esc(s.c)}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>${remove?`<div><dt>Quantité</dt><dd>${q} (total ${fkg(q*s.kg)} · ${fmt(q*s.po)} po)</dd></div>`:''}</dl>
-  <div class="desc">${s.h}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
+function block(s,full){
+  const col=TC[s.o]||'#2a3170',e=st.sel.get(s.n)||{};
+  const L=(t,v)=>v?`<div><b>${t}</b> ${esc(v)}</div>`:'';
+  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(full&&e.s?e.s+' — ':'')}${esc(s.n)}</h3><div class="sub">${esc(s.tail)} · ${esc(s.typ)} · ${esc(s.en)}</div></div><span class="lvb" title="Origine">${esc(TSHORT[s.o]||'')}</span></header>
+  <div class="body stat"><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div><dt>Classe d’armure</dt><dd>${esc(s.ca)}</dd></div><div><dt>Points de vie</dt><dd>${esc(s.pv)}</dd></div><div><dt>Vitesse</dt><dd>${esc(s.vit)}</dd></div></div>
+  <div class="ab6">${s.car.map((v,i)=>`<div><b>${AN[i]}</b><span>${v} (${mod(v)})</span></div>`).join('')}</div>
+  ${L('Compétences',s.comp)}${L('Résistances / immunités',s.res)}${L('Sens',s.sens)}${L('Langues',s.langues)}${L('Dangerosité',s.dd)}
+  ${s.traits.length?'<div class="desc">'+s.traits.map(t=>`<p><b><i>${esc(t.n)}.</i></b> ${esc(t.d)}</p>`).join('')+'</div>':''}
+  ${s.actions.length?'<div class="desc"><b style="color:var(--c)">Actions</b>'+s.actions.map(t=>`<p><b><i>${esc(t.n)}.</i></b> ${esc(t.d)}</p>`).join('')+'</div>':''}
+  <div class="srcn">${esc(s.note)}${s.v_?' · valeurs reconstituées de mémoire : à vérifier dans le livre':' · statistiques reformulées du SRD 5.1 : à vérifier'}</div>
+  ${full?`<div class="fam-in"><label>Surnom<input type="text" data-f="s" data-i="${s.i}" value="${esc(e.s||'')}" placeholder="Nom du familier"></label><label>PV actuels<input type="text" data-f="pv" data-i="${s.i}" value="${esc(e.pv||'')}" size="6"></label><button class="b rm noprint" data-act="rm" data-i="${s.i}" style="align-self:end">Retirer</button></div>`:''}
+  </div></article>`;
 }
 function filtered(){
-  const q=norm(st.q),max=st.lvl===''?null:parseFloat(st.lvl);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||s.c===st.sch)&&(max===null||isNaN(max)||s.po<=max)&&(!st.only||qty(s)>0));
+  const q=norm(st.q);
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.o===st.cls)&&(!st.sch||s.typ.split(' ')[0]===st.sch)&&(!st.lvl||s.tail===st.lvl)&&(!st.only||has(s)));
 }
-function totals(){let kg=0,po=0,n=0;DB.forEach(s=>{const q=qty(s);if(q){kg+=q*s.kg;po+=q*s.po;n+=q}});return{kg,po,n}}
 function renderList(){
-  const r=filtered(),t=totals();
-  $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' type'+(st.sel.size>1?'s':'')+' dans mon équipement';
+  const r=filtered();
+  $('#cnt').textContent=r.length+' créature'+(r.length>1?'s':'')+' affichée'+(r.length>1?'s':'')+' · '+st.sel.size+' choisie'+(st.sel.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
-    const q=qty(s),op=st.open.has(s.n),col=TC[s.t]||'#2a3170';
-    const act=q?`<span class="qty"><button class="b" data-act="dec" data-i="${s.i}" aria-label="Retirer un exemplaire">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b add on" data-act="inc" data-i="${s.i}" aria-label="Ajouter un exemplaire">+</button></span>`:`<button class="b add" data-act="inc" data-i="${s.i}">Ajouter</button>`;
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}</div><div class="rs">${esc(s.c)}${s.kg?' · '+fkg(s.kg):''}</div></div><span class="pr">${esc(s.p)}</span>
-    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${act}</div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
-  }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
+    const on=has(s),op=st.open.has(s.n),col=TC[s.o]||'#2a3170';
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}</div><div class="rs">${esc(s.tail)} · ${esc(s.typ)} · CA ${esc(s.ca)} · PV ${esc(s.pv)} · ${esc(TSHORT[s.o]||'')}</div></div>
+    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'Choisi ✓':'Choisir'}</button></div></div>${op?`<div class="det">${block(s,false)}</div>`:''}</div>`;
+  }).join(''):'<div class="empty-msg">Aucune créature ne correspond à ces filtres.</div>';
 }
 function renderBook(){
   const by=TORDER.map(()=>[]);
-  DB.forEach(s=>{if(qty(s))by[TORDER.indexOf(s.t)].push(s)});
-  by.forEach(a=>a.sort((x,y)=>x.c.localeCompare(y.c,'fr')||x.n.localeCompare(y.n,'fr')));
-  $('#tabs').innerHTML=TORDER.map((t,l)=>`<button class="tab" role="tab" style="--c:${TC[t]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${esc(t)}<span>${by[l].length}</span></button>`).join('');
-  $('#levels').innerHTML=TORDER.map((t,l)=>`<section class="lvl${l===st.tab?' on':''}${by[l].length?'':' empty'}" style="--c:${TC[t]}"><h2>${esc(t)} <span>(${by[l].length})</span></h2>${by[l].length?`<div class="cards">${by[l].map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun objet dans cette catégorie.</div>'}</section>`).join('');
-  const t=totals();
-  $('#sum').textContent=t.n?t.n+' objet'+(t.n>1?'s':'')+' · '+fkg(t.kg)+' · valeur '+fmt(t.po)+' po':'Aucun objet sélectionné';
-  $('#bBook').textContent='Mon équipement ('+t.n+')';
-  $('#tot').innerHTML=t.n?`Poids total : ${fkg(t.kg)} · Valeur totale : ${fmt(t.po)} po`:'';
+  DB.forEach(s=>{if(has(s))by[TORDER.indexOf(s.o)].push(s)});
+  $('#tabs').innerHTML=TORDER.map((t,l)=>`<button class="tab" role="tab" style="--c:${TC[t]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${esc(TSHORT[t])}<span>${by[l].length}</span></button>`).join('');
+  $('#levels').innerHTML=TORDER.map((t,l)=>`<section class="lvl${l===st.tab?' on':''}${by[l].length?'':' empty'}" style="--c:${TC[t]}"><h2>${esc(t)} <span>(${by[l].length})</span></h2>${by[l].length?`<div class="cards">${by[l].map(s=>block(s,true)).join('')}</div>`:'<div class="none">Aucune créature dans cette catégorie.</div>'}</section>`).join('');
+  $('#sum').textContent=st.sel.size?st.sel.size+' familier'+(st.sel.size>1?'s':'')+' / compagnon'+(st.sel.size>1?'s':''):'Aucun familier choisi';
+  $('#bBook').textContent='Mes familiers ('+st.sel.size+')';
 }
 function renderAll(){renderList();renderBook();autosave()}
 
 function collect(){
-  return {version:1,type:'equipement-dnd-5e',data:{
+  return {version:1,type:'familiers-dnd-5e',data:{
     titre:$('#titre').value,
-    objets:DB.filter(s=>qty(s)).map(s=>({n:s.n,qte:qty(s)})),
+    familiers:DB.filter(has).map(s=>({n:s.n,surnom:st.sel.get(s.n).s||'',pv:st.sel.get(s.n).pv||''})),
     filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
-function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;fillSub();$('#fl').value=st.lvl;$('#fo').value=st.only}
+function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only}
 function apply(o){
   const d=o&&o.data;
-  if(!d||!Array.isArray(d.objets))throw new Error('format');
+  if(!d||!Array.isArray(d.familiers))throw new Error('format');
   st.sel.clear();let unknown=0;
-  d.objets.forEach(x=>{
-    const n=typeof x==='string'?x:x&&x.n,q=typeof x==='string'?1:Math.max(1,Math.min(999,parseInt(x&&x.qte)||1));
-    const s=BYN.get(norm(String(n)));if(s)st.sel.set(s.n,q);else unknown++;
+  d.familiers.forEach(x=>{
+    const n=typeof x==='string'?x:x&&x.n,s=BYN.get(norm(String(n)));
+    if(s)st.sel.set(s.n,{s:String(x&&x.surnom||''),pv:String(x&&x.pv||'')});else unknown++;
   });
   $('#titre').value=d.titre||'';
   const f=d.filtres||{};
@@ -228,48 +226,43 @@ function apply(o){
 function blank(){st.sel.clear();st.q=st.cls=st.sch=st.lvl=st.only='';$('#titre').value='';syncInputs();renderAll()}
 function show(obj){st.open.clear();st.tab=0;if(obj)apply(obj);else blank()}
 function autosave(){Persos.save()}
-function setQ(s,q){q=Math.max(0,Math.min(999,q));q?st.sel.set(s.n,q):st.sel.delete(s.n);renderAll()}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,s=DB[+b.dataset.i];
-  if(a==='inc')setQ(s,qty(s)+1);
-  else if(a==='dec')setQ(s,qty(s)-1);
+  if(a==='tog'){has(s)?st.sel.delete(s.n):st.sel.set(s.n,{s:'',pv:''});renderAll()}
   else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
-  else if(a==='rm')setQ(s,0);
+  else if(a==='rm'){st.sel.delete(s.n);renderAll()}
   else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
   else if(a==='mode')setMode(b.dataset.m);
+});
+document.addEventListener('input',e=>{
+  const f=e.target.dataset&&e.target.dataset.f;if(!f)return;
+  const s=DB[+e.target.dataset.i],o=st.sel.get(s.n);if(!o)return;
+  o[f]=e.target.value;autosave();
 });
 function setMode(m){
   document.body.dataset.mode=m;
   document.querySelectorAll('[data-act=mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m));
   if(m==='book'){
-    const cnt=l=>DB.some(s=>s.t===TORDER[l]&&qty(s));
+    const cnt=l=>DB.some(s=>s.o===TORDER[l]&&has(s));
     if(!cnt(st.tab)){const f=TORDER.findIndex((t,l)=>cnt(l));if(f>=0){st.tab=f;renderBook()}}
   }
   scrollTo(0,0);
 }
-document.addEventListener('change',e=>{
-  if(!e.target.classList.contains('qin'))return;
-  const s=DB[+e.target.dataset.i],v=parseInt(e.target.value);
-  setQ(s,isNaN(v)?0:v);
-});
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
-$('#fc').addEventListener('change',e=>{st.cls=e.target.value;fillSub();renderList();autosave()});
-$('#fs').addEventListener('change',e=>{st.sch=e.target.value;renderList();autosave()});
-$('#fl').addEventListener('input',e=>{st.lvl=e.target.value;renderList();autosave()});
-$('#fo').addEventListener('change',e=>{st.only=e.target.value;renderList();autosave()});
+[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
 $('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
-  const nom=($('#titre').value||Persos.current().nom||'equipement').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const nom=($('#titre').value||Persos.current().nom||'familiers').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
   const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=`equipement_${nom}.json`;
+  a.href=URL.createObjectURL(blob);a.download=`familiers_${nom}.json`;
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  msg('Équipement enregistré dans un fichier .json');
+  msg('Familiers enregistrés dans un fichier .json');
 };
 $('#bLoad').onclick=()=>$('#file').click();
 $('#file').onchange=ev=>{
@@ -277,30 +270,30 @@ $('#file').onchange=ev=>{
   const r=new FileReader();
   r.onload=()=>{try{
     const u=apply(JSON.parse(r.result));
-    msg('Équipement chargé : '+st.sel.size+' type(s)'+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
+    msg('Familiers chargés : '+st.sel.size+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
   }catch(e){msg('Fichier invalide : choisis un .json créé par cette page')}};
   r.readAsText(f);ev.target.value='';
 };
-$('#bPrint').onclick=()=>{if(!st.sel.size){msg('Ajoute d’abord des objets à ton équipement');return}window.print()};
+$('#bPrint').onclick=()=>{if(!st.sel.size){msg('Choisis d’abord des familiers');return}window.print()};
 $('#bClear').onclick=()=>{
   if(!st.sel.size)return;
-  if(!confirm('Retirer tout l’équipement de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
-  st.sel.clear();renderAll();msg('Équipement vidé');
+  if(!confirm('Retirer tous les familiers de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
+  st.sel.clear();renderAll();msg('Familiers retirés');
 };
 
 async function boot(){
   let data;
   try{
-    const r=await fetch('equipement.json');
+    const r=await fetch('familiers.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){
     $('#cnt').textContent='';
-    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste (equipement.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
+    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste (familiers.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
     return;
   }
   setup(data);
-  Persos.init({part:'equipement',mount:$('#persos'),collect,apply:show,msg});
+  Persos.init({part:'familiers',mount:$('#persos'),collect,apply:show,msg});
 }
 boot();
 </script>

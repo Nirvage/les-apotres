@@ -151,7 +151,7 @@ const TORDER=['Armure','Arme','Munition','Anneau','Baguette','Bâton','Sceptre',
 const RORDER=['Courant','Peu courant','Rare','Très rare','Légendaire','Artefact'];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
 // Rareté « principale » d'un objet (la première citée quand elle varie)
 const rare=s=>RORDER.find(r=>norm(s.q).includes(norm(r)))||'';

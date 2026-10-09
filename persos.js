@@ -180,7 +180,7 @@ addEventListener('storage',function(e){
 });
 
 /* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
-var PARTS=['fiche','grimoire','objets','equipement'];
+var PARTS=['fiche','grimoire','objets','equipement','familiers'];
 function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
 function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
 /* Fiche : clés internes <-> noms lisibles pour le fichier exporté */
@@ -235,6 +235,8 @@ function exportActive(){
   o.objets_magiques=m?{titre:m.titre||'',objets:m.objets||[]}:null;
   var e=p.equipement&&p.equipement.data;
   o.equipement=e?{titre:e.titre||'',objets:e.objets||[]}:null;
+  var fm=p.familiers&&p.familiers.data;
+  o.familiers=fm?{titre:fm.titre||'',familiers:fm.familiers||[]}:null;
   return o;
 }
 function importPerso(o){
@@ -247,6 +249,7 @@ function importPerso(o){
     p.grimoire=o.grimoire?{version:1,type:'grimoire-dnd-5e',data:{titre:o.grimoire.titre||'',sorts:o.grimoire.sorts||[],filtres:{}}}:null;
     p.objets=o.objets_magiques?{version:1,type:'objets-dnd-5e',data:{titre:o.objets_magiques.titre||'',objets:o.objets_magiques.objets||[],filtres:{}}}:null;
     p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
+    p.familiers=o.familiers?{version:1,type:'familiers-dnd-5e',data:{titre:o.familiers.titre||'',familiers:o.familiers.familiers||[],filtres:{}}}:null;
   }else throw new Error('format');
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
@@ -259,6 +262,7 @@ function printable(){
   if(d('grimoire')&&(d('grimoire').sorts||[]).length)r.push('grimoire');
   if(d('objets')&&(d('objets').objets||[]).length)r.push('objets');
   if(d('equipement')&&(d('equipement').objets||[]).length)r.push('equipement');
+  if(d('familiers')&&(d('familiers').familiers||[]).length)r.push('familiers');
   return r;
 }
 

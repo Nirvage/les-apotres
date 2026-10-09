@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide du débutant D&amp;D 5e</title>
+<link rel="stylesheet" href="style.css">
+<style>
+@page{size:A4;margin:12mm}
+.wrap{max-width:1000px;margin:16px auto;padding:0 12px;display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start}
+nav.toc{position:sticky;top:64px;background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:10px 12px;font-size:12.5px}
+nav.toc b{display:block;font:italic 700 15px var(--serif);color:#2a3170;margin-bottom:6px}
+nav.toc a{display:block;padding:3px 0;color:var(--ink);text-decoration:none}
+nav.toc a:hover{color:#2f6fd0;text-decoration:underline}
+main.doc{background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:18px 24px 26px;font-size:14px;line-height:1.55}
+.doc h1{margin:0 0 4px;font:italic 700 28px var(--serif);color:#2a3170}
+.doc .lead{margin:0 0 14px;color:var(--soft)}
+.doc h2{margin:26px 0 8px;font:italic 700 20px var(--serif);color:#fff;background:var(--c,#2a3170);padding:5px 12px;border-radius:7px;scroll-margin-top:70px}
+.doc h3{margin:14px 0 4px;font:italic 700 15px var(--serif);color:#2a3170}
+.doc p{margin:6px 0}
+.doc ul,.doc ol{margin:6px 0 6px 20px;padding:0}
+.doc li{margin:2px 0}
+.tip{background:#eef6ff;border-left:4px solid #2f6fd0;border-radius:6px;padding:7px 12px;margin:10px 0}
+.warn{background:#fff6e5;border-left:4px solid #d8791a;border-radius:6px;padding:7px 12px;margin:10px 0}
+.doc table{border-collapse:collapse;margin:8px 0;font-size:13px}
+.doc th,.doc td{border:1px solid var(--line);padding:3px 9px;text-align:left}
+.doc th{background:#eceefb;color:#2a3170}
+.doc td.c,.doc th.c{text-align:center}
+.dice{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.dice span{background:#2a3170;color:#fff;border-radius:8px;padding:4px 11px;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+code{background:#eceefb;border-radius:4px;padding:0 4px}
+@media screen and (max-width:760px){.wrap{grid-template-columns:1fr}nav.toc{position:static}.two{grid-template-columns:1fr}}
+@media print{body{background:#fff}.top,nav.toc{display:none}.wrap{display:block;margin:0;padding:0;max-width:none}main.doc{box-shadow:none;border-top:0;padding:0;font-size:11px}.doc h2{break-after:avoid;page-break-after:avoid}.doc table,.tip,.warn{break-inside:avoid;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Guide du débutant D&amp;D 5e</b>
+  <button id="bPrint">Imprimer / PDF</button>
+ </div>
+</div>
+<div class="wrap">
+<nav class="toc" aria-label="Sommaire">
+ <b>Sommaire</b>
+ <a href="#jeu">1. Le jeu en bref</a>
+ <a href="#des">2. Les dés</a>
+ <a href="#carac">3. Les caractéristiques</a>
+ <a href="#maitrise">4. Bonus de maîtrise</a>
+ <a href="#tests">5. Tests, attaques, sauvegardes</a>
+ <a href="#comp">6. Les compétences</a>
+ <a href="#pv">7. Vie, armure et mort</a>
+ <a href="#combat">8. Le combat</a>
+ <a href="#etats">9. Les états</a>
+ <a href="#repos">10. Les repos</a>
+ <a href="#magie">11. La magie</a>
+ <a href="#niveaux">12. Les niveaux</a>
+ <a href="#creer">13. Créer un personnage</a>
+ <a href="#classes">14. Les classes</a>
+ <a href="#vocab">15. Vocabulaire</a>
+ <a href="#site">16. Utiliser ce site</a>
+ <a href="#conseils">17. Conseils</a>
+</nav>
+<main class="doc">
+<h1>Guide du débutant</h1>
+<p class="lead">Les notions de base de Donjons &amp; Dragons 5e (règles 2024), expliquées simplement. Ce guide résume les règles avec mes propres mots : pour un cas précis, le Manuel des joueurs fait foi.</p>
+
+<h2 id="jeu" style="--c:#2a3170">1. Le jeu en bref</h2>
+<p>Donjons &amp; Dragons est un <b>jeu de rôle</b> : on raconte une histoire ensemble. Un joueur, le <b>Maître du Jeu</b> (MJ), décrit le monde, joue les personnages que l’on rencontre (les <b>PNJ</b>) et les monstres, et arbitre les règles. Les autres joueurs incarnent chacun un <b>personnage-joueur</b> (PJ), un aventurier qu’ils inventent.</p>
+<p>Le principe est toujours le même : le MJ décrit une situation, chaque joueur dit ce que son personnage <b>essaie de faire</b>, et le MJ dit ce qui se passe. Quand le résultat est incertain, on lance un <b>d20</b> (dé à 20 faces) : plus le résultat est haut, mieux c’est.</p>
+<div class="tip"><b>Rien n’est une compétition.</b> Les joueurs coopèrent contre les dangers de l’histoire ; le MJ n’est pas un adversaire, mais un arbitre qui veut une bonne partie.</div>
+
+<h2 id="des" style="--c:#2f6fd0">2. Les dés</h2>
+<div class="dice"><span>d4</span><span>d6</span><span>d8</span><span>d10</span><span>d12</span><span>d20</span><span>d100</span></div>
+<p>« d » signifie dé, suivi du nombre de faces. La notation <code>2d6 + 3</code> signifie : lance deux dés à 6 faces, additionne-les, puis ajoute 3. Le <b>d100</b> se lance avec deux d10 (dizaines et unités).</p>
+<ul>
+<li><b>d20</b> : tests, attaques et jets de sauvegarde (voir plus bas).</li>
+<li><b>d4 à d12</b> : surtout les dégâts, les soins et les points de vie.</li>
+</ul>
+
+<h2 id="carac" style="--c:#7a4fc4">3. Les six caractéristiques</h2>
+<p>Chaque personnage a six scores, entre 1 et 20 (30 au maximum). Un score de 10-11 est la moyenne humaine. Chacun donne un <b>modificateur</b> que l’on ajoute à ses jets.</p>
+<div class="two"><table><tr><th>Score</th><th class="c">Modificateur</th></tr>
+<tr><td>1</td><td class="c">−5</td></tr><tr><td>2-3</td><td class="c">−4</td></tr><tr><td>4-5</td><td class="c">−3</td></tr><tr><td>6-7</td><td class="c">−2</td></tr><tr><td>8-9</td><td class="c">−1</td></tr><tr><td>10-11</td><td class="c">+0</td></tr></table>
+<table><tr><th>Score</th><th class="c">Modificateur</th></tr>
+<tr><td>12-13</td><td class="c">+1</td></tr><tr><td>14-15</td><td class="c">+2</td></tr><tr><td>16-17</td><td class="c">+3</td></tr><tr><td>18-19</td><td class="c">+4</td></tr><tr><td>20-21</td><td class="c">+5</td></tr><tr><td>22 et plus</td><td class="c">+6…</td></tr></table></div>
+<p>La formule : <code>(score − 10) ÷ 2</code>, arrondi à l’inférieur.</p>
+<table>
+<tr><th>Caractéristique</th><th>Elle mesure</th><th>Exemples</th></tr>
+<tr><td><b>Force</b> (FOR)</td><td>La puissance physique</td><td>Frapper fort, soulever, grimper, nager</td></tr>
+<tr><td><b>Dextérité</b> (DEX)</td><td>L’agilité et les réflexes</td><td>Esquiver, tirer à l’arc, se faufiler, initiative</td></tr>
+<tr><td><b>Constitution</b> (CON)</td><td>L’endurance et la santé</td><td>Points de vie, résister au poison, tenir sa concentration</td></tr>
+<tr><td><b>Intelligence</b> (INT)</td><td>Le raisonnement et la mémoire</td><td>Connaissances, enquête, magie des Magiciens</td></tr>
+<tr><td><b>Sagesse</b> (SAG)</td><td>La perception et l’intuition</td><td>Repérer un piège, sentir un mensonge, magie des Clercs et Druides</td></tr>
+<tr><td><b>Charisme</b> (CHA)</td><td>La force de personnalité</td><td>Convaincre, tromper, charmer, magie des Bardes et Ensorceleurs</td></tr>
+</table>
+
+<h2 id="maitrise" style="--c:#2e9e5b">4. Le bonus de maîtrise</h2>
+<p>Quand un personnage est <b>formé</b> à quelque chose (une compétence, une arme, un jet de sauvegarde, un outil), il ajoute son <b>bonus de maîtrise</b>. Il augmente avec le niveau :</p>
+<table><tr><th>Niveau</th><th class="c">1-4</th><th class="c">5-8</th><th class="c">9-12</th><th class="c">13-16</th><th class="c">17-20</th></tr><tr><td>Bonus de maîtrise</td><td class="c">+2</td><td class="c">+3</td><td class="c">+4</td><td class="c">+5</td><td class="c">+6</td></tr></table>
+<p>L’<b>expertise</b> double ce bonus pour une compétence (certaines classes y ont droit).</p>
+
+<h2 id="tests" style="--c:#d8791a">5. Tests, attaques et jets de sauvegarde</h2>
+<p>Ces trois jets suivent la même recette : <b>d20 + modificateur (+ bonus de maîtrise si formé)</b>, à comparer à une difficulté.</p>
+<ul>
+<li><b>Test de caractéristique</b> : on tente une action dont l’issue est incertaine. Le MJ fixe un <b>DD</b> (degré de difficulté) ; si le total l’égale ou le dépasse, c’est réussi.</li>
+<li><b>Jet d’attaque</b> : le total doit égaler ou dépasser la <b>CA</b> (classe d’armure) de la cible pour la toucher. Un <b>20 naturel</b> (le dé affiche 20) touche toujours et est un <b>coup critique</b> (on double les dés de dégâts) ; un <b>1 naturel</b> rate toujours.</li>
+<li><b>Jet de sauvegarde</b> : on le fait pour <b>éviter ou résister</b> à un effet (boule de feu, poison, peur…). Le DD vient de l’effet.</li>
+</ul>
+<table><tr><th>Difficulté</th><th class="c">DD</th></tr><tr><td>Très facile</td><td class="c">5</td></tr><tr><td>Facile</td><td class="c">10</td></tr><tr><td>Moyenne</td><td class="c">15</td></tr><tr><td>Difficile</td><td class="c">20</td></tr><tr><td>Très difficile</td><td class="c">25</td></tr><tr><td>Presque impossible</td><td class="c">30</td></tr></table>
+<h3>Avantage et désavantage</h3>
+<p>Avec un <b>avantage</b>, on lance <b>deux d20</b> et on garde le <b>meilleur</b> ; avec un <b>désavantage</b>, on garde le <b>pire</b>. Plusieurs sources d’avantage ne se cumulent pas ; un avantage et un désavantage s’annulent, quel que soit leur nombre.</p>
+<h3>Dégâts</h3>
+<p>Une attaque réussie inflige des dégâts : dé de l’arme + modificateur de caractéristique (Force pour le corps à corps, Dextérité pour les armes à distance ou à <i>finesse</i>). Les dégâts ont un <b>type</b> (tranchant, feu, poison…) ; certaines créatures y sont <b>résistantes</b> (moitié), <b>vulnérables</b> (double) ou <b>immunisées</b> (aucun).</p>
+
+<h2 id="comp" style="--c:#12968f">6. Les compétences</h2>
+<p>Une compétence est un domaine précis lié à une caractéristique. On lance un d20 + le modificateur de cette caractéristique, plus le bonus de maîtrise si l’on maîtrise la compétence.</p>
+<div class="two">
+<table><tr><th>Caractéristique</th><th>Compétences</th></tr>
+<tr><td>Force</td><td>Athlétisme</td></tr>
+<tr><td>Dextérité</td><td>Acrobaties, Discrétion, Escamotage</td></tr>
+<tr><td>Intelligence</td><td>Arcanes, Histoire, Investigation, Nature, Religion</td></tr></table>
+<table><tr><th>Caractéristique</th><th>Compétences</th></tr>
+<tr><td>Sagesse</td><td>Dressage, Intuition, Médecine, Perception, Survie</td></tr>
+<tr><td>Charisme</td><td>Intimidation, Persuasion, Représentation, Supercherie</td></tr>
+<tr><td>Constitution</td><td>(aucune ; sert aux sauvegardes et aux tests bruts)</td></tr></table></div>
+<p>Exemples : <i>Perception</i> pour remarquer une embuscade, <i>Investigation</i> pour fouiller une pièce, <i>Persuasion</i> pour négocier, <i>Discrétion</i> pour passer inaperçu.</p>
+
+<h2 id="pv" style="--c:#c8402f">7. Vie, armure et mort</h2>
+<ul>
+<li><b>Points de vie (PV)</b> : l’énergie vitale. Les dégâts les réduisent ; les soins les rendent (sans dépasser le maximum). Au niveau 1, un personnage a le dé de vie maximum de sa classe + son modificateur de Constitution.</li>
+<li><b>Classe d’armure (CA)</b> : la difficulté à toucher. Sans armure, <code>10 + modificateur de Dextérité</code>. Une armure et un bouclier (+2) l’améliorent.</li>
+<li><b>Dés de vie</b> : on en dépense pendant un repos court pour récupérer des PV.</li>
+<li><b>PV temporaires</b> : une réserve supplémentaire qui absorbe les dégâts en premier ; elle ne se cumule pas (on garde la plus grande) et ne se soigne pas.</li>
+</ul>
+<h3>À 0 point de vie</h3>
+<p>Le personnage tombe <b>inconscient</b> et fait des <b>jets contre la mort</b> à chacun de ses tours : un d20, <b>10 ou plus = réussite</b>, moins = échec. <b>3 réussites</b> : il est stabilisé. <b>3 échecs</b> : il meurt. Un 1 naturel compte pour 2 échecs ; un 20 naturel le ramène à 1 PV. Chaque dégât reçu à 0 PV est un échec, et un soin le relève aussitôt.</p>
+
+<h2 id="combat" style="--c:#8e3a9d">8. Le combat</h2>
+<p>Le combat se joue en <b>rounds</b> d’environ 6 secondes. Au début, chacun lance l’<b>initiative</b> (d20 + modificateur de Dextérité) : on agit du plus haut au plus bas, à chaque round.</p>
+<h3>Pendant son tour</h3>
+<ul>
+<li><b>Déplacement</b> : jusqu’à sa Vitesse (9 m pour la plupart), que l’on peut découper avant/après l’action. Se relever coûte la moitié du déplacement.</li>
+<li><b>Une action</b> (voir ci-dessous).</li>
+<li><b>Une action bonus</b> : seulement si une capacité ou un sort l’offre.</li>
+<li><b>Une interaction avec un objet</b> gratuite (dégainer une arme, ouvrir une porte).</li>
+<li><b>Une réaction</b> par round (hors tour ou pendant), déclenchée par un événement : l’<b>attaque d’opportunité</b> en est l’exemple classique (une attaque quand un ennemi quitte votre allonge sans se désengager).</li>
+</ul>
+<h3>Les actions possibles</h3>
+<table>
+<tr><th>Action</th><th>Effet</th></tr>
+<tr><td><b>Attaquer</b></td><td>Une attaque avec une arme ou à mains nues (plusieurs attaques pour certaines classes)</td></tr>
+<tr><td><b>Magie</b></td><td>Lancer un sort ou utiliser un objet magique ou une capacité de ce type</td></tr>
+<tr><td><b>Foncer</b></td><td>Gagner un déplacement supplémentaire égal à sa Vitesse</td></tr>
+<tr><td><b>Se désengager</b></td><td>Son déplacement ne provoque pas d’attaque d’opportunité ce tour-ci</td></tr>
+<tr><td><b>Esquiver</b></td><td>Les attaques contre soi sont à désavantage jusqu’au prochain tour, avantage aux jets de sauvegarde de Dextérité</td></tr>
+<tr><td><b>Aider</b></td><td>Donner un avantage à un allié (test ou première attaque)</td></tr>
+<tr><td><b>Se cacher</b></td><td>Test de Dextérité (Discrétion) pour disparaître à la vue</td></tr>
+<tr><td><b>Chercher</b></td><td>Tester sa Perception, Intuition, Médecine, Investigation ou Survie</td></tr>
+<tr><td><b>Se tenir prêt</b></td><td>Préparer une action et un déclencheur, pour l’exécuter avec sa réaction</td></tr>
+<tr><td><b>Utiliser un objet</b></td><td>Activer un objet non magique (potion, piège, outil)</td></tr>
+<tr><td><b>Influencer</b></td><td>Test de Charisme ou de Sagesse pour convaincre ou intimider une créature</td></tr>
+<tr><td><b>Étudier</b></td><td>Test d’Intelligence pour se rappeler ou analyser une information</td></tr>
+</table>
+<h3>Couvert</h3>
+<p>Un obstacle partiel donne un <b>demi-couvert</b> (+2 à la CA et aux sauvegardes de Dextérité), un <b>trois-quarts de couvert</b> (+5). Un couvert total empêche d’être ciblé directement.</p>
+
+<h2 id="etats" style="--c:#6b7280">9. Les états principaux</h2>
+<table>
+<tr><th>État</th><th>Ce que ça fait</th></tr>
+<tr><td><b>À terre</b></td><td>Désavantage aux attaques ; les attaques au corps à corps contre vous ont l’avantage, celles à distance le désavantage</td></tr>
+<tr><td><b>Agrippé</b></td><td>Vitesse à 0 tant que l’agresseur tient</td></tr>
+<tr><td><b>Aveuglé</b></td><td>Ne voit plus ; désavantage à vos attaques, avantage à celles contre vous</td></tr>
+<tr><td><b>Charmé</b></td><td>Ne peut pas attaquer le charmeur ; il a l’avantage aux interactions sociales</td></tr>
+<tr><td><b>Effrayé</b></td><td>Désavantage aux jets tant que la source est en vue ; ne peut s’en rapprocher volontairement</td></tr>
+<tr><td><b>Empoisonné</b></td><td>Désavantage aux jets d’attaque et aux tests de caractéristique</td></tr>
+<tr><td><b>Entravé</b></td><td>Vitesse à 0 ; désavantage à vos attaques et jets de Dextérité</td></tr>
+<tr><td><b>Neutralisé</b></td><td>Ne peut ni agir ni réagir</td></tr>
+<tr><td><b>Paralysé</b></td><td>Neutralisé, ne bouge ni ne parle ; échecs automatiques en For/Dex ; les attaques au corps à corps contre vous sont critiques</td></tr>
+<tr><td><b>Étourdi</b></td><td>Neutralisé, ne bouge pas ; attaques contre vous à l’avantage</td></tr>
+<tr><td><b>Invisible</b></td><td>Avantage à vos attaques, désavantage à celles contre vous</td></tr>
+<tr><td><b>Inconscient</b></td><td>Neutralisé, à terre, ne perçoit rien ; les attaques au corps à corps contre vous sont critiques</td></tr>
+<tr><td><b>Épuisement</b></td><td>Cumulable : chaque niveau retire 2 à tous vos jets de d20 et 1,5 m de Vitesse ; 6 niveaux = mort. Un repos long en retire un niveau</td></tr>
+</table>
+
+<h2 id="repos" style="--c:#2e9e5b">10. Les repos</h2>
+<ul>
+<li><b>Repos court</b> (au moins 1 heure) : on peut dépenser des dés de vie pour récupérer des PV (dé + modificateur de Constitution). Certaines capacités reviennent.</li>
+<li><b>Repos long</b> (au moins 8 heures, dont 6 de sommeil) : on récupère <b>tous ses PV</b>, la moitié de ses dés de vie, les emplacements de sorts et la plupart des capacités. Un seul par période de 24 heures.</li>
+</ul>
+
+<h2 id="magie" style="--c:#7a4fc4">11. La magie</h2>
+<ul>
+<li><b>Tours de magie</b> : des sorts mineurs que l’on peut lancer à volonté.</li>
+<li><b>Sorts de niveau 1 à 9</b> : plus puissants, ils consomment un <b>emplacement de sort</b> de niveau égal ou supérieur. Les emplacements reviennent après un repos long. Lancer un sort avec un emplacement plus élevé le renforce souvent.</li>
+<li><b>Connus ou préparés</b> : selon la classe, on connaît une liste fixe de sorts (Barde, Ensorceleur, Occultiste, Rôdeur…) ou on <b>prépare</b> chaque jour une sélection dans une liste plus large (Clerc, Druide, Magicien, Paladin…).</li>
+<li><b>Caractéristique d’incantation</b> : propre à la classe (Intelligence, Sagesse ou Charisme). <code>DD de sauvegarde = 8 + bonus de maîtrise + modificateur</code> et <code>bonus d’attaque de sort = bonus de maîtrise + modificateur</code>.</li>
+<li><b>Composantes</b> : <b>V</b>erbale (parler), <b>S</b>omatique (gestes), <b>M</b>atérielle (objets ; un focalisateur ou une bourse de composants suffit s’il n’y a pas de coût).</li>
+<li><b>Concentration</b> : certains sorts durent tant que vous vous concentrez, et <b>une seule concentration à la fois</b>. Quand vous subissez des dégâts, jet de sauvegarde de Constitution (DD 10 ou la moitié des dégâts, le plus élevé, plafonné à 30) sinon le sort s’arrête. Être neutralisé ou mourir la brise.</li>
+<li><b>Rituels</b> : certains sorts peuvent être lancés en 10 minutes de plus, sans emplacement.</li>
+</ul>
+<div class="tip">Sur la page <b>Grimoire</b>, les sorts sont triés par niveau et classe, avec la concentration et le rituel signalés.</div>
+
+<h2 id="niveaux" style="--c:#d6458e">12. Les niveaux</h2>
+<p>En surmontant des défis, on gagne de l’expérience (<b>XP</b>) ; beaucoup de tables font plutôt monter de niveau « à l’histoire », sans compter. Chaque niveau apporte de nouvelles capacités.</p>
+<table><tr><th>Niveau</th><th class="c">2</th><th class="c">3</th><th class="c">4</th><th class="c">5</th><th class="c">6</th><th class="c">7</th><th class="c">8</th><th class="c">9</th><th class="c">10</th></tr>
+<tr><td>XP</td><td class="c">300</td><td class="c">900</td><td class="c">2 700</td><td class="c">6 500</td><td class="c">14 000</td><td class="c">23 000</td><td class="c">34 000</td><td class="c">48 000</td><td class="c">64 000</td></tr></table>
+<table><tr><th>Niveau</th><th class="c">11</th><th class="c">12</th><th class="c">13</th><th class="c">14</th><th class="c">15</th><th class="c">16</th><th class="c">17</th><th class="c">18</th><th class="c">19</th><th class="c">20</th></tr>
+<tr><td>XP</td><td class="c">85 000</td><td class="c">100 000</td><td class="c">120 000</td><td class="c">140 000</td><td class="c">165 000</td><td class="c">195 000</td><td class="c">225 000</td><td class="c">265 000</td><td class="c">305 000</td><td class="c">355 000</td></tr></table>
+<p>Aux niveaux 4, 8, 12, 16 et 19 (et parfois davantage selon la classe), on gagne une <b>amélioration de caractéristiques</b> (+2 à répartir) ou un <b>don</b>. Au niveau 3 (parfois avant), on choisit une <b>sous-classe</b>.</p>
+
+<h2 id="creer" style="--c:#2f6fd0">13. Créer un personnage</h2>
+<ol>
+<li><b>Choisir une classe</b> : c’est le cœur du personnage (guerrier, magicien…). Elle donne les dés de vie, les maîtrises et les capacités. Voir la section suivante.</li>
+<li><b>Choisir une origine</b> : un <b>historique</b> (son passé : donne +2/+1 ou +1/+1/+1 aux caractéristiques, deux compétences, un outil et un <b>don d’origine</b>) et une <b>espèce</b> (humain, elfe, nain… : taille, vitesse, traits spéciaux).</li>
+<li><b>Déterminer les caractéristiques</b> : trois méthodes courantes. <b>Tableau standard</b> : 15, 14, 13, 12, 10, 8 à répartir. <b>Achat de points</b> : 27 points à dépenser (chaque score part de 8, maximum 15). <b>Tirage</b> : 4d6 par score en retirant le plus bas dé (le MJ décide). Place les meilleurs scores dans ce qui compte pour ta classe.</li>
+<li><b>Choisir l’alignement</b> (facultatif) : une indication morale, comme loyal bon ou chaotique neutre.</li>
+<li><b>Noter les détails</b> : PV du niveau 1, CA, bonus de maîtrise, compétences, sauvegardes, équipement de départ (un lot d’objets ou de l’or), nom, apparence, personnalité, liens.</li>
+</ol>
+<div class="tip"><b>Avec ce site</b> : ouvre la <b>Fiche</b>, choisis la classe, l’espèce et l’historique dans les Paramètres, saisis tes scores : bonus, maîtrises, dons et modificateurs sont calculés pour toi. Pour la répartition des caractéristiques par l’historique, un petit « → » montre la valeur finale.</div>
+
+<h2 id="classes" style="--c:#c8402f">14. Les classes</h2>
+<table>
+<tr><th>Classe</th><th>En une phrase</th></tr>
+<tr><td><b>Barbare</b></td><td>Combattant féroce, qui entre en rage pour frapper fort et encaisser.</td></tr>
+<tr><td><b>Barde</b></td><td>Artiste-magicien qui inspire ses alliés et trompe ses ennemis par la musique et les mots.</td></tr>
+<tr><td><b>Clerc</b></td><td>Serviteur d’une divinité : soigne, protège et frappe avec une magie sacrée.</td></tr>
+<tr><td><b>Druide</b></td><td>Protecteur de la nature : sorts naturels et transformation en animal.</td></tr>
+<tr><td><b>Ensorceleur</b></td><td>Lanceur de sorts à la magie innée, qu’il tord grâce à la métamagie.</td></tr>
+<tr><td><b>Guerrier</b></td><td>Maître des armes et des armures, polyvalent et fiable au combat.</td></tr>
+<tr><td><b>Magicien</b></td><td>Érudit de l’arcane, au grimoire immense de sorts.</td></tr>
+<tr><td><b>Moine</b></td><td>Artiste martial rapide, qui canalise l’énergie ki.</td></tr>
+<tr><td><b>Occultiste</b></td><td>Lié par un pacte à une entité puissante, il en tire pouvoirs et invocations.</td></tr>
+<tr><td><b>Paladin</b></td><td>Chevalier sacré, guerrier lié par un serment qui soigne et châtie.</td></tr>
+<tr><td><b>Rôdeur</b></td><td>Pisteur et chasseur des étendues sauvages, à l’arc ou à la lame, avec un peu de magie.</td></tr>
+<tr><td><b>Roublard</b></td><td>Expert de la discrétion, des pièges et des coups précis (attaque sournoise).</td></tr>
+<tr><td><b>Artificier</b></td><td>Inventeur qui infuse des objets de magie (classe d’un autre ouvrage que le Manuel des joueurs 2024).</td></tr>
+</table>
+<p><b>Conseil de choix</b> : au combat sans magie, regarde Guerrier ou Barbare ; pour soigner, Clerc ; pour la polyvalence, Barde ; pour la furtivité, Roublard ; pour la magie pure, Magicien ou Ensorceleur.</p>
+
+<h2 id="vocab" style="--c:#12968f">15. Vocabulaire utile</h2>
+<table>
+<tr><th>Terme</th><th>Signification</th></tr>
+<tr><td>MJ</td><td>Maître du Jeu, l’arbitre et le narrateur</td></tr>
+<tr><td>PJ / PNJ</td><td>Personnage-joueur / personnage non-joueur (joué par le MJ)</td></tr>
+<tr><td>CA</td><td>Classe d’armure, la difficulté à vous toucher</td></tr>
+<tr><td>PV</td><td>Points de vie</td></tr>
+<tr><td>DD</td><td>Degré de difficulté, le seuil à atteindre ou dépasser</td></tr>
+<tr><td>JS</td><td>Jet de sauvegarde</td></tr>
+<tr><td>BM</td><td>Bonus de maîtrise</td></tr>
+<tr><td>XP</td><td>Points d’expérience</td></tr>
+<tr><td>Round</td><td>Une série complète de tours de combat (environ 6 secondes)</td></tr>
+<tr><td>Po / pa / pc</td><td>Pièces d’or, d’argent, de cuivre (1 po = 10 pa = 100 pc)</td></tr>
+<tr><td>Harmonisation</td><td>Lien (1 h de repos court) avec un objet magique ; 3 objets maximum à la fois</td></tr>
+<tr><td>Don</td><td>Capacité spéciale choisie à la place d’une amélioration de caractéristique</td></tr>
+<tr><td>Familier</td><td>Petit compagnon magique ou animal qui vous suit et vous aide</td></tr>
+</table>
+
+<h2 id="site" style="--c:#d8791a">16. Utiliser ce site</h2>
+<ul>
+<li><b>Accueil</b> : choisis ton personnage (ou crée-en un autre avec « Nouveau » sur n’importe quelle page), exporte tout son fichier en un clic, importe-en un autre, ou imprime tout d’un coup.</li>
+<li><b>Fiche de personnage</b> : ta fiche A4. Les <b>Paramètres</b> proposent classe, espèce, sous-espèce, historique, sous-classe et dons ; les effets sont appliqués automatiquement (modificateurs, cases de maîtrise cochées, bonus). Des boutons importent sorts, objets liés et équipement depuis les autres pages.</li>
+<li><b>Grimoire</b> : cherche et choisis tes sorts (filtres par classe, école, niveau, source).</li>
+<li><b>Objets magiques</b> : liste des objets magiques avec leurs effets.</li>
+<li><b>Équipement</b> : armes, armures, matériel, potions… avec quantités, poids et valeur totaux.</li>
+<li><b>Familiers</b> : choisis tes familiers et compagnons avec leur fiche de statistiques.</li>
+<li><b>Sauvegarde</b> : tout est enregistré <b>dans ton navigateur</b> automatiquement. Pour garder ou transférer un personnage, exporte le fichier .json depuis l’accueil. Vider les données du navigateur efface les personnages non exportés.</li>
+</ul>
+<div class="warn"><b>À savoir</b> : les descriptions des sorts, objets et créatures sont des reformulations ; elles peuvent contenir des erreurs. En cas de doute, le livre fait foi.</div>
+
+<h2 id="conseils" style="--c:#2a3170">17. Conseils pour bien débuter</h2>
+<ul>
+<li><b>Joue ton personnage</b>, pas seulement ses chiffres : un but, un défaut, un lien avec le groupe.</li>
+<li><b>Décris ce que tu veux faire</b> plutôt que de demander « je lance Persuasion ? » : le MJ choisira le jet.</li>
+<li><b>Coopère</b> : un groupe qui se complète (un soigneur, un combattant, un expert de la discrétion, un lanceur de sorts) survit mieux.</li>
+<li><b>Ne crains pas les erreurs</b> de règle : demande au MJ, et continue. L’histoire compte plus que la règle exacte.</li>
+<li><b>Prépare tes tours</b> : lis tes capacités avant ton tour pour jouer vite.</li>
+<li><b>Ose</b> : l’échec fait souvent les meilleures histoires.</li>
+</ul>
+</main>
+</div>
+<script>document.getElementById('bPrint').onclick=()=>window.print();</script>
+</body>
+</html>
