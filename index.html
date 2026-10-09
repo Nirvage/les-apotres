@@ -28,6 +28,17 @@ header p{margin:8px 0 0;color:#d9defa}
 .perso button:not(.pc):hover,.perso button:not(.pc):focus-visible{background:#ffffff22;outline:2px solid var(--gold)}
 .perso .primary{background:var(--gold);border-color:var(--gold);color:#201700;font-weight:600}
 #msg{font-size:12px;color:#cfd4f5}
+#printroot{display:none}
+@page{size:A4;margin:10mm}
+@page fiche{size:A4;margin:0}
+.pr-fiche{page:fiche}.pr-liste{page:liste}
+@page liste{size:A4;margin:10mm}
+@media print{
+ body>*:not(#printroot){display:none!important}
+ body{display:block;min-height:0;padding:0;background:#fff}
+ #printroot{display:block!important}
+ .pr-sec+.pr-sec{break-before:page}
+}
 footer{color:#b9bfe6;font-size:12px}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
@@ -71,6 +82,7 @@ footer{color:#b9bfe6;font-size:12px}
   <span class="go">Ouvrir l’équipement</span>
  </a>
 </nav>
+<div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
 <script src="persos.js"></script>
 <script>
@@ -101,18 +113,53 @@ $('#file').onchange=ev=>{
     catch(e){msg('Fichier invalide : choisis un .json exporté depuis cette page')}};
   r.readAsText(f);ev.target.value='';
 };
-// Impression : chaque partie remplie est chargée dans un cadre caché puis imprimée
+// Impression : chaque partie remplie est chargée dans un cadre caché, son rendu est copié (avec ses styles,
+// isolés dans un shadow DOM) dans un seul document, puis le tout est imprimé en une fois
 const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html'};
+function inlineCss(t){
+  return t.replace(/@page\s*[^{]*\{[^}]*\}/g,'').replace(/:root/g,':host')
+    .replace(/(^|[\s,{};])(body|html)(?=[\s\[.:,{>+~])/g,'$1.__b');
+}
+function syncValues(src,dst){
+  const a=src.querySelectorAll('input,textarea,select'),b=dst.querySelectorAll('input,textarea,select');
+  a.forEach((e,i)=>{
+    const c=b[i];if(!c)return;
+    if(e.tagName==='TEXTAREA')c.textContent=e.value;
+    else if(e.tagName==='SELECT')[...c.options].forEach((o,j)=>{if(j===e.selectedIndex)o.setAttribute('selected','');else o.removeAttribute('selected')});
+    else if(e.type==='checkbox'||e.type==='radio'){e.checked?c.setAttribute('checked',''):c.removeAttribute('checked')}
+    else c.setAttribute('value',e.value);
+  });
+}
+async function snapshot(k,css0){
+  const fr=$('#pf');
+  await new Promise(res=>{fr.onload=()=>setTimeout(res,800);fr.src=PAGES[k]});
+  const d=fr.contentDocument;
+  const css=css0+[...d.querySelectorAll('style')].map(s=>s.textContent).join('\n');
+  const roots=k==='fiche'?[...d.querySelectorAll('main.page')]:[d.querySelector('#book')];
+  const wrap=document.createElement('div');
+  roots.forEach(r=>{const c=r.cloneNode(true);syncValues(r,c);wrap.appendChild(c)});
+  const t=wrap.querySelector('#titre');
+  if(t&&!t.getAttribute('value'))t.setAttribute('value',(Persos.list().find(p=>p.actif)||{}).nom||'');
+  return {k,css:inlineCss(css),html:wrap.innerHTML};
+}
 $('#bPrintAll').onclick=async()=>{
   const parts=Persos.printable();
   if(!parts.length){msg('Rien à imprimer : remplis d’abord la fiche ou ajoute des éléments');return}
-  const fr=$('#pf');
-  for(const k of parts){
-    await new Promise(res=>{fr.onload=()=>setTimeout(res,700);fr.src=PAGES[k]});
-    msg('Impression : '+k+'…');
-    fr.contentWindow.focus();fr.contentWindow.print();
-  }
-  msg('Impression terminée');
+  msg('Préparation de l’impression…');
+  try{
+    const css0=await (await fetch('style.css')).text();
+    const root=$('#printroot');root.innerHTML='';
+    for(const k of parts){
+      const s=await snapshot(k,css0);
+      const host=document.createElement('section');host.className='pr-sec pr-'+(k==='fiche'?'fiche':'liste');
+      const sh=host.attachShadow({mode:'open'});
+      sh.innerHTML='<style>:host{display:block}.__b{background:#fff!important;min-height:0!important;padding:0!important;display:block}</style><style>'+s.css+'</style><div class="__b" data-mode="book">'+s.html+'</div>';
+      root.appendChild(host);
+    }
+    await new Promise(r=>setTimeout(r,300));
+    window.print();
+    msg('');
+  }catch(e){{console.log(e.stack);msg('Impression impossible : '+e.message)}}
 };
 </script>
 </body>

@@ -183,15 +183,71 @@ addEventListener('storage',function(e){
 var PARTS=['fiche','grimoire','objets','equipement'];
 function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
 function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
+/* Fiche : clés internes <-> noms lisibles pour le fichier exporté */
+var SKN=['Acrobaties','Arcanes','Athlétisme','Discrétion','Dressage','Escamotage','Histoire','Intimidation','Intuition','Investigation','Médecine','Nature','Perception','Persuasion','Religion','Représentation','Supercherie','Survie'];
+var ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
+function fmap(){
+  var m=[],i;
+  function add(k,sec,lab){m.push([k,sec,lab])}
+  [['nom','identité','nom'],['classe','identité','classe'],['sousclasse','identité','sous-classe'],['espece','identité','espèce'],['historique','identité','historique'],['alignement','identité','alignement'],['niveau','identité','niveau'],
+   ['clsel','choix_dans_les_paramètres','classe'],['race','choix_dans_les_paramètres','espèce'],['sespece','choix_dans_les_paramètres','sous-espèce'],['sclasse','choix_dans_les_paramètres','sous-classe'],
+   ['b_init','bonus_divers','initiative'],['b_ca','bonus_divers','classe_d_armure'],['b_dd','bonus_divers','DD_de_sauvegarde'],['b_atk','bonus_divers','attaque_de_sort'],
+   ['dvtot','combat','dés_de_vie_total'],['dvrest','combat','dés_de_vie_restants'],['vitesse','combat','vitesse'],['inspi','combat','inspiration'],['pvmax','combat','pv_max'],['pv','combat','pv_actuels'],['pvtemp','combat','pv_temporaires'],
+   ['ds1','jets_contre_la_mort','réussite_1'],['ds2','jets_contre_la_mort','réussite_2'],['ds3','jets_contre_la_mort','réussite_3'],['df1','jets_contre_la_mort','échec_1'],['df2','jets_contre_la_mort','échec_2'],['df3','jets_contre_la_mort','échec_3'],
+   ['pc','pièces','cuivre'],['pa','pièces','argent'],['pe','pièces','électrum'],['po','pièces','or'],['pp_','pièces','platine'],
+   ['equip','textes','équipement'],['capacites','textes','capacités_et_traits'],['religion','textes','religion_et_pactes'],['langues','textes','langues_et_maîtrises'],['notes','textes','notes'],
+   ['cast','sorts','caractéristique_d_incantation'],['sclance','sorts','case_spéciale_cochée'],['sorts','sorts','texte_sorts']].forEach(function(x){add(x[0],x[1],x[2])});
+  Object.keys(ABN).forEach(function(k){add('ab_'+k,'caractéristiques',ABN[k]+'_valeur');add('sv_'+k,'caractéristiques',ABN[k]+'_sauvegarde_maîtrisée')});
+  for(i=0;i<SKN.length;i++){add('sk_'+i,'compétences',SKN[i]+'_maîtrise');add('ske_'+i,'compétences',SKN[i]+'_expertise')}
+  for(i=0;i<5;i++){add('a'+i+'_n','attaques','attaque_'+(i+1)+'_nom');add('a'+i+'_b','attaques','attaque_'+(i+1)+'_bonus');add('a'+i+'_d','attaques','attaque_'+(i+1)+'_dégâts');add('obj'+i,'objets_liés','objet_'+(i+1))}
+  for(i=1;i<=9;i++){add('sl'+i+'_u','emplacements_de_sorts','niveau_'+i+'_utilisés');add('sl'+i+'_t','emplacements_de_sorts','niveau_'+i+'_total')}
+  return m;
+}
+function ficheLisible(f){
+  if(!f||!f.data)return null;
+  var d=f.data,o={},m=fmap(),used={};
+  m.forEach(function(x){
+    if(!(x[0] in d))return;
+    used[x[0]]=1;
+    (o[x[1]]=o[x[1]]||{})[x[2]]=d[x[0]];
+  });
+  var other={};Object.keys(d).forEach(function(k){if(!used[k]&&k!=='ress'&&k!=='extras')other[k]=d[k]});
+  if(Object.keys(other).length)o.autres=other;
+  o.ressources_suivies=d.ress||{};
+  o.choix_dons_espèce_sous_classe=d.extras||{};
+  return {format:'fiche-dnd-5e',version:f.version,contenu:o};
+}
+function ficheInterne(l){
+  if(!l||!l.contenu)return null;
+  var c=l.contenu,d={};
+  fmap().forEach(function(x){if(c[x[1]]&&x[2] in c[x[1]])d[x[0]]=c[x[1]][x[2]]});
+  Object.assign(d,c.autres||{});
+  d.ress=c.ressources_suivies||{};d.extras=c.choix_dons_espèce_sous_classe||{};
+  return {version:l.version||5,type:'fiche-dnd-5e',data:d};
+}
 function exportActive(){
-  var s=load(),p=s.persos[s.actif],o={version:1,type:'personnage-dnd-5e',nom:p.nom};
-  PARTS.forEach(function(k){o[k]=p[k]||null});
+  var s=load(),p=s.persos[s.actif];
+  var o={format:'personnage-dnd-5e',version:2,nom:p.nom};
+  o.fiche=ficheLisible(p.fiche);
+  var g=p.grimoire&&p.grimoire.data;
+  o.grimoire=g?{titre:g.titre||'',sorts:g.sorts||[]}:null;
+  var m=p.objets&&p.objets.data;
+  o.objets_magiques=m?{titre:m.titre||'',objets:m.objets||[]}:null;
+  var e=p.equipement&&p.equipement.data;
+  o.equipement=e?{titre:e.titre||'',objets:e.objets||[]}:null;
   return o;
 }
 function importPerso(o){
-  if(!o||o.type!=='personnage-dnd-5e')throw new Error('format');
+  if(!o)throw new Error('format');
   var s=load(),p={id:uid(),nom:String(o.nom||'Personnage importé')};
-  PARTS.forEach(function(k){p[k]=o[k]&&o[k].data?o[k]:null});
+  if(o.type==='personnage-dnd-5e'){   // ancien format (v1) : parties internes telles quelles
+    PARTS.forEach(function(k){p[k]=o[k]&&o[k].data?o[k]:null});
+  }else if(o.format==='personnage-dnd-5e'){
+    p.fiche=ficheInterne(o.fiche);
+    p.grimoire=o.grimoire?{version:1,type:'grimoire-dnd-5e',data:{titre:o.grimoire.titre||'',sorts:o.grimoire.sorts||[],filtres:{}}}:null;
+    p.objets=o.objets_magiques?{version:1,type:'objets-dnd-5e',data:{titre:o.objets_magiques.titre||'',objets:o.objets_magiques.objets||[],filtres:{}}}:null;
+    p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
+  }else throw new Error('format');
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
 }
@@ -207,6 +263,7 @@ function printable(){
 }
 
 window.Persos={
+  part:function(k){var s=load(),q=s.persos[s.actif];return q&&q[k]||null},
   list:listAll,activate:activate,exportActive:exportActive,importPerso:importPerso,printable:printable,
   init:init,
   save:flush,

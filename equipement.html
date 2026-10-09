@@ -37,7 +37,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
 .srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
-.qty{display:inline-flex;align-items:center;gap:4px;font-weight:700}.qty button{width:26px;height:26px;padding:0}.qty span{min-width:22px;text-align:center}
+.qty{display:inline-flex;align-items:center;gap:4px;font-weight:700}.qty button{width:26px;height:26px;padding:0}.qin{width:56px;padding:4px;text-align:center;border:1px solid var(--line);border-radius:5px;font-weight:700}
 .tot{margin-top:10px;padding:8px 12px;border-radius:8px;background:#eef0fb;color:#2a3170;font-weight:600;font-size:13px}
 .pr{font-size:11.5px;font-weight:600;color:#2a3170;white-space:nowrap}
 
@@ -174,7 +174,7 @@ function card(s,remove){
   const col=TC[s.t]||'#2a3170',q=qty(s);
   return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}</h3><div class="sub">${esc(s.c)} · ${esc(s.en)}</div></div><span class="lvb">${remove?'× '+q:esc(s.p)}</span></header>
   <div class="body"><dl class="meta"><div><dt>Coût</dt><dd>${esc(s.p)}</dd></div><div><dt>Poids</dt><dd>${s.kg?fkg(s.kg):'—'}</dd></div><div><dt>Catégorie</dt><dd>${esc(s.c)}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>${remove?`<div><dt>Quantité</dt><dd>${q} (total ${fkg(q*s.kg)} · ${fmt(q*s.po)} po)</dd></div>`:''}</dl>
-  <div class="desc">${s.h}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><span>${q}</span><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
+  <div class="desc">${s.h}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q),max=st.lvl===''?null:parseFloat(st.lvl);
@@ -186,7 +186,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' type'+(st.sel.size>1?'s':'')+' dans mon équipement';
   $('#list').innerHTML=r.length?r.map(s=>{
     const q=qty(s),op=st.open.has(s.n),col=TC[s.t]||'#2a3170';
-    const act=q?`<span class="qty"><button class="b" data-act="dec" data-i="${s.i}" aria-label="Retirer un exemplaire">−</button><span>${q}</span><button class="b add on" data-act="inc" data-i="${s.i}" aria-label="Ajouter un exemplaire">+</button></span>`:`<button class="b add" data-act="inc" data-i="${s.i}">Ajouter</button>`;
+    const act=q?`<span class="qty"><button class="b" data-act="dec" data-i="${s.i}" aria-label="Retirer un exemplaire">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b add on" data-act="inc" data-i="${s.i}" aria-label="Ajouter un exemplaire">+</button></span>`:`<button class="b add" data-act="inc" data-i="${s.i}">Ajouter</button>`;
     return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}</div><div class="rs">${esc(s.c)}${s.kg?' · '+fkg(s.kg):''}</div></div><span class="pr">${esc(s.p)}</span>
     <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${act}</div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
@@ -249,6 +249,11 @@ function setMode(m){
   }
   scrollTo(0,0);
 }
+document.addEventListener('change',e=>{
+  if(!e.target.classList.contains('qin'))return;
+  const s=DB[+e.target.dataset.i],v=parseInt(e.target.value);
+  setQ(s,isNaN(v)?0:v);
+});
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
 $('#fc').addEventListener('change',e=>{st.cls=e.target.value;fillSub();renderList();autosave()});
 $('#fs').addEventListener('change',e=>{st.sch=e.target.value;renderList();autosave()});

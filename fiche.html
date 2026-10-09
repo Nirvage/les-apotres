@@ -245,6 +245,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <label><small>PO</small><input data-k="po" type="number"></label>
     <label><small>PP</small><input data-k="pp_" type="number"></label>
    </div>
+   <button type="button" id="bEq" class="noprint" title="Ajoute à la liste ci-dessous les objets choisis dans la page Équipement, avec leurs quantités">Importer depuis la page Équipement</button>
    <textarea data-k="equip" aria-label="Équipement"></textarea>
   </div></section>
   <section class="card" style="--c:#7a4fc4"><h2>Capacités et traits</h2><div class="in">
@@ -691,6 +692,21 @@ function show(obj,perso){
   calc();
 }
 function autosave(){Persos.save()}
+// Reprend l'équipement choisi sur la page Équipement (« 2× Potion de guérison »), sans doublon
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#bEq'))return;
+  Persos.save();
+  const eq=Persos.part('equipement'),L=eq&&eq.data&&eq.data.objets||[];
+  const ta=document.querySelector('[data-k=equip]');
+  if(!L.length){alert('Aucun équipement choisi pour ce personnage : ajoute-en d’abord sur la page Équipement.');return}
+  const lines=ta.value.split('\n').filter(x=>x.length||true);
+  L.forEach(o=>{
+    const line=o.qte+'× '+o.n,i=lines.findIndex(x=>x.replace(/^\d+×\s*/,'').trim()===o.n);
+    if(i>=0)lines[i]=line;else lines.push(line);
+  });
+  ta.value=lines.filter((x,i,a)=>x.trim()||i<a.length-1).join('\n').replace(/^\n+/,'');
+  ta.dispatchEvent(new Event('input',{bubbles:true}));
+});
 
 function onEdit(ev){
   const t=ev.target,k=t.dataset&&t.dataset.k;
