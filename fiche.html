@@ -115,7 +115,32 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .pool{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--soft)}
 .pool input{width:46px;text-align:center;font-weight:700;border:1px solid var(--line);border-radius:4px}
 
+/* Page 3 : espèce, sous-classe, dons */
+#pg3{height:auto;min-height:296mm;overflow:visible}
+.xcols{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.xcol{display:flex;flex-direction:column;gap:8px}
+.xl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:11px}
+.xl b{font-family:var(--serif);font-style:italic}
+.xl .fut{color:var(--soft);opacity:.7}
+.xh{font-size:11px;color:var(--soft);margin:0}
+.chs{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0}
+.ch{display:block;min-width:30mm;flex:1}
+.ch select,.ch input{border:1px solid var(--line);border-radius:4px;background:#fff;font-size:11px}
+.chn{font-size:10.5px;color:var(--soft);margin:0 0 2px}
+.don{border:1px solid var(--line);border-radius:6px;background:#fff;padding:4px 6px;display:flex;flex-direction:column;gap:2px;break-inside:avoid}
+.don .dh{display:flex;gap:8px;align-items:baseline}
+.don .dh b{font:italic 700 12px var(--serif);color:var(--c)}
+.don .dh span{flex:1;font-size:10px;color:var(--soft)}
+.don p{margin:0;font-size:11px}
+.xbar{display:flex;gap:6px}
+.xbar select{border:1px solid var(--line);border-radius:5px;background:#fff;padding:3px}
+.xbar button,.don button{font-size:11px;padding:3px 10px;border:1.5px solid var(--c);border-radius:6px;background:#fff;color:var(--c);font-weight:600;cursor:pointer}
+.fxs{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:11px}
+.fxs b{font-weight:600}
+.v.fx{text-decoration:underline dotted}
 @media screen and (max-width:860px){
+ #pg3{min-height:0}
+ .xcols{grid-template-columns:1fr}
  .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
  .main,.bottom,.abcols,.idg,.slots,.rgrid{grid-template-columns:1fr}
  .tiles.t5{grid-template-columns:repeat(3,1fr)}
@@ -127,6 +152,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  body{font-size:11px}
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
+ #pg3.empty{display:none}
 }
 </style>
 </head>
@@ -149,14 +175,15 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <summary>Paramètres <span>(cette partie n'est pas imprimée)</span></summary>
  <div class="sgrid">
   <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
-  <label class="w2"><small>Race (remplit « Espèce »)</small><input data-k="race" list="races" placeholder="Elfe, Nain, Humain…"></label>
+  <label><small>Espèce (remplit « Espèce »)</small><input data-k="race" list="races" placeholder="Elfe, Nain, Humain…"></label>
+  <label><small>Sous-classe</small><select id="sclasse" data-k="sclasse"><option value="">—</option></select></label>
   <label><small>Bonus d'initiative</small><input data-k="b_init" type="number" placeholder="0"></label>
   <label><small>Bonus de CA</small><input data-k="b_ca" type="number" placeholder="0"></label>
   <label><small>Bonus au DD de sauvegarde</small><input data-k="b_dd" type="number" placeholder="0"></label>
   <label><small>Bonus d'attaque de sort</small><input data-k="b_atk" type="number" placeholder="0"></label>
  </div>
  <p>Les bonus s'ajoutent au score calculé. La CA de base est 10 + modificateur de Dextérité : ajoute l'armure, le bouclier et les effets magiques dans « Bonus de CA ».</p>
- <datalist id="races"><option value="Aasimar"><option value="Drakéide"><option value="Elfe"><option value="Demi-elfe"><option value="Demi-orc"><option value="Gnome"><option value="Goliath"><option value="Halfelin"><option value="Humain"><option value="Nain"><option value="Orc"><option value="Tieffelin"></datalist>
+ <datalist id="races"><option value="Aasimar"><option value="Drakéide"><option value="Elfe"><option value="Gnome"><option value="Goliath"><option value="Halfelin"><option value="Humain"><option value="Nain"><option value="Orc"><option value="Tieffelin"></datalist>
 </details>
 
 <!-- PAGE 1 -->
@@ -242,8 +269,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <section class="card" style="--c:#3b4fd0;flex:3"><h2 id="mgTitle">Incantation</h2><div class="in">
   <div class="mgbar noprint" id="mgBar" hidden>
    <label id="sclWrap" hidden><input type="checkbox" data-k="sclance"><span id="sclTxt"></span></label>
-   <span class="sp"></span>
-   <button type="button" id="bLong" title="Récupère tous les emplacements de sorts et toutes les ressources">Repos long</button>
   </div>
   <div class="mgnote" id="mgNote" hidden></div>
   <div class="tiles" id="castTiles">
@@ -265,6 +290,23 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
   <textarea data-k="notes" aria-label="Notes"></textarea>
  </div></section>
+</main>
+
+<!-- PAGE 3 -->
+<main class="page" id="pg3">
+ <div class="xcols">
+  <div class="xcol">
+   <section class="card" style="--c:#12968f"><h2 id="xSpT">Espèce</h2><div class="in" id="xSp"></div></section>
+   <section class="card" style="--c:#7a4fc4" id="xSubC"><h2 id="xSubT">Sous-classe</h2><div class="in" id="xSub"></div></section>
+   <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
+  </div>
+  <div class="xcol">
+   <section class="card" style="--c:#c8402f"><h2>Dons</h2><div class="in">
+    <div class="xbar noprint" style="--c:#c8402f"><select id="donSel" aria-label="Choisir un don"></select><button type="button" id="bDon">Ajouter</button></div>
+    <div id="xDons" style="display:flex;flex-direction:column;gap:5px"></div>
+   </div></section>
+  </div>
+ </div>
 </main>
 
 <script src="persos.js"></script>
@@ -302,7 +344,7 @@ let LAST=new WeakMap();
 const setRS=o=>{RS=o;LAST=new WeakMap()};
 const setHTML=(e,h)=>{if(LAST.get(e)!==h){e.innerHTML=h;LAST.set(e,h)}};
 const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const at=(a,l)=>Array.isArray(a)?a[l-1]:undefined;
 const ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
 const RCOL=['#c8402f','#2e9e5b','#d8791a','#7a4fc4','#d6458e','#12968f'];
@@ -362,7 +404,7 @@ function renderMagic(mod,pb,lvl,cl,cst){
   const d=cl&&cl[1],auto=!!cl;
   const vis=(id,on)=>{$(id).hidden=!on};
   const sub=auto&&d.sous_classe;
-  vis('#mgBar',auto);
+  vis('#mgBar',!!sub);
   vis('#sclWrap',!!sub);
   if(sub)$('#sclTxt').textContent='Sous-classe lanceuse de sorts ('+sub.nom+')';
   vis('#castTiles',!auto||!!cst);
@@ -388,27 +430,147 @@ function renderMagic(mod,pb,lvl,cl,cst){
   vis('#clsInfos',!!inf);vis('#clsRes',!!res);vis('#secCls',!!(inf||res));
 }
 
+
+// ---------- Espèce, sous-classe et dons (données dans especes.json, sousclasses.json, dons.json) ----------
+let ESPD=null,DOND=null,SCD=null;
+const newPX=()=>({sp:{k:'',ch:{},auto:''},dons:[]});
+let PX=newPX();
+const rid=()=>Math.random().toString(36).slice(2,8);
+const fm=n=>String(n).replace('.',',');
+const skIdx=n=>SK.findIndex(s=>s[0]===n);
+const optObj=o=>typeof o==='string'?{v:o}:o;
+function findEsp(){
+  const v=norm(val('race')||val('espece'));
+  if(!ESPD||!v)return null;
+  for(const n in ESPD)if(norm(n)===v)return [n,ESPD[n]];
+  return null;
+}
+// Calcule tous les effets (espèce, sous-choix, dons) ; calc() les applique ensuite aux valeurs de la fiche
+function fxCompute(lvl,pb){
+  const F={ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp()};
+  const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
+  const run=(fx,ch,src,key)=>{
+    for(const f of fx){
+      const v=f.c?ch[f.c]:null;
+      if(f.t==='carac'){if(v){add(F.ab,v,1);F.lines.push([src,ABN[v]+' +1'])}}
+      else if(f.t==='sv'){if(v){F.sv[v]=1;F.lines.push([src,'maîtrise du jet de sauvegarde de '+ABN[v]])}}
+      else if(f.t==='comp'){const i=skIdx(v);if(i>=0){F.sk[i]=Math.max(F.sk[i]||0,1);F.lines.push([src,'maîtrise : '+v])}}
+      else if(f.t==='exp'){const i=skIdx(v);if(i>=0){F.sk[i]=2;F.lines.push([src,'expertise : '+v])}}
+      else if(f.t==='init_pb'){F.init+=pb;F.lines.push([src,'initiative '+sg(pb)])}
+      else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
+      else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
+      else if(f.t==='ca'){F.ca+=f.n;F.lines.push([src,'CA +'+f.n])}
+      else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max==='pb'?pb:f.max,repos:f.repos});
+    }
+  };
+  if(F.E){
+    const [n,d]=F.E,ch=PX.sp.ch;
+    run(d.fx,ch,n,'e_');
+    for(const c of d.choix)if(c.t==='liste'){
+      const o=c.opts.map(optObj).find(o=>o.v===ch[c.id]);
+      if(o&&o.fx)run(o.fx,ch,n+' ('+o.v+')','e_');
+    }
+  }
+  if(DOND)for(const g of PX.dons){
+    const dd=DOND.find(x=>x.id===g.id);
+    if(dd)run(dd.fx,g.ch,dd.nom,'d'+g.u+'_');
+  }
+  return F;
+}
+function chHTML(path,c,cur){
+  const a=`data-x="${path}|${c.id}"`;
+  if(c.t==='texte')return `<label class="ch"><small>${esc(c.lbl)}</small><input type="text" ${a} value="${esc(cur||'')}"></label>`;
+  let o;
+  if(c.t==='carac')o=c.opts.map(k=>[k,ABN[k]]);
+  else if(c.t==='comp')o=(c.opts||SK.map(s=>s[0])).map(n=>[n,n]);
+  else o=c.opts.map(optObj).map(x=>[x.v,x.v]);
+  return `<label class="ch"><small>${esc(c.lbl)}</small><select ${a}><option value="">—</option>${o.map(([v,t])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+}
+const poolHTML=r=>{
+  const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
+  return `<div class="rs" style="--c:#12968f"><div class="rh"><b>${esc(r.nom)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${r.key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${r.max}</span></div><small>${esc(r.repos||'')}</small></div>`;
+};
+function renderExtras(F,lvl,pb,mod,tot){
+  const E=F.E,cl=findClass();
+  // Espèce
+  $('#xSpT').textContent=E?'Espèce — '+E[0]:'Espèce';
+  let h;
+  if(!ESPD)h='<p class="xh">Les données d’espèces n’ont pas pu être chargées.</p>';
+  else if(!E)h=`<p class="xh">${val('race').trim()?'Espèce non reconnue : aucun trait automatique.':'Choisissez une espèce dans les paramètres.'}</p>`;
+  else{
+    const d=E[1],ch=PX.sp.ch;
+    h=`<p class="xh">Taille : ${esc(d.taille)} · Vitesse de base : ${fm(d.vit)} m</p><ul class="xl">${d.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc)}</li>`).join('')}</ul>`;
+    h+=d.choix.map(c=>{
+      const o=c.t==='liste'?c.opts.map(optObj).find(o=>o.v===ch[c.id]):null;
+      return `<div class="chs">${chHTML('sp',c,ch[c.id])}</div>`+(o&&o.txt?`<p class="chn">${esc(o.txt)}</p>`:'');
+    }).join('');
+    h+=F.res.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
+  }
+  setHTML($('#xSp'),h);
+  // Sous-classe
+  const sn=val('sclasse'),sf=cl&&SCD&&SCD[cl[0]]&&SCD[cl[0]][sn];
+  $('#xSubC').hidden=!sf;
+  if(sf){
+    $('#xSubT').textContent='Sous-classe — '+sn;
+    setHTML($('#xSub'),'<ul class="xl">'+sf.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${esc(f.desc)}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>');
+  }
+  // Dons
+  let dh='';
+  if(!DOND)dh='<p class="xh">Les données de dons n’ont pas pu être chargées.</p>';
+  else dh=PX.dons.map(g=>{
+    const dd=DOND.find(x=>x.id===g.id);
+    if(!dd)return '';
+    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}</span><button type="button" class="noprint" data-del="${g.u}">Retirer</button></div><p>${esc(dd.desc)}</p>`
+      +(dd.choix.length?`<div class="chs">${dd.choix.map(c=>chHTML('d'+g.u,c,g.ch[c.id])).join('')}</div>`:'')
+      +F.res.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
+  }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus.</p>';
+  setHTML($('#xDons'),dh);
+  // Effets appliqués
+  const spd=F.E?F.E[1].vit+F.vit:F.vit?9+F.vit:null;
+  const row=(a,b)=>`<b>${a}</b><span>${b}</span>`;
+  let fx=F.lines.length?F.lines.map(([a,b])=>row(esc(a),esc(b))).join(''):'';
+  if(spd!=null)fx+=row('Vitesse',fm(spd)+' m');
+  const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
+  if(ac)fx+=row('Caractéristiques finales',esc(ac));
+  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, de maîtrise et d’initiative sont déjà inclus dans les valeurs de la fiche. Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf);
+}
+function fillSub(){
+  const cl=findClass(),sel=$('#sclasse'),keep=sel.value;
+  const names=cl&&SCD&&SCD[cl[0]]?Object.keys(SCD[cl[0]]):[];
+  setHTML(sel,'<option value="">—</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''));
+  if(sel.value!==keep)sel.value=keep;
+}
+
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
   const pb=Math.ceil(lvl/4)+1;
-  const mod={};
+  fillSub();
+  const F=fxCompute(lvl,pb);
+  const mod={},tot={};
   AB.forEach(([k])=>{
-    mod[k]=Math.floor(((parseInt(val('ab_'+k))||10)-10)/2);
+    const base=parseInt(val('ab_'+k))||10;
+    tot[k]=F.ab[k]?Math.max(base,Math.min(20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20
+    mod[k]=Math.floor((tot[k]-10)/2);
     $('#m_'+k).textContent=sg(mod[k]);
-    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0));
+    el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, dons)':'';
+    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)||F.sv[k]?pb:0));
+    $('#sv_'+k).classList.toggle('fx',!!F.sv[k]);
   });
-  const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
-  SK.forEach(([n,a],i)=>$('#sk_'+i).textContent=sg(mod[a]+bonus(i)));
+  const bonus=i=>(chk('ske_'+i)||F.sk[i]===2)?2*pb:(chk('sk_'+i)||F.sk[i])?pb:0;
+  SK.forEach(([n,a],i)=>{$('#sk_'+i).textContent=sg(mod[a]+bonus(i));$('#sk_'+i).classList.toggle('fx',!!F.sk[i])});
   $('#pb').textContent=sg(pb);
   const nb=k=>parseInt(val(k))||0;
-  $('#init').textContent=sg(mod.dex+nb('b_init'));
-  $('#ca').textContent=10+mod.dex+nb('b_ca');
+  $('#init').textContent=sg(mod.dex+nb('b_init')+F.init);
+  $('#ca').textContent=10+mod.dex+nb('b_ca')+F.ca;
   $('#pp').textContent=10+mod.sag+bonus(PERC);
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
   $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd'):'—';
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')):'—';
+  el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
   renderMagic(mod,pb,lvl,cl,cst);
+  renderExtras(F,lvl,pb,mod,tot);
 }
 
 // Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
@@ -425,8 +587,8 @@ $('#clsel').addEventListener('change',()=>{
 function collect(){
   const d={};
   document.querySelectorAll('[data-k]').forEach(e=>d[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);
-  d.ress=RS;
-  return {version:4,type:'fiche-dnd-5e',data:d};
+  d.ress=RS;d.extras=PX;
+  return {version:5,type:'fiche-dnd-5e',data:d};
 }
 function apply(obj){
   const d=obj&&obj.data;
@@ -437,6 +599,15 @@ function apply(obj){
   });
   if(!val('espece')&&val('race'))el('espece').value=val('race');
   setRS(d.ress&&typeof d.ress==='object'?JSON.parse(JSON.stringify(d.ress)):{});
+  PX=newPX();
+  if(d.extras&&typeof d.extras==='object'){
+    const x=JSON.parse(JSON.stringify(d.extras));
+    PX.sp=Object.assign(PX.sp,x.sp||{});
+    PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
+    PX.dons.forEach(g=>{g.ch=g.ch||{}});
+    if(!PX.sp.ch)PX.sp.ch={};
+  }
+  fillSub();el('sclasse').value=d.sclasse||'';
   calc();
 }
 // Remet tous les champs à leur valeur par défaut (utilisé pour « Vider » et pour changer de personnage)
@@ -446,7 +617,7 @@ function reset(){
     else if(e.tagName==='SELECT')e.selectedIndex=0;
     else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
   });
-  setRS({});
+  setRS({});PX=newPX();
 }
 // Le nom du personnage (sélecteur) fait foi pour le champ « Nom » de la fiche
 function show(obj,perso){
@@ -467,11 +638,32 @@ function onEdit(ev){
     LAST=new WeakMap();
     autosave();return;
   }
+  if(t.dataset&&t.dataset.x!==undefined){   // choix d'espèce ou de don
+    const [p,id]=t.dataset.x.split('|');
+    const ch=p==='sp'?PX.sp.ch:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
+    if(!ch)return;
+    ch[id]=t.value;
+    if(t.type==='text'){autosave();return}   // texte libre : pas de recalcul (garde le curseur)
+    calc();autosave();return;
+  }
   if(k==='nom')Persos.setName(val('nom'));
   if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
   if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
   if(k==='niveau')setDV();
-  if(k==='race')el('espece').value=val('race');
+  if(k==='race'){
+    el('espece').value=val('race');
+    const E=findEsp(),kk=E?E[0]:'';
+    if(kk!==PX.sp.k){   // autre espèce : les choix de lignage repartent de zéro, la vitesse suit si elle n'a pas été modifiée
+      PX.sp={k:kk,ch:{},auto:PX.sp.auto};
+      const v=E?fm(E[1].vit)+' m':'';
+      if(!val('vitesse').trim()||val('vitesse')===PX.sp.auto){el('vitesse').value=v;PX.sp.auto=v}
+    }
+  }
+  if(k==='sclasse'){
+    const cl=findClass(),sc=cl&&cl[1].sous_classe;
+    if(sc&&el('sclance'))el('sclance').checked=/occult|arcanique/i.test(val('sclasse'));   // Chevalier occulte, Escroc arcanique
+  }
+  if(k==='clsel'||k==='classe')LAST=new WeakMap();
   calc();autosave();
 }
 document.addEventListener('input',onEdit);
@@ -503,6 +695,20 @@ function fit(){document.querySelectorAll('textarea').forEach(t=>{let s=11;t.styl
 function unfit(){document.querySelectorAll('textarea').forEach(t=>t.style.fontSize='')}
 addEventListener('beforeprint',fit);addEventListener('afterprint',unfit);
 $('#bPrint').onclick=()=>window.print();
+$('#bDon').onclick=()=>{
+  const id=$('#donSel').value;
+  if(!id||!DOND)return;
+  if(id!=='asi'&&PX.dons.some(g=>g.id===id)){msg('Ce don est déjà pris');return}
+  PX.dons.push({u:rid(),id,ch:{}});
+  calc();autosave();
+};
+document.addEventListener('click',ev=>{
+  const u=ev.target.dataset&&ev.target.dataset.del;
+  if(!u)return;
+  PX.dons=PX.dons.filter(g=>g.u!==u);
+  Object.keys(RS).forEach(k=>{if(k.startsWith('d'+u+'_'))delete RS[k]});
+  LAST=new WeakMap();calc();autosave();
+});
 
 $('#bReset').onclick=()=>{
   const p=Persos.current();
@@ -510,15 +716,19 @@ $('#bReset').onclick=()=>{
   show(null,p);autosave();msg('Fiche vidée');
 };
 
-$('#bLong').onclick=()=>{setRS({});calc();autosave();msg('Repos long : emplacements et ressources récupérés')};
 
 // Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
 async function boot(){
-  try{
-    const r=await fetch('classes.json');
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    CD=await r.json();
-  }catch(e){CDFAIL=true}
+  const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
+  const [a,b,c,d]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json'].map(get));
+  if(a.status==='fulfilled')CD=a.value;else CDFAIL=true;
+  if(b.status==='fulfilled')ESPD=b.value;
+  if(c.status==='fulfilled')DOND=c.value;
+  if(d.status==='fulfilled')SCD=d.value;
+  if(DOND){
+    const cats=[];DOND.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
+    $('#donSel').innerHTML='<option value="">Choisir un don…</option>'+cats.map(c=>`<optgroup label="${esc(c)}">${DOND.filter(x=>x.cat===c).map(x=>`<option value="${x.id}">${esc(x.nom)}</option>`).join('')}</optgroup>`).join('');
+  }
   Persos.init({
     part:'fiche',
     mount:$('#persos'),
