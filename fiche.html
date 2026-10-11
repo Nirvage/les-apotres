@@ -150,7 +150,14 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  .settings{width:auto;margin:10px 10px 0;padding:8px 12px 10px}
  .sgrid{grid-template-columns:1fr 1fr}
 }
+.mrow{display:flex;gap:6px;align-items:flex-start;font-size:10.5px;line-height:1.3;padding:3px 0;border-top:1px dashed var(--line);cursor:pointer}
+.mrow[hidden]{display:none}
+.mrow.on{background:color-mix(in srgb,#8e1f3a 7%,#fff)}
+.mrow small{color:var(--soft)}
+.mrow input{margin-top:2px;flex:none}
+.mrow.og{cursor:default}
 @media print{
+.mrow:not(.on){display:none!important}
  body{font-size:11px}
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
@@ -304,6 +311,9 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="xcol">
    <section class="card" style="--c:#12968f"><h2 id="xSpT">Espèce</h2><div class="in" id="xSp"></div></section>
    <section class="card" style="--c:#2f6fd0" id="xBgC" hidden><h2 id="xBgT">Historique</h2><div class="in" id="xBg"></div></section>
+   <section class="card" style="--c:#8e1f3a" id="xMalC" hidden><h2 id="xMalT">Malédictions de sang</h2><div class="in">
+    <div class="xbar noprint"><input type="search" id="malQ" placeholder="Filtrer les malédictions…" aria-label="Filtrer les malédictions" style="flex:1;border:1px solid var(--line);border-radius:5px;padding:3px 6px;font-size:11px"></div>
+    <div id="xMal"></div></div></section>
    <section class="card" style="--c:#7a4fc4" id="xSubC"><h2 id="xSubT">Sous-classe</h2><div class="in" id="xSub"></div></section>
    <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
   </div>
@@ -446,7 +456,7 @@ function renderMagic(mod,pb,lvl,cl,cst){
 
 // ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
 let ESPD=null,DOND=null,SCD=null,CAPD=null,BGD=null;
-const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{}});
+const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{},mal:[]});
 function findBg(){return BGD&&PX.bg.k&&BGD[PX.bg.k]?[PX.bg.k,BGD[PX.bg.k]]:null}
 // Le don d'origine de l'historique est ajouté automatiquement (et retiré si l'historique change)
 function syncBgFeat(){
@@ -596,6 +606,28 @@ function renderExtras(F,lvl,pb,mod,tot){
   setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
   $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B);
 }
+// Liste de choix de la classe (Malédictions de sang du Chasseur de sang) : sélecteur avec limite selon le niveau
+let MALQ='';
+function renderMal(cl,lvl){
+  const L=cl&&cl[1].liste;
+  $('#xMalC').hidden=!L;
+  if(!L)return;
+  const max=L.max[lvl-1]||0,sel=PX.mal.filter(n=>L.items.some(i=>i.nom===n)),full=sel.length>=max,q=norm(MALQ);
+  const sub=val('sclasse'),od=L.ordres[sub],og=od&&od.niv<=lvl?od:null;
+  $('#xMalT').textContent=L.titre+' — '+sel.length+' / '+max;
+  const row=i=>{
+    const on=sel.includes(i.nom),hid=q&&!norm(i.court+' '+i.en+' '+i.desc).includes(q);
+    return `<label class="mrow${on?' on':''}"${hid?' hidden':''}><input type="checkbox" class="noprint" data-mal="${esc(i.nom)}"${on?' checked':''}${!on&&full?' disabled':''}><span><b>${esc(i.court)}</b> <small>${esc(i.en)}</small><br>${esc(i.desc)}${i.amp?`<br><em>Amplifiée :</em> ${esc(i.amp)}`:''}</span></label>`;
+  };
+  setHTML($('#xMal'),(max?'':'<p class="xh">Aucune malédiction connue à ce niveau.</p>')+`<p class="xh noprint">Coche tes malédictions connues (${max} à ce niveau) ; tu peux en échanger une à chaque niveau gagné. Une fois la limite atteinte, décoche-en une pour en changer.</p>`+L.items.map(row).join('')+(og?`<div class="mrow on og"><span><b>${esc(og.nom.replace(/\s*\(.*$/,''))}</b> <small>offerte par ${esc(sub)} · hors limite</small><br>${esc(og.desc)}</span></div>`:''));
+}
+document.addEventListener('change',e=>{
+  const c=e.target.closest&&e.target.closest('[data-mal]');if(!c)return;
+  const n=c.dataset.mal;PX.mal=PX.mal.filter(x=>x!==n);
+  if(c.checked)PX.mal.push(n);
+  calc();autosave();
+});
+document.addEventListener('input',e=>{if(e.target.id==='malQ'){MALQ=e.target.value;calc()}});
 // Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
 function syncChecks(F){
   const A=PX.auto=PX.auto||{};
@@ -671,6 +703,7 @@ function calc(){
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')):'—';
   el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
   renderMagic(mod,pb,lvl,cl,cst);
+  renderMal(cl,lvl);
   renderExtras(F,lvl,pb,mod,tot);
 }
 
@@ -709,6 +742,7 @@ function apply(obj){
     PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
     PX.dons.forEach(g=>{g.ch=g.ch||{}});
     PX.auto=x.auto&&typeof x.auto==='object'?x.auto:{};
+    PX.mal=Array.isArray(x.mal)?x.mal.filter(n=>typeof n==='string'):[];
     if(!PX.sp.ch)PX.sp.ch={};
   }
   fillSub();el('sclasse').value=d.sclasse||'';
