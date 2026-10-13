@@ -550,8 +550,14 @@ const poolHTML=r=>{
   const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
   return `<div class="rs" style="--c:#12968f"><div class="rh"><b>${esc(r.nom)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${r.key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${r.max}</span></div><small>${esc(r.repos||'')}</small></div>`;
 };
-const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc)}</li>`).join('')}</ul>`;
-const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${esc(f.desc)}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
+// Listes de sorts par niveau (« niv. 3 a, b ; niv. 5 c » ou « a, b (niv. 3), c (niv. 5) ») : un niveau par ligne
+function lvlLines(h){
+  if(/; niv\. \d/.test(h))return h.replace(/\s*:\s*(?=niv\. \d+ )/,' :<br>').replace(/\s*;\s*(?=niv\. \d+ )/g,'<br>');
+  return h.replace(/(préparés\s*:\s*)((?:[^().:;]+\(niv\. \d+\)(?:,\s*)?){2,})/,(m,lead,list)=>
+    lead.replace(/\s*:\s*$/,' :')+list.split(/\s*\(niv\. (\d+)\)(?:,\s*)?/).reduce((o,x,i,arr)=>i%2?o:x.trim()?o+'<br>niv. '+arr[i+1]+' : '+x.trim():o,''));
+}
+const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${lvlLines(esc(t.desc))}</li>`).join('')}</ul>`;
+const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${lvlLines(esc(f.desc))}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
 function renderExtras(F,lvl,pb,mod,tot){
   const E=F.E,cl=F.cl;
   const RES=F.res.map(r=>({...r,max:resMax(r,lvl,pb,mod)})).filter(r=>r.max>0);
