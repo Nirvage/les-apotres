@@ -45,8 +45,44 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid v
 .pacts button:disabled{opacity:.4;cursor:default;text-decoration:none}
 .persos button:focus-visible{outline:2px solid var(--gold)}
 
+/* Téléphones et petites tablettes */
 @media screen and (max-width:700px){
   .top{position:static}
+  /* Barre du haut compacte : titre sur sa ligne, boutons qui remplissent les rangées */
+  .bar{gap:6px;padding:8px 10px}
+  .bar b{flex:1 1 55%;min-width:0;font-size:15px;margin-right:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar #msg{flex:1 1 100%;order:1}
+  .bar #msg:empty{display:none}
+  .bar button{flex:1 1 auto;min-height:38px;padding:7px 9px;text-align:center}
+  .bar .home{padding:7px 10px}
+  /* Personnages : les pastilles défilent sur une seule ligne */
+  .persos{padding:6px 10px}
+  .persos .pl{display:none}
+  .pchips{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 0}
+  .pchips::-webkit-scrollbar{display:none}
+  .pc{flex:none;max-width:70vw;padding:7px 14px}
+  .pacts button{padding:4px 8px 6px}
+  /* Filtres : tout tient dans la largeur de l'écran */
+  .panel .fbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 10px;align-items:end}
+  .panel .fbar .cnt{grid-column:1/-1;margin:0}
+  .panel .fbar label{flex-direction:column;align-items:stretch;gap:2px;min-width:0}
+  .panel .fbar select{width:100%;min-width:0;padding:7px 8px}
+  .panel .fbar .b{grid-column:1/-1}
+  .fgrid label{min-width:0}
+  /* Boutons et listes plus faciles à toucher */
+  .b{min-height:36px;padding:7px 12px}
+  body{background-attachment:scroll;min-height:100vh}
+  .rmain{flex:1 1 200px}
+  .wrap{margin-top:10px;padding:0 8px}
+  .sheet .hero input{font-size:21px}
+  .sheet{padding:10px}
+  .racts{margin-left:auto}
+  .desc{overflow-wrap:anywhere}
+  .desc table{display:block;overflow-x:auto;width:auto;max-width:100%}
+}
+/* Écrans tactiles : texte des champs à 16px pour éviter le zoom automatique d'iOS */
+@media screen and (max-width:700px) and (pointer:coarse),screen and (max-width:700px) and (hover:none){
+  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:max(16px,1em)!important}
 }
 @media print{
   html,body{background:#fff}
