@@ -24,6 +24,8 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .b:hover{background:color-mix(in srgb,var(--c,#2a3170) 10%,#fff)}
 .b.add{--c:#2e9e5b}.b.add.on{background:#2e9e5b;color:#fff}
 .b.rm{--c:#c8402f}
+.b.har{--c:#d6458e}.b.har.on{background:#d6458e;color:#fff}
+.pill.hz{background:#d6458e;color:#fff}
 
 /* Liste de choix */
 .list{margin-top:12px;display:flex;flex-direction:column;gap:6px}
@@ -161,7 +163,8 @@ const rabbr=s=>{const m=norm(s.q);const hits=RORDER.filter(r=>m.includes(norm(r)
 // Les objets sont lus dans objets.json à l'ouverture de la page
 let DB=[];
 const BYN=new Map();
-const st={sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+const MAXH=3;   // règles 2024 : 3 objets harmonisés au maximum
+const st={sel:new Set(),har:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
 function setup(data){
   DB=data;
@@ -173,7 +176,7 @@ function setup(data){
   $('#fc').innerHTML=opts('Tous',TORDER.filter(t=>DB.some(s=>s.t===t)));
   $('#fs').innerHTML=opts('Toutes',RORDER);
 }
-const pills=s=>(s.a?'<span class="pill co">Harmonisation</span>':'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
+const pills=s=>(s.a?(st.har.has(s.n)?'<span class="pill hz">Harmonisé</span>':'<span class="pill co">Harmonisation</span>'):'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
 const srcNote=s=>`<div class="srcn">Source : ${esc(s.src||'')}${s.ed==='2014'?' · objet en version 2014 (règles non mises à jour)':''}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}</div>`;
 // Descriptions d'objets plus lisibles : une ligne par paragraphe en gras, par sort à charges, par résultat de table de dés et par niveau
 function lines(h){
@@ -183,11 +186,13 @@ function lines(h){
   if(/\b0[01][-–]\d\d /.test(h))h=h.replace(/\s*:\s*(?=0[01][-–]\d\d )/g,' :<br>').replace(/\s*[,;]\s+(?=\d\d(?:[-–]\d\d)?(?: :| [a-zA-ZÀ-ÿ]{2}))/g,'<br>');
   return h.replace(/\s*:\s*(?=niv\. \d+ )/g,' :<br>').replace(/\s*;\s*(?=niv\. \d+ )/g,'<br>');
 }
+// Bouton d'harmonisation : seulement pour un objet de la sélection qui la demande
+const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s.n)?' on':''}" data-act="har" data-i="${s.i}" aria-pressed="${st.har.has(s.n)}" title="Seuls les objets harmonisés sont importés dans les objets liés de la fiche (${MAXH} au maximum)">${st.har.has(s.n)?'✓ Harmonisé':'S’harmoniser'}</button>`:'';
 function card(s,remove){
   const col=rcol(s);
   return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''} · ${esc(s.en)}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
   <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div></dl>
-  <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button>`:''}</div></article>`;
+  <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q);
@@ -195,11 +200,11 @@ function filtered(){
 }
 function renderList(){
   const r=filtered();
-  $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire';
+  $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire · '+st.har.size+'/'+MAXH+' harmonisé'+(st.har.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
     return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
-    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
+    <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
 function renderBook(){
@@ -208,7 +213,8 @@ function renderBook(){
   by.forEach(a=>a.sort((x,y)=>RORDER.indexOf(rare(x))-RORDER.indexOf(rare(y))||x.n.localeCompare(y.n,'fr')));
   $('#tabs').innerHTML=TORDER.map((t,l)=>`<button class="tab" role="tab" style="--c:${TC[t]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${t}<span>${by[l].length}</span></button>`).join('');
   $('#levels').innerHTML=TORDER.map((t,l)=>`<section class="lvl${l===st.tab?' on':''}${by[l].length?'':' empty'}" style="--c:${TC[t]}"><h2>${t} <span>(${by[l].length})</span></h2>${by[l].length?`<div class="cards">${by[l].map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun objet de ce type. Utilise « Choisir les objets » pour en ajouter.</div>'}</section>`).join('');
-  $('#sum').textContent=st.sel.size?st.sel.size+' objet'+(st.sel.size>1?'s':'')+' magique'+(st.sel.size>1?'s':''):'Aucun objet sélectionné';
+  const nh=DB.filter(s=>s.a&&st.sel.has(s.n)).length;
+  $('#sum').textContent=st.sel.size?st.sel.size+' objet'+(st.sel.size>1?'s':'')+' magique'+(st.sel.size>1?'s':'')+(nh?' · harmonisation : '+st.har.size+'/'+MAXH+(st.har.size<nh&&st.har.size<MAXH?' (choisis avec « S’harmoniser » les objets à importer dans la fiche)':''):''):'Aucun objet sélectionné';
   $('#bBook').textContent='Mes objets ('+st.sel.size+')';
 }
 function renderAll(){renderList();renderBook();autosave()}
@@ -218,14 +224,16 @@ function collect(){
   return {version:1,type:'objets-dnd-5e',data:{
     titre:$('#titre').value,
     objets:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
+    harmonises:DB.filter(s=>st.har.has(s.n)).map(s=>s.n),
     filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
 function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
 function apply(o){
   const d=o&&o.data;
   if(!d||!Array.isArray(d.objets))throw new Error('format');
-  st.sel.clear();let unknown=0;
+  st.sel.clear();st.har.clear();let unknown=0;
   d.objets.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
+  (d.harmonises||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s&&s.a&&st.sel.has(s.n)&&st.har.size<MAXH)st.har.add(s.n)});
   $('#titre').value=d.titre||'';
   const f=d.filtres||{};
   st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
@@ -233,7 +241,7 @@ function apply(o){
   return unknown;
 }
 function blank(){
-  st.sel.clear();st.q=st.cls=st.sch=st.lvl=st.only='';
+  st.sel.clear();st.har.clear();st.q=st.cls=st.sch=st.lvl=st.only='';
   $('#titre').value='';
   syncInputs();renderAll();
 }
@@ -246,9 +254,15 @@ function autosave(){Persos.save()}
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,s=DB[+b.dataset.i];
-  if(a==='tog'){st.sel.has(s.n)?st.sel.delete(s.n):st.sel.add(s.n);renderAll()}
+  if(a==='tog'){if(st.sel.has(s.n)){st.sel.delete(s.n);st.har.delete(s.n)}else st.sel.add(s.n);renderAll()}
+  else if(a==='har'){
+    if(st.har.has(s.n))st.har.delete(s.n);
+    else if(st.har.size>=MAXH){msg('Tu ne peux t’harmoniser qu’avec '+MAXH+' objets à la fois : mets fin à une autre harmonisation d’abord');return}
+    else st.har.add(s.n);
+    renderAll();
+  }
   else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
-  else if(a==='rm'){st.sel.delete(s.n);renderAll()}
+  else if(a==='rm'){st.sel.delete(s.n);st.har.delete(s.n);renderAll()}
   else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
   else if(a==='mode')setMode(b.dataset.m);
 });
@@ -292,7 +306,7 @@ $('#bPrint').onclick=()=>{
 $('#bClear').onclick=()=>{
   if(!st.sel.size)return;
   if(!confirm('Retirer tous les objets de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
-  st.sel.clear();renderAll();msg('Inventaire vidé');
+  st.sel.clear();st.har.clear();renderAll();msg('Inventaire vidé');
 };
 
 async function boot(){

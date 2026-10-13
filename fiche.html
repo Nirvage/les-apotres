@@ -267,7 +267,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   </div></section>
   <div class="col">
    <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
-   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques de ton personnage : objets liés pour ceux à harmonisation, inventaire pour les autres">Importer depuis les objets magiques</button>
+   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques de ton personnage : objets liés pour ceux avec lesquels il est harmonisé, inventaire pour ceux sans harmonisation">Importer depuis les objets magiques</button>
     <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
    </div></section>
    <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
@@ -815,32 +815,38 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#bSpDel'))return;
   PX.spl=[];calc();autosave();
 });
-// Objets magiques : ceux qui demandent une harmonisation vont dans les cases « Objets liés » (5 max), les autres dans l'inventaire (zone Équipement)
+// Objets magiques : seuls les objets harmonisés (choisis sur la page Objets magiques, 3 max) vont dans les cases « Objets liés » ; les objets sans harmonisation vont dans l'inventaire (zone Équipement)
 document.addEventListener('click',async e=>{
   if(!e.target.closest('#bOb'))return;
   Persos.save();
-  const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];
+  const o=Persos.part('objets'),D=o&&o.data||{},L=D.objets||[],H=new Set(D.harmonises||[]);
   if(!L.length){alert('Aucun objet magique choisi pour ce personnage : ajoute-en d’abord sur la page Objets magiques.');return}
   let DBo;
   try{DBo=await (await fetch('objets.json')).json()}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
   const by={};DBo.forEach(s=>by[s.n]=s);
   const ins=[0,1,2,3,4].map(i=>document.querySelector('[data-k=obj'+i+']'));
-  const items=L.map(n=>by[n]||{n,a:''}).sort((x,y)=>!!y.a-!!x.a);
+  const all=L.map(n=>by[n]||{n,a:''});
+  const items=all.filter(s=>!s.a||H.has(s.n)).sort((x,y)=>!!y.a-!!x.a);
+  const notH=all.filter(s=>s.a&&!H.has(s.n)).map(s=>s.n);
+  // Cases occupées par un objet à harmonisation qui n'est plus harmonisé : elles seront libérées
+  const stale=ins.filter(x=>{const v=x.value.trim(),s=by[v];return s&&s.a&&!H.has(v)});
+  const free=ins.filter(x=>!x.value.trim()).length+stale.length;
   const dlg=document.createElement('dialog');
   dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;max-width:460px;box-shadow:0 10px 40px #0008';
-  const free=ins.filter(x=>!x.value.trim()).length;
-  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Objets magiques</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Les objets à harmonisation vont dans les <b>objets liés</b> ('+free+' emplacement'+(free>1?'s':'')+' libre'+(free>1?'s':'')+' sur 5) ; les autres vont dans l’<b>inventaire</b> (zone Équipement). Décoche ceux que tu ne veux pas ajouter.</p><div id="obl" style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto"></div><p id="obw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="obc">Annuler</button><button type="button" id="obk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Ajouter</button></div>';
+  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Objets magiques</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Les objets avec lesquels tu es <b>harmonisé</b> vont dans les <b>objets liés</b> ('+free+' emplacement'+(free>1?'s':'')+' libre'+(free>1?'s':'')+' sur 5) ; les objets sans harmonisation vont dans l’<b>inventaire</b> (zone Équipement). Décoche ceux que tu ne veux pas ajouter.</p><div id="obl" style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto"></div>'+(notH.length?'<p style="margin:8px 0 0;color:var(--soft);font-size:12px">Non importés car tu n’es pas harmonisé avec eux (choisis-les avec « S’harmoniser » sur la page Objets magiques) : '+notH.map(n=>n.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c])).join(', ')+'.'+(stale.length?' Ils seront retirés des objets liés.':'')+'</p>':'')+'<p id="obw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="obc">Annuler</button><button type="button" id="obk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Ajouter</button></div>';
   const box=dlg.querySelector('#obl');
+  if(!items.length)box.innerHTML='<i style="font-size:13px">Aucun objet à importer.</i>';
   items.forEach((s,i)=>{
     const lab=document.createElement('label');lab.style.cssText='display:flex;gap:8px;align-items:center';
     const cb=document.createElement('input');cb.type='checkbox';cb.dataset.i=i;cb.checked=true;
-    lab.append(cb,document.createTextNode(s.n+(s.a?' → objets liés':' → inventaire')));
+    lab.append(cb,document.createTextNode(s.n+(s.a?' → objets liés (harmonisé)':' → inventaire')));
     box.appendChild(lab);
   });
   document.body.appendChild(dlg);dlg.showModal();
   dlg.querySelector('#obc').onclick=()=>{dlg.close();dlg.remove()};
   dlg.querySelector('#obk').onclick=()=>{
     const chosen=[...box.querySelectorAll('input:checked')].map(c=>items[+c.dataset.i].n);
+    stale.forEach(x=>{x.value='';fire(x)});
     let skipped=0;
     const inv=document.querySelector('[data-k=equip]');let lines=inv.value.split('\n'),invChanged=false;
     chosen.forEach(n=>{
@@ -855,7 +861,7 @@ document.addEventListener('click',async e=>{
       }
     });
     if(invChanged){inv.value=lines.filter((x,i,a)=>x.trim()||(i>0&&i<a.length-1)).join('\n').replace(/^\n+/,'');fire(inv)}
-    if(skipped){dlg.querySelector('#obw').textContent='Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) à harmonisation n’ont pas pu être ajouté(s).';return}
+    if(skipped){dlg.querySelector('#obw').textContent='Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) harmonisé(s) n’ont pas pu être ajouté(s).';return}
     dlg.close();dlg.remove();
   };
 });
