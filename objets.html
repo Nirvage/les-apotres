@@ -175,11 +175,19 @@ function setup(data){
 }
 const pills=s=>(s.a?'<span class="pill co">Harmonisation</span>':'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
 const srcNote=s=>`<div class="srcn">Source : ${esc(s.src||'')}${s.ed==='2014'?' · objet en version 2014 (règles non mises à jour)':''}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}</div>`;
+// Descriptions d'objets plus lisibles : une ligne par paragraphe en gras, par sort à charges, par résultat de table de dés et par niveau
+function lines(h){
+  const IT=/<i>[^<]+<\/i> \(\d[^)]*\)/g;
+  h=h.replace(/([.)])\s+(?=<b>)/g,'$1<br>');
+  if((h.match(IT)||[]).length>1)h=h.replace(/\s*:\s*(?=<i>[^<]+<\/i> \(\d)/g,' :<br>• ').replace(/\),?\s*(?:ou\s+)?(?=<i>[^<]+<\/i> \(\d)/g,')<br>• ');
+  if(/\b0[01][-–]\d\d /.test(h))h=h.replace(/\s*:\s*(?=0[01][-–]\d\d )/g,' :<br>').replace(/\s*[,;]\s+(?=\d\d(?:[-–]\d\d)?(?: :| [a-zA-ZÀ-ÿ]{2}))/g,'<br>');
+  return h.replace(/\s*:\s*(?=niv\. \d+ )/g,' :<br>').replace(/\s*;\s*(?=niv\. \d+ )/g,'<br>');
+}
 function card(s,remove){
   const col=rcol(s);
   return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''} · ${esc(s.en)}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
   <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div></dl>
-  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button>`:''}</div></article>`;
+  <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q);
