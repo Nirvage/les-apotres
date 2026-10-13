@@ -30,7 +30,17 @@ main.doc{background:#fff;border-radius:10px;border-top:4px solid var(--gold);box
 .dice span{background:#2a3170;color:#fff;border-radius:8px;padding:4px 11px;font-weight:700}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
 code{background:#eceefb;border-radius:4px;padding:0 4px}
-@media screen and (max-width:760px){.wrap{grid-template-columns:1fr}nav.toc{position:static}.two{grid-template-columns:1fr}}
+@media screen and (max-width:760px){
+ .wrap{grid-template-columns:minmax(0,1fr);margin:10px auto;padding:0 8px;gap:10px}
+ nav.toc{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+ nav.toc b{grid-column:1/-1}
+ nav.toc a{padding:6px 0}
+ main.doc{padding:14px 14px 20px;font-size:15px}
+ .doc h1{font-size:24px}
+ .doc h2{font-size:18px}
+ .doc table{display:block;overflow-x:auto;max-width:100%}
+ .two{grid-template-columns:1fr}
+}
 @media print{body{background:#fff}.top,nav.toc{display:none}.wrap{display:block;margin:0;padding:0;max-width:none}main.doc{box-shadow:none;border-top:0;padding:0;font-size:11px}.doc h2{break-after:avoid;page-break-after:avoid}.doc table,.tip,.warn{break-inside:avoid;page-break-inside:avoid}}
 </style>
 </head>
