@@ -174,7 +174,7 @@ function card(s,remove){
   const col=TC[s.t]||'#2a3170',q=qty(s);
   return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}</h3><div class="sub">${esc(s.c)} · ${esc(s.en)}</div></div><span class="lvb">${remove?'× '+q:esc(s.p)}</span></header>
   <div class="body"><dl class="meta"><div><dt>Coût</dt><dd>${esc(s.p)}</dd></div><div><dt>Poids</dt><dd>${s.kg?fkg(s.kg):'—'}</dd></div><div><dt>Catégorie</dt><dd>${esc(s.c)}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>${remove?`<div><dt>Quantité</dt><dd>${q} (total ${fkg(q*s.kg)} · ${fmt(q*s.po)} po)</dd></div>`:''}</dl>
-  <div class="desc">${s.h}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
+  <div class="desc">${s.h.replace(/([.)])\s+(?=<b>)/g,'$1<br>')}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q),max=st.lvl===''?null:parseFloat(st.lvl);
