@@ -128,6 +128,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
    <span class="cnt" id="cnt"></span>
    <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">règles 5.5 (Guide du Maître 2024)</option><option value="2014">anciens livres, version 2014</option><option value="perso">mes créations</option></select></label>
    <label>Afficher&nbsp;<select id="fo"><option value="">tous les objets</option><option value="1">ma sélection</option></select></label>
+   <button class="b" id="bRand" style="--c:#7a4fc4" title="Tire au hasard un objet parmi ceux qui correspondent à la recherche et aux filtres">🎲 Objet au hasard</button>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
    <button class="b add" id="bNew" title="Crée ton propre objet magique : il sera disponible pour tous tes personnages">+ Créer un objet</button>
   </div>
@@ -370,6 +371,21 @@ $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave(
 [['#ff','fam'],['#fk','cla'],['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
 $('#bNew').onclick=()=>editCustom(null);
+// Objet au hasard parmi ceux qui correspondent aux filtres
+$('#bRand').onclick=()=>{
+  const L=filtered();if(!L.length){msg('Aucun objet ne correspond à ces filtres');return}
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:14px;width:min(640px,94vw);max-height:90vh;box-shadow:0 10px 40px #0008;background:#f6f4fb';
+  const show=()=>{
+    const s=L[Math.floor(Math.random()*L.length)],on=st.sel.has(s.n);
+    dlg.innerHTML=`<p style="margin:0 0 8px;font-size:12px;color:#5a6270">Tiré au hasard parmi ${L.length} objet${L.length>1?'s':''}</p>${card(s,false)}<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px"><button class="b" data-r="close">Fermer</button><button class="b" style="--c:#7a4fc4" data-r="again">🎲 Un autre</button><button class="b add${on?' on':''}" data-r="add">${on?'✓ Ajouté':'+ Ajouter à mes objets'}</button></div>`;
+    dlg.onclick=e=>{const r=e.target.closest('[data-r]');if(!r)return;
+      if(r.dataset.r==='close'){dlg.close();dlg.remove()}
+      else if(r.dataset.r==='again')show();
+      else{if(!st.sel.has(s.n)){st.sel.add(s.n);renderAll()}show.cur=s;r.classList.add('on');r.textContent='✓ Ajouté'}};
+  };
+  show();document.body.appendChild(dlg);dlg.showModal();
+};
 $('#bReset').onclick=()=>{st.q=st.fam=st.cla=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
