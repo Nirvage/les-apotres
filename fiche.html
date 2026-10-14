@@ -177,6 +177,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <b>Fiche de personnage D&amp;D 5e</b>
   <span id="msg" role="status"></span>
   <button class="primary" id="bSave">Enregistrer (.json)</button>
+  <button id="bImp" title="Reprend ce qui a été choisi sur les autres pages : équipement, objets magiques, armure, armes et sorts du grimoire">Importer</button>
   <button id="bLoad">Charger un .json</button>
   <button id="bPrint">Exporter en PDF (A4)</button>
   <button id="bReset">Vider la fiche</button>
@@ -197,8 +198,10 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <label><small>Bonus de CA</small><input data-k="b_ca" type="number" placeholder="0"></label>
   <label><small>Bonus au DD de sauvegarde</small><input data-k="b_dd" type="number" placeholder="0"></label>
   <label><small>Bonus d'attaque de sort</small><input data-k="b_atk" type="number" placeholder="0"></label>
+  <label class="w2"><small>Armure portée (calcule la CA)</small><select id="armure" data-k="armure"><option value="">Aucune armure</option></select></label>
+  <label class="w2" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" data-k="bouclier" id="bouclier"><small>Bouclier en main</small></label>
  </div>
- <p>Les bonus s'ajoutent au score calculé. La CA de base est 10 + modificateur de Dextérité : ajoute l'armure, le bouclier et les effets magiques dans « Bonus de CA ».</p>
+ <p>Les bonus s'ajoutent au score calculé. La CA vient de l’armure portée (10 + modificateur de Dextérité sans armure), du bouclier et des objets harmonisés ; « Bonus de CA » sert pour le reste.</p>
 </details>
 
 <!-- PAGE 1 -->
@@ -245,7 +248,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <div class="dots" style="--c:#c8402f"><span>Échecs</span><input type="checkbox" data-k="df1"><input type="checkbox" data-k="df2"><input type="checkbox" data-k="df3"></div>
    </div></section>
    <section class="card" style="--c:#d8791a;flex:1"><h2>Attaques et sorts</h2><div class="in">
-    <button type="button" id="bAtk" class="noprint" title="Remplit les lignes d’attaque avec les armes de la page Équipement et les armes magiques avec lesquelles tu es harmonisé : nom, bonus pour toucher et dégâts">Importer les armes</button>
     <div class="atk h"><span>Nom</span><span>Bonus</span><span>Dégâts / type</span></div>
     <div id="atks"></div>
    </div></section>
@@ -261,7 +263,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <label><small>PO</small><input data-k="po" type="number"></label>
     <label><small>PP</small><input data-k="pp_" type="number"></label>
    </div>
-   <button type="button" id="bEq" class="noprint" title="Ajoute à la liste ci-dessous les objets choisis dans la page Équipement, avec leurs quantités">Importer depuis la page Équipement</button>
    <textarea data-k="equip" aria-label="Équipement"></textarea>
   </div></section>
   <section class="card" style="--c:#7a4fc4"><h2>Capacités et traits</h2><div class="in">
@@ -269,7 +270,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   </div></section>
   <div class="col">
    <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
-   <button type="button" id="bOb" class="noprint" title="Ajoute les objets magiques de ton personnage : objets liés pour ceux avec lesquels il est harmonisé, inventaire pour ceux sans harmonisation">Importer depuis les objets magiques</button>
     <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
    </div></section>
    <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
@@ -303,7 +303,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
   <div class="itiles" id="clsInfos" hidden></div>
   <div class="rgrid" id="clsRes" hidden></div>
-  <button type="button" id="bSp" class="noprint" title="Ajoute les sorts choisis dans le grimoire, classés par niveau">Importer depuis le grimoire</button>
   <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
@@ -522,10 +521,10 @@ const FXO={
   "Bouclier du cavalier":[{t:'ca',n:2}],
   "Bouclier de bélier":[{t:'ca',n:1}],
   "Bouclier de la tortue":[{t:'ca',n:1}],
-  "Bracelets de défense":[{t:'ca',n:2,cond:'sans armure ni bouclier'}],
-  "Insigne de la Garde":[{t:'ca',n:2,cond:'sans bouclier'}],
+  "Bracelets de défense":[{t:'ca',n:2,cond:'sans armure ni bouclier',noA:1,noS:1}],
+  "Insigne de la Garde":[{t:'ca',n:2,cond:'sans bouclier',noS:1}],
   "Scarabée de protection":[{t:'ca',n:1}],
-  "Robe de l'archimage":[{t:'ca',n:5,cond:'CA de base 15 + Dex, sans armure'},...SORTN(2)],
+  "Robe de l'archimage":[{t:'ca',n:5,cond:'CA de base 15 + Dex, sans armure',noA:1},...SORTN(2)],
   "Robe aux étoiles":[{t:'sv',n:1}],
   "Lame porte-bonheur":[{t:'sv',n:1}],
   "Pierre porte-bonheur":[{t:'sv',n:1},{t:'tests',n:1}],
@@ -557,7 +556,7 @@ const fxCustom=n=>{const o=custom('objets').find(x=>x.n===n);return o&&Array.isA
 const fxObj=n=>{const d=FXO[n];if(!d)return fxCustom(n);if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
 // Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
-  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
+  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,cca:[],svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
   const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
@@ -582,7 +581,7 @@ function fxCompute(lvl,pb){
       else if(f.t==='init_pb'){F.init+=pb;F.lines.push([src,'initiative '+sg(pb)])}
       else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
       else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
-      else if(f.t==='ca'){F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
+      else if(f.t==='ca'){if(f.noA||f.noS)F.cca.push(f);else F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
       else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max,repos:f.repos,niv:f.niv});
     }
   };
@@ -761,6 +760,30 @@ function syncEspece(){
   el('espece').value=r?(l?r+' ('+short(l)+')':r):'';
 }
 
+let EQD=null;   // equipement.json, chargé au démarrage (armures)
+const armures=()=>(EQD||[]).concat(custom('equipement')).filter(x=>x&&x.t==='Armure'&&x.h);
+const isShield=x=>x.c==='Bouclier'||/^bouclier/i.test(x.n);
+function armorOf(n){   // « Classe d’armure : 14 + mod. de Dex (max. +2). Force requise : Force 13… »
+  if(!n)return null;
+  const x=armures().find(a=>a.n===n&&!isShield(a));if(!x)return null;
+  const h=x.h.replace(/<[^>]+>/g,''),m=h.match(/Classe d.armure\s*:\s*(\d+)(\s*\+\s*(?:le\s+)?mod[^(.]*\.?[^(.]*(?:\(\s*max\.?\s*\+?\s*(\d+)\s*\))?)?/i);
+  if(!m)return null;
+  const st=h.match(/Force requise\s*:\s*(?:Force\s*)?(\d+)/i);
+  return {n:x.n,base:+m[1],dex:m[2]?(m[3]!=null?+m[3]:null):0,str:st?+st[1]:0,disc:/Désavantage aux tests de Discrétion/i.test(h)};
+}
+function shieldOf(){
+  const L=armures().filter(isShield),eq=Persos.part('equipement'),EL=(eq&&eq.data&&eq.data.objets||[]).map(o=>o.n);
+  const x=L.find(a=>EL.includes(a.n)&&a.c_)||L.find(a=>a.n==='Bouclier')||L[0];   // bouclier créé s'il est dans l'équipement, sinon le bouclier normal
+  const m=x&&x.h.replace(/<[^>]+>/g,'').match(/\+\s*(\d+)\s*à la classe d.armure/i);
+  return {nom:x?x.n:'Bouclier',n:m?+m[1]:2};
+}
+function fillArm(){
+  const sel=$('#armure'),keep=sel.value||val('armure');
+  const L=armures().filter(a=>!isShield(a));
+  sel.innerHTML='<option value="">Aucune armure</option>'+L.map(a=>`<option value="${esc(a.n)}">${esc(a.n)} (${esc(a.c)})</option>`).join('');
+  if(keep&&!L.some(a=>a.n===keep))sel.insertAdjacentHTML('beforeend',`<option value="${esc(keep)}">${esc(keep)} (inconnue)</option>`);
+  sel.value=keep;
+}
 let CUR={mod:{for:0,dex:0},pb:2};   // derniers modificateurs calculés (pour l'import des armes)
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
@@ -787,7 +810,18 @@ function calc(){
   $('#pb').textContent=sg(pb);
   const nb=k=>parseInt(val(k))||0;
   $('#init').textContent=sg(mod.dex+nb('b_init')+F.init+F.tst);
-  $('#ca').textContent=10+mod.dex+nb('b_ca')+F.ca;
+  // CA : armure portée (base + Dex plafonnée selon le type), bouclier, objets harmonisés (certains seulement sans armure / sans bouclier)
+  const AR=armorOf(val('armure')),sh=chk('bouclier')?shieldOf():null;
+  let ca=AR?AR.base+(AR.dex===0?0:AR.dex==null?mod.dex:Math.min(mod.dex,AR.dex)):10+mod.dex;
+  if(sh)ca+=sh.n;
+  F.cca.forEach(f=>{if(!(f.noA&&AR)&&!(f.noS&&sh))ca+=f.n});
+  if(AR){
+    F.lines.unshift([AR.n,'CA '+AR.base+(AR.dex===0?'':AR.dex==null?' + Dex':' + Dex (max. +'+AR.dex+')')]);
+    if(AR.str&&tot.for<AR.str){F.vit-=3;F.lines.push([AR.n,'Force '+AR.str+' requise : vitesse −3 m'])}
+    if(AR.disc)F.lines.push([AR.n,'désavantage aux tests de Discrétion']);
+  }
+  if(sh)F.lines.unshift([sh.nom,'CA +'+sh.n]);
+  $('#ca').textContent=ca+nb('b_ca')+F.ca;
   $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
@@ -821,6 +855,7 @@ function apply(obj){
   const d=obj&&obj.data;
   if(!d||typeof d!=='object')throw new Error('format');
   ensureRace(d.race);
+  if(d.armure&&![...$('#armure').options].some(o=>o.value===d.armure))$('#armure').insertAdjacentHTML('beforeend',`<option value="${esc(d.armure)}">${esc(d.armure)}</option>`);
   document.querySelectorAll('[data-k]').forEach(e=>{
     if(!(e.dataset.k in d))return;
     if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
@@ -877,77 +912,9 @@ function spellEffect(h){
   return p.join(' · ');
 }
 const castShort=t=>String(t).split(',')[0].replace(/\s+ou Rituel/i,'');
-document.addEventListener('click',async e=>{
-  if(!e.target.closest('#bSp'))return;
-  Persos.save();
-  const g=Persos.part('grimoire'),L=g&&g.data&&g.data.sorts||[];
-  if(!L.length){alert('Aucun sort choisi pour ce personnage : ajoute-en d’abord dans le grimoire.');return}
-  let DBs;
-  try{DBs=await (await fetch('spells.json')).json()}catch(x){alert('Impossible de lire la liste des sorts (spells.json).');return}
-  const by={};DBs.forEach(s=>by[s.n]=s);
-  const bl=Array.from({length:10},()=>[]);
-  L.map(n=>by[n]).filter(Boolean).forEach(x=>bl[x.l].push(x.n.split('|')[0]));
-  bl.forEach(a=>a.sort((x,y)=>x.localeCompare(y,'fr')));
-  const lines=bl.map((a,i)=>a.length?(i?'Niveau '+i:'Tours de magie')+' : '+a.join(', '):'').filter(Boolean);
-  const ta=document.querySelector('[data-k=sorts]');   // remplace les anciennes lignes importées
-  const keep=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x));
-  ta.value=lines.concat(keep.filter(x=>x.trim())).join('\n');
-  PX.spl=[];
-  calc();autosave();fire(ta);msg('Sorts du grimoire importés dans Capacités de classe');
-});
 document.addEventListener('click',e=>{
   if(!e.target.closest('#bSpDel'))return;
   PX.spl=[];calc();autosave();
-});
-// Objets magiques : seuls les objets harmonisés (choisis sur la page Objets magiques, 3 max) vont dans les cases « Objets liés » ; les objets sans harmonisation vont dans l'inventaire (zone Équipement)
-document.addEventListener('click',async e=>{
-  if(!e.target.closest('#bOb'))return;
-  Persos.save();
-  const o=Persos.part('objets'),D=o&&o.data||{},L=D.objets||[],H=new Set(D.harmonises||[]);
-  if(!L.length){alert('Aucun objet magique choisi pour ce personnage : ajoute-en d’abord sur la page Objets magiques.');return}
-  let DBo;
-  try{DBo=(await (await fetch('objets.json')).json()).concat(custom('objets'))}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
-  const by={};DBo.forEach(s=>by[s.n]=s);
-  const ins=[0,1,2,3,4].map(i=>document.querySelector('[data-k=obj'+i+']'));
-  const all=L.map(n=>by[n]||{n,a:''});
-  const items=all.filter(s=>!s.a||H.has(s.n)).sort((x,y)=>!!y.a-!!x.a);
-  const notH=all.filter(s=>s.a&&!H.has(s.n)).map(s=>s.n);
-  // Cases occupées par un objet à harmonisation qui n'est plus harmonisé : elles seront libérées
-  const stale=ins.filter(x=>{const v=x.value.trim(),s=by[v];return s&&s.a&&!H.has(v)});
-  const free=ins.filter(x=>!x.value.trim()).length+stale.length;
-  const dlg=document.createElement('dialog');
-  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;max-width:460px;box-shadow:0 10px 40px #0008';
-  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Objets magiques</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Les objets avec lesquels tu es <b>harmonisé</b> vont dans les <b>objets liés</b> ('+free+' emplacement'+(free>1?'s':'')+' libre'+(free>1?'s':'')+' sur 5) ; les objets sans harmonisation vont dans l’<b>inventaire</b> (zone Équipement). Décoche ceux que tu ne veux pas ajouter.</p><div id="obl" style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto"></div>'+(notH.length?'<p style="margin:8px 0 0;color:var(--soft);font-size:12px">Non importés car tu n’es pas harmonisé avec eux (choisis-les avec « S’harmoniser » sur la page Objets magiques) : '+notH.map(n=>n.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c])).join(', ')+'.'+(stale.length?' Ils seront retirés des objets liés.':'')+'</p>':'')+'<p id="obw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="obc">Annuler</button><button type="button" id="obk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Ajouter</button></div>';
-  const box=dlg.querySelector('#obl');
-  if(!items.length)box.innerHTML='<i style="font-size:13px">Aucun objet à importer.</i>';
-  items.forEach((s,i)=>{
-    const lab=document.createElement('label');lab.style.cssText='display:flex;gap:8px;align-items:center';
-    const cb=document.createElement('input');cb.type='checkbox';cb.dataset.i=i;cb.checked=true;
-    lab.append(cb,document.createTextNode(s.n+(s.a?' → objets liés (harmonisé)':' → inventaire')));
-    box.appendChild(lab);
-  });
-  document.body.appendChild(dlg);dlg.showModal();
-  dlg.querySelector('#obc').onclick=()=>{dlg.close();dlg.remove()};
-  dlg.querySelector('#obk').onclick=()=>{
-    const chosen=[...box.querySelectorAll('input:checked')].map(c=>items[+c.dataset.i].n);
-    stale.forEach(x=>{x.value='';fire(x)});
-    let skipped=0;
-    const inv=document.querySelector('[data-k=equip]');let lines=inv.value.split('\n'),invChanged=false;
-    chosen.forEach(n=>{
-      const s=items.find(x=>x.n===n);
-      if(s&&s.a){
-        if(ins.some(x=>x.value.trim()===n))return;
-        const fr=ins.find(x=>!x.value.trim());
-        if(fr){fr.value=n;fire(fr)}else skipped++;
-      }else{
-        if(lines.some(x=>x.replace(/^\d+×\s*/,'').trim()===n))return;   // déjà dans l'inventaire
-        lines.push('1× '+n);invChanged=true;
-      }
-    });
-    if(invChanged){inv.value=lines.filter((x,i,a)=>x.trim()||(i>0&&i<a.length-1)).join('\n').replace(/^\n+/,'');fire(inv)}
-    if(skipped){dlg.querySelector('#obw').textContent='Il n’y a que 5 emplacements d’objets liés : '+skipped+' objet(s) harmonisé(s) n’ont pas pu être ajouté(s).';return}
-    dlg.close();dlg.remove();
-  };
 });
 // Armes : celles de la page Équipement et les armes magiques harmonisées remplissent les lignes « Attaques » (nom, bonus pour toucher, dégâts)
 const normW=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘]/g,"'");
@@ -988,67 +955,122 @@ function atkLine(name,w,mb,prof){
   const d=dmg.match(/^(\S+)\s+(.*)$/);
   return [name,sg(hit),d?d[1]+(dm?sg(dm):'')+' '+d[2]:dmg];
 }
+// Import global (bouton « Importer » de la barre) : reprend ce qui a été choisi sur les autres pages
+//  · équipement → inventaire ; objets magiques harmonisés → objets liés, les autres objets sans harmonisation → inventaire
+//  · armure et bouclier de l'équipement → armure portée (CA) ; armes de l'équipement et armes magiques harmonisées → attaques
+//  · sorts du grimoire → zone de sorts, classés par niveau
 document.addEventListener('click',async e=>{
-  if(!e.target.closest('#bAtk'))return;
+  if(!e.target.closest('#bImp'))return;
   Persos.save();calc();
-  let EQ,OB;
-  try{[EQ,OB]=await Promise.all(['equipement.json','objets.json'].map(async f=>(await fetch(f)).json()))}catch(x){alert('Impossible de lire les listes d’équipement et d’objets.');return}
-  const W=EQ.concat(custom('equipement')).filter(x=>x.t==='Arme'&&x.h),byO={};OB.concat(custom('objets')).forEach(x=>byO[x.n]=x);
+  const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error(f);return r.json()};
+  let SP,OB;
+  try{[SP,OB]=await Promise.all(['spells.json','objets.json'].map(get));if(!EQD)EQD=await get('equipement.json')}catch(x){alert('Impossible de lire les listes du site (sorts, objets, équipement).');return}
+  fillArm();
+  const byO={};OB.concat(custom('objets')).forEach(x=>byO[x.n]=x);
+  const ALL=EQD.concat(custom('equipement')),W=ALL.filter(x=>x.t==='Arme'&&x.h);
   const eq=Persos.part('equipement'),EL=eq&&eq.data&&eq.data.objets||[];
-  const C=[];   // armes proposées : {nom, opts (armes de base), mb (bonus magique)}
-  EL.forEach(o=>{const w=W.find(x=>x.n===o.n);if(w)C.push({nom:w.n,opts:[w],mb:0})});
+  const g=Persos.part('grimoire'),SL=g&&g.data&&g.data.sorts||[];
+  const o=Persos.part('objets'),OD=o&&o.data||{},OL=OD.objets||[],H=new Set(OD.harmonises||[]);
+  // Objets magiques
+  const all=OL.map(n=>byO[n]||{n,a:''});
+  const items=all.filter(s=>!s.a||H.has(s.n)).sort((x,y)=>!!y.a-!!x.a);
+  const notH=all.filter(s=>s.a&&!H.has(s.n)).map(s=>s.n);
+  const ins=[0,1,2,3,4].map(i=>el('obj'+i));
+  const stale=ins.filter(x=>{const v=x.value.trim(),s=byO[v];return s&&s.a&&!H.has(v)});   // objets liés qui ne sont plus harmonisés
+  // Armure et bouclier
+  const ARL=EL.map(x=>ALL.find(a=>a.n===x.n&&a.t==='Armure')).filter(Boolean);
+  const arms=ARL.filter(a=>!isShield(a)&&armorOf(a.n)),hasSh=ARL.some(isShield);
+  // Armes
+  const C=[];
+  EL.forEach(x=>{const w=W.find(y=>y.n===x.n);if(w)C.push({nom:w.n,opts:[w],mb:0})});
   harmonises().forEach(n=>{
-    const s=byO[n];if(!s)return;
-    const txt=s.h.replace(/<[^>]+>/g,'');
-    if(s.t!=='Arme'&&!/b[aâ]ton de combat/i.test(txt))return;
-    const opts=baseChoices(s,W);if(!opts.length)return;
-    C.push({nom:n,opts,mb:magicBonus(s),magic:1});
+    const s=byO[n];if(!s||!s.h)return;
+    if(s.t!=='Arme'&&!/b[aâ]ton de combat/i.test(s.h))return;
+    const opts=baseChoices(s,W);if(opts.length)C.push({nom:n,opts,mb:magicBonus(s),magic:1});
   });
-  if(!C.length){alert('Aucune arme trouvée : choisis des armes sur la page Équipement, ou harmonise-toi avec une arme magique sur la page Objets magiques.');return}
-  const rows=[0,1,2,3,4].map(i=>['n','b','d'].map(k=>el('a'+i+'_'+k)));
+  if(!EL.length&&!SL.length&&!OL.length){alert('Rien à importer : choisis d’abord de l’équipement, des objets magiques ou des sorts sur les autres pages.');return}
   const dlg=document.createElement('dialog');
-  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;max-width:520px;box-shadow:0 10px 40px #0008';
-  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Importer les armes</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Bonus pour toucher = modificateur (Force, Dextérité pour les armes à distance, le meilleur des deux pour Finesse) + bonus de maîtrise si l’arme est maîtrisée + bonus magique. Une arme déjà présente dans les attaques est mise à jour ; les autres prennent les lignes vides (5 au maximum).</p><div id="atl" style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto"></div><p id="atw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="atc">Annuler</button><button type="button" id="atk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Importer</button></div>';
-  const box=dlg.querySelector('#atl');
-  C.forEach((c,i)=>{
-    const d=document.createElement('div');d.style.cssText='display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:13px';
-    d.innerHTML=`<label style="display:flex;gap:6px;align-items:center;flex:1 1 200px"><input type="checkbox" data-u="${i}" checked> <b>${esc(c.nom)}</b>${c.mb?' ('+sg(c.mb)+')':''}</label>`
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;width:min(560px,94vw);box-shadow:0 10px 40px #0008';
+  const H3=t=>`<h4 style="margin:10px 0 4px;font:700 13px system-ui;color:#2a3170">${t}</h4>`;
+  const cb=(attr,label,extra='')=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;flex:1 1 220px"><input type="checkbox" ${attr} checked> ${label}</label>${extra}`;
+  const row=h=>`<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">${h}</div>`;
+  let h='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Importer dans la fiche</h3><p style="margin:0;color:var(--soft);font-size:12px">Ce qui a été choisi sur les pages Équipement, Objets magiques et Grimoire. Décoche ce que tu ne veux pas importer.</p><div style="max-height:62vh;overflow:auto">';
+  if(EL.length)h+=H3('Équipement')+row(cb('data-s="eq"',EL.length+' objet'+(EL.length>1?'s':'')+' → inventaire (zone Équipement)'));
+  if(items.length||notH.length){
+    h+=H3('Objets magiques')+items.map((s,i)=>row(cb(`data-o="${i}"`,esc(s.n)+(s.a?' → objets liés (harmonisé)':' → inventaire')))).join('');
+    if(notH.length)h+=`<p style="margin:4px 0 0;color:var(--soft);font-size:12px">Non importés car tu n’es pas harmonisé avec eux : ${notH.map(esc).join(', ')}.${stale.length?' Ils seront retirés des objets liés.':''}</p>`;
+  }
+  if(arms.length||hasSh){
+    const cur=val('armure');
+    h+=H3('Armure (calcule la CA)')+row((arms.length?`<label style="font-size:13px;flex:1 1 220px">Armure portée <select data-arm>${'<option value="">Aucune</option>'+arms.map(a=>`<option value="${esc(a.n)}"${a.n===cur||(!arms.some(x=>x.n===cur)&&a===arms[0])?' selected':''}>${esc(a.n)}</option>`).join('')}</select></label>`:'')+(hasSh?cb('data-sh','Bouclier en main'):''));
+  }
+  if(C.length){
+    h+=H3('Armes → attaques')+C.map((c,i)=>row(cb(`data-u="${i}"`,'<b>'+esc(c.nom)+'</b>'+(c.mb?' ('+sg(c.mb)+')':''))
       +(c.opts.length>1?`<select data-w="${i}" aria-label="Arme de base">${c.opts.map((w,j)=>`<option value="${j}">${esc(w.n)}</option>`).join('')}</select>`:c.magic?`<small>${esc(c.opts[0].n)}</small>`:'')
-      +`<label style="display:flex;gap:4px;align-items:center;font-size:12px"><input type="checkbox" data-p="${i}" checked> maîtrisée</label>`;
-    box.appendChild(d);
-  });
+      +`<label style="display:flex;gap:4px;align-items:center;font-size:12px"><input type="checkbox" data-p="${i}" checked> maîtrisée</label>`)).join('')
+      +'<p style="margin:4px 0 0;color:var(--soft);font-size:11px">Pour toucher : Force (Dextérité à distance, la meilleure des deux pour Finesse) + maîtrise + bonus magique.</p>';
+  }
+  if(SL.length)h+=H3('Sorts')+row(cb('data-s="sp"',SL.length+' sort'+(SL.length>1?'s':'')+' du grimoire → zone de sorts, par niveau'));
+  h+='</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="ic">Annuler</button><button type="button" id="ik" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Importer</button></div>';
+  dlg.innerHTML=h;
   document.body.appendChild(dlg);dlg.showModal();
-  dlg.querySelector('#atc').onclick=()=>{dlg.close();dlg.remove()};
-  dlg.querySelector('#atk').onclick=()=>{
-    let skipped=0;
+  const q=x=>dlg.querySelector(x),on=x=>{const c=q(x);return !!(c&&c.checked)};
+  q('#ic').onclick=()=>{dlg.close();dlg.remove()};
+  q('#ik').onclick=()=>{
+    const warn=[],done=[];
+    // Inventaire
+    const inv=el('equip');let lines=inv.value.split('\n');
+    const putInv=(n,qte,replace)=>{const i=lines.findIndex(x=>x.replace(/^\d+×\s*/,'').trim()===n);if(i<0)lines.push(qte+'× '+n);else if(replace)lines[i]=qte+'× '+n};
+    if(on('[data-s="eq"]')){EL.forEach(x=>putInv(x.n,x.qte,true));done.push('équipement')}
+    // Objets magiques
+    stale.forEach(x=>{x.value='';fire(x)});
+    let sk=0;
+    items.forEach((s,i)=>{
+      if(!on(`[data-o="${i}"]`))return;
+      if(s.a){if(ins.some(x=>x.value.trim()===s.n))return;const fr=ins.find(x=>!x.value.trim());if(fr){fr.value=s.n;fire(fr)}else sk++}
+      else putInv(s.n,1,false);
+    });
+    if(items.length)done.push('objets magiques');
+    if(sk)warn.push('Il n’y a que 5 emplacements d’objets liés : '+sk+' objet(s) harmonisé(s) non ajouté(s).');
+    const nv=lines.filter((x,i,a)=>x.trim()||(i>0&&i<a.length-1)).join('\n').replace(/^\n+/,'');
+    if(nv!==inv.value){inv.value=nv;fire(inv)}
+    // Armure
+    const as=q('[data-arm]');
+    if(as){el('armure').value=as.value;fire(el('armure'))}
+    if(q('[data-sh]')){el('bouclier').checked=on('[data-sh]');fire(el('bouclier'))}
+    if(as||hasSh)done.push('armure');
+    calc();   // la CA et les modificateurs à jour avant les armes
+    // Armes
+    const rows=[0,1,2,3,4].map(i=>['n','b','d'].map(k=>el('a'+i+'_'+k)));
+    let ska=0;
     C.forEach((c,i)=>{
-      if(!box.querySelector(`[data-u="${i}"]`).checked)return;
-      const ws=box.querySelector(`[data-w="${i}"]`),w=c.opts[ws?+ws.value:0];
-      const name=c.nom;   // arme magique : son nom suffit (l'arme de base donne les dégâts)
-      const line=atkLine(name,w,c.mb,box.querySelector(`[data-p="${i}"]`).checked);
-      const r=rows.find(r=>r[0].value.trim()===name)||rows.find(r=>r.every(x=>!x.value.trim()));
-      if(!r){skipped++;return}
+      if(!on(`[data-u="${i}"]`))return;
+      const ws=q(`[data-w="${i}"]`),w=c.opts[ws?+ws.value:0];
+      const line=atkLine(c.nom,w,c.mb,on(`[data-p="${i}"]`));
+      const r=rows.find(r=>r[0].value.trim()===c.nom)||rows.find(r=>r.every(x=>!x.value.trim()));
+      if(!r){ska++;return}
       r.forEach((x,k)=>{x.value=line[k];fire(x)});
     });
-    if(skipped){dlg.querySelector('#atw').textContent='Il n’y a que 5 lignes d’attaque : '+skipped+' arme(s) n’ont pas pu être ajoutée(s).';return}
+    if(C.length)done.push('armes');
+    if(ska)warn.push('Il n’y a que 5 lignes d’attaque : '+ska+' arme(s) non ajoutée(s).');
+    // Sorts
+    if(on('[data-s="sp"]')){
+      const by={};SP.forEach(s=>by[s.n]=s);
+      const bl=Array.from({length:10},()=>[]);
+      SL.map(n=>by[n]).filter(Boolean).forEach(x=>bl[x.l].push(x.n.split('|')[0]));
+      bl.forEach(a=>a.sort((x,y)=>x.localeCompare(y,'fr')));
+      const sl=bl.map((a,i)=>a.length?(i?'Niveau '+i:'Tours de magie')+' : '+a.join(', '):'').filter(Boolean);
+      const ta=el('sorts'),keep=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x));   // remplace les anciennes lignes importées
+      ta.value=sl.concat(keep.filter(x=>x.trim())).join('\n');
+      PX.spl=[];fire(ta);done.push('sorts');
+    }
+    calc();autosave();
     dlg.close();dlg.remove();
+    if(warn.length)alert(warn.join('\n'));
+    msg(done.length?'Importé : '+done.join(', '):'Rien d’importé');
   };
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)calc()});   // retour sur la page : les harmonisations ont pu changer
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#bEq'))return;
-  Persos.save();
-  const eq=Persos.part('equipement'),L=eq&&eq.data&&eq.data.objets||[];
-  const ta=document.querySelector('[data-k=equip]');
-  if(!L.length){alert('Aucun équipement choisi pour ce personnage : ajoute-en d’abord sur la page Équipement.');return}
-  const lines=ta.value.split('\n').filter(x=>x.length||true);
-  L.forEach(o=>{
-    const line=o.qte+'× '+o.n,i=lines.findIndex(x=>x.replace(/^\d+×\s*/,'').trim()===o.n);
-    if(i>=0)lines[i]=line;else lines.push(line);
-  });
-  ta.value=lines.filter((x,i,a)=>x.trim()||i<a.length-1).join('\n').replace(/^\n+/,'');
-  ta.dispatchEvent(new Event('input',{bubbles:true}));
-});
 
 function onEdit(ev){
   const t=ev.target,k=t.dataset&&t.dataset.k;
@@ -1176,7 +1198,9 @@ $('#bReset').onclick=()=>{
 // Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
 async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  const [a,b,c,d,e,h]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json','capacites.json','historiques.json'].map(get));
+  const [a,b,c,d,e,h,q]=await Promise.allSettled(['classes.json','especes.json','dons.json','sousclasses.json','capacites.json','historiques.json','equipement.json'].map(get));
+  if(q.status==='fulfilled')EQD=q.value;
+  fillArm();
   if(h.status==='fulfilled'){BGD=h.value;$('#bgsel').innerHTML='<option value="">—</option>'+Object.keys(BGD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
   if(a.status==='fulfilled')CD=a.value;else CDFAIL=true;
   if(b.status==='fulfilled')ESPD=b.value;
