@@ -69,6 +69,8 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .rest{grid-column:1/-1;display:flex;gap:6px}
 .rest button{flex:1;border:1px solid var(--c);color:var(--c);background:#fff;border-radius:6px;padding:3px 4px;font:600 11px system-ui,sans-serif;cursor:pointer}
 .rest button:hover{background:var(--c);color:#fff}
+.resthint{grid-column:1/-1;font-size:10px;line-height:1.25;color:var(--soft)}
+.resthint b{color:var(--c);font-weight:600}
 .big input{font:700 18px var(--serif);text-align:center}
 .dots{display:flex;gap:6px;align-items:center;font-size:11px}
 .dots span:first-child{width:62px;color:var(--soft)}
@@ -245,6 +247,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
      <label><small>Total</small><input data-k="dvtot" placeholder="1d8"></label>
      <label><small>Restants</small><input data-k="dvrest"></label>
      <div class="rest noprint"><button type="button" id="bShort" title="Dépenser des dés de vie pour regagner des PV ; recharge ce qui revient au repos court">Repos court</button><button type="button" id="bLong" title="PV au maximum, tous les dés de vie, emplacements de sorts et capacités rechargés">Repos long</button></div>
+     <small class="resthint noprint" id="restHint"></small>
     </div></section>
    </div>
   </div>
@@ -330,6 +333,8 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="sec" id="secCls" hidden>Capacités de classe <span id="secClsHint">cochez les utilisations dépensées</span></div>
   <div class="itiles" id="clsInfos" hidden></div>
   <div class="rgrid" id="clsRes" hidden></div>
+  <div class="sec" id="secCh" hidden style="--c:#d6458e">Objets à charges <span>charges restantes, rechargées à l’aube (au repos long)</span></div>
+  <div class="rgrid" id="chRes" hidden></div>
   <textarea data-k="sorts" id="sorts" placeholder="Tours de magie, sorts préparés…" aria-label="Sorts"></textarea>
  </div></section>
  <section class="card" style="--c:#2e9e5b;flex:2"><h2>Notes</h2><div class="in">
@@ -459,6 +464,38 @@ function resHTML(d,lvl,mod){
     }else ctl=`<span class="bx">${bx(key,m,r.nom)}</span>`;   // cases : on coche ce qui est dépensé
     return `<div class="rs" style="--c:${RCOL[i%RCOL.length]}"><div class="rh"><b>${esc(r.nom)}</b>${ctl}</div><small>${esc(r.repos||'')}</small></div>`;
   }).join('');
+}
+// Objets magiques à charges (choisis sur la page Objets magiques) : nombre de charges et recharge, lus dans la description
+function chargesOf(h){
+  const t=String(h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  const m=t.match(/(?<![\p{L}])(?:a|ont|possèdent?|possède|contient|contiennent|de ses)\s+(\d+)\s+charges(?![\p{L}])/iu)||t.match(/^[^:(]{0,40}[:(]\s*(\d+) charges/u);
+  if(!m||+m[1]<2)return null;
+  const r=t.match(/(?:regagnen?t?|récupèren?t?|en récupère)\s+(?:(toutes)|(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)(?:\s+charges?)?)[^.;]*?(?:à l'aube|chaque aube|au lever du soleil|au crépuscule|à minuit)/i)
+    ||t.match(/les regagne toutes[^.;]*?(?:à l'aube|chaque aube)/i);
+  return {max:+m[1],rec:r?(r[2]?r[2].replace(/\s+/g,''):'all'):null,when:!r?'':/crépuscule/i.test(r[0])?'au crépuscule':/minuit/i.test(r[0])?'à minuit':'à l’aube'};
+}
+let CHG=[];   // objets à charges du personnage (rechargés au repos long)
+function renderCharges(){
+  const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];
+  CHG=[...new Set(L)].map(n=>{const s=magItem(n),c=s&&chargesOf(s.h);return c?Object.assign(c,{n,key:'ch_'+n}):null}).filter(Boolean);
+  const h=CHG.map(r=>{
+    const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
+    const rep=r.rec==='all'?'Toutes ses charges reviennent '+r.when+' (repos long).':r.rec?'Regagne '+r.rec+' charge'+(r.rec==='1'?'':'s')+' '+r.when+' : lancé au repos long.':'Ne se recharge pas tout seul : voir la description de l’objet.';
+    return `<div class="rs" style="--c:#d6458e"><div class="rh"><b>${esc(r.n)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${esc(r.key)}" value="${v}" aria-label="${esc(r.n)} : charges restantes"> / ${r.max}</span></div><small>${esc(rep)}</small></div>`;
+  }).join('');
+  setHTML($('#chRes'),h);$('#chRes').hidden=!h;$('#secCh').hidden=!h;
+}
+// Rappel sous les boutons de repos : ce qui revient au repos court, le reste au repos long
+function shortNames(){
+  const cl=findClass(),lvl=lvlNow(),o=[],cst=cl&&castOf(cl[1]);
+  if(cst&&cst.type==='pacte')o.push('emplacements de pacte');
+  if(cl)(cl[1].ressources||[]).forEach(r=>{if(shortGain(r.repos||'')&&maxOf(r.max,lvl,CUR.mod))o.push(r.nom)});
+  POOLS.forEach(r=>{if(shortGain(r.repos||''))o.push(r.nom)});
+  return o;
+}
+function renderRestHint(){
+  const s=shortNames();
+  setHTML($('#restHint'),'<b>Repos court</b> : dés de vie'+(s.length?', '+esc(s.join(', ')):'')+'. <b>Repos long</b> : tout'+(CHG.some(r=>r.rec)?', charges des objets':'')+'.');
 }
 function renderMagic(mod,pb,lvl,cl,cst){
   const d=cl&&cl[1],auto=!!cl;
@@ -954,6 +991,7 @@ function calc(){
   renderMal(cl,lvl);
   renderProf(cl);renderLangs();
   renderExtras(F,lvl,pb,mod,tot);
+  renderCharges();renderRestHint();
 }
 
 // Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
@@ -1201,11 +1239,19 @@ function restoreRes(kind){   // kind : 'court' ou 'long'
     refill('r_'+r.id,m,r.mode==='reserve'?'reserve':'cases',g);out.push(r.nom);
   });
   POOLS.forEach(r=>{const g=kind==='long'?'all':shortGain(r.repos||'');if(g){refill(r.key,r.max,'reserve',g);out.push(r.nom)}});
+  if(kind==='long')CHG.forEach(r=>{   // objets à charges : la recharge de l'aube est comptée au repos long
+    if(!r.rec||RS[r.key]===undefined)return;
+    const v=Math.min(r.max,Math.max(0,+RS[r.key]||0));
+    let g=r.max;
+    if(r.rec!=='all'){const d=r.rec.match(/^(\d+)(?:d(\d+))?([+-]\d+)?$/);if(!d)return;
+      g=d[2]?Array.from({length:+d[1]},()=>1+Math.floor(Math.random()*+d[2])).reduce((a,b)=>a+b,0):+d[1];g=Math.max(0,g+(+d[3]||0))}
+    refill(r.key,r.max,'reserve',g);out.push(r.n+' +'+Math.min(g,r.max-v)+' charge'+(Math.min(g,r.max-v)>1?'s':''));
+  });
   return out;
 }
 const setv=(k,v)=>{const e=el(k);if(e){e.value=v;fire(e)}};
 $('#bLong').onclick=()=>{
-  if(!confirm('Repos long : PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés. Continuer ?'))return;
+  if(!confirm('Repos long : PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés, objets à charges rechargés comme à l’aube. Continuer ?'))return;
   const mx=parseInt(val('pvmax'));if(!isNaN(mx))setv('pv',mx);
   setv('pvtemp','');
   ['ds1','ds2','ds3','df1','df2','df3'].forEach(k=>{const e=el(k);if(e&&e.checked){e.checked=false;fire(e)}});
