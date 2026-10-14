@@ -1,5 +1,8 @@
 /* Gestion des personnages, partagée par la fiche et le grimoire.
 
+   Les pages chargent persos.js, custom.js et style.css avec « ?v=… » : changer ce numéro dans
+   toutes les pages à chaque modification, sinon le navigateur peut garder l'ancienne version en cache.
+
    Un personnage = { id, nom, fiche, grimoire }. Chaque page ne lit et n'écrit que sa
    propre part ("fiche" ou "grimoire"). Tout est conservé dans le navigateur (localStorage)
    sous une seule clé ; le personnage actif est retrouvé d'une page à l'autre.
