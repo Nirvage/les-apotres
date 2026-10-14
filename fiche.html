@@ -66,6 +66,9 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .calc{display:block}
 .three{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rest{grid-column:1/-1;display:flex;gap:6px}
+.rest button{flex:1;border:1px solid var(--c);color:var(--c);background:#fff;border-radius:6px;padding:3px 4px;font:600 11px system-ui,sans-serif;cursor:pointer}
+.rest button:hover{background:var(--c);color:#fff}
 .big input{font:700 18px var(--serif);text-align:center}
 .dots{display:flex;gap:6px;align-items:center;font-size:11px}
 .dots span:first-child{width:62px;color:var(--soft)}
@@ -241,6 +244,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <section class="card" style="--c:#c8402f;flex:2 1 auto"><h2>Dés de vie</h2><div class="in two big" style="align-content:center">
      <label><small>Total</small><input data-k="dvtot" placeholder="1d8"></label>
      <label><small>Restants</small><input data-k="dvrest"></label>
+     <div class="rest noprint"><button type="button" id="bShort" title="Dépenser des dés de vie pour regagner des PV ; recharge ce qui revient au repos court">Repos court</button><button type="button" id="bLong" title="PV au maximum, tous les dés de vie, emplacements de sorts et capacités rechargés">Repos long</button></div>
     </div></section>
    </div>
   </div>
@@ -389,6 +393,7 @@ $('#clsel').innerHTML='<option value="">Choisir…</option>'+Object.entries(CLS)
 
 // ---------- Incantation et capacités selon la classe (données dans classes.json) ----------
 let CD=null,CDFAIL=false;   // données de classes, chargées au démarrage
+let POOLS=[];   // réserves d'espèce, de dons, de sous-classe (calculées par renderExtras, rechargées par les repos)
 let RS={};                  // cases cochées et réserves (emplacements, ressources de classe)
 // Le bloc n'est reconstruit que si son contenu change : un simple « change » sur un autre champ
 // ne doit pas remplacer le champ que l'on vient de sélectionner. Le cache est vidé quand RS change.
@@ -655,6 +660,7 @@ const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.
 function renderExtras(F,lvl,pb,mod,tot){
   const E=F.E,cl=F.cl;
   const RES=F.res.map(r=>({...r,max:resMax(r,lvl,pb,mod)})).filter(r=>r.max>0);
+  POOLS=RES;
   // Espèce
   const lo=lignOpt(E);
   $('#xSpT').textContent=E?'Espèce — '+E[0]+(lo?' ('+short(lo.v)+')':''):'Espèce';
@@ -1167,6 +1173,72 @@ document.addEventListener('click',async e=>{
     msg(done.length?'Importé : '+done.join(', '):'Rien d’importé');
   };
 });
+// ---------- Repos ----------
+const lvlNow=()=>Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
+const dvInfo=()=>{const m=val('dvtot').match(/(\d+)\s*d\s*(\d+)/i);const tot=m?+m[1]:lvlNow(),die=m?+m[2]:(CLS[val('clsel')]||8);
+  const r=val('dvrest').trim();return {tot,die,rest:r===''?tot:Math.max(0,Math.min(tot,parseInt(r)||0))}};
+// Ce qu'une ressource récupère au repos court, d'après son texte « repos » : 'all', 1 ou 0
+function shortGain(txt){
+  const t=norm(txt);if(!t.includes('court'))return 0;
+  const n=t.match(/court[^·]*des le niv\. (\d+)|des le niv\. (\d+)[^·]*court/);if(n&&lvlNow()<+(n[1]||n[2]))return 0;
+  return /1 (?:recuperee |de plus )?au repos court/.test(t)?1:'all';
+}
+// Remet une ressource : cases (cochées = dépensées) ou réserve (nombre restant)
+function refill(key,max,mode,gain){
+  if(mode==='reserve'){if(gain==='all')delete RS[key];else{const v=RS[key]===undefined?max:+RS[key];if(v+gain>=max)delete RS[key];else RS[key]=v+gain}}
+  else{let g=gain==='all'?max:gain;for(let j=max-1;j>=0&&g>0;j--)if(RS[key+'_'+j]){delete RS[key+'_'+j];g--}}
+}
+function restoreRes(kind){   // kind : 'court' ou 'long'
+  const cl=findClass(),lvl=lvlNow(),out=[];
+  if(cl)(cl[1].ressources||[]).forEach(r=>{
+    const g=kind==='long'?'all':shortGain(r.repos||'');if(!g)return;
+    const m=maxOf(r.max,lvl,CUR.mod);if(!m)return;
+    refill('r_'+r.id,m,r.mode==='reserve'?'reserve':'cases',g);out.push(r.nom);
+  });
+  POOLS.forEach(r=>{const g=kind==='long'?'all':shortGain(r.repos||'');if(g){refill(r.key,r.max,'reserve',g);out.push(r.nom)}});
+  return out;
+}
+const setv=(k,v)=>{const e=el(k);if(e){e.value=v;fire(e)}};
+$('#bLong').onclick=()=>{
+  if(!confirm('Repos long : PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés. Continuer ?'))return;
+  const mx=parseInt(val('pvmax'));if(!isNaN(mx))setv('pv',mx);
+  setv('pvtemp','');
+  ['ds1','ds2','ds3','df1','df2','df3'].forEach(k=>{const e=el(k);if(e&&e.checked){e.checked=false;fire(e)}});
+  setv('dvrest',dvInfo().tot);
+  Object.keys(RS).forEach(k=>{if(/^(sl\d|pc)_/.test(k))delete RS[k]});   // emplacements de sorts (cases automatiques)
+  for(let i=1;i<=9;i++)if(val('sl'+i+'_u'))setv('sl'+i+'_u','');        // emplacements saisis à la main
+  const R=restoreRes('long');
+  setRS(RS);calc();autosave();
+  msg('Repos long terminé'+(R.length?' · rechargé : '+R.join(', '):''));
+};
+$('#bShort').onclick=()=>{
+  calc();
+  const D=dvInfo(),con=CUR.mod.con||0,pv=parseInt(val('pv')),mx=parseInt(val('pvmax'));
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;width:min(420px,94vw);box-shadow:0 10px 40px #0008';
+  dlg.innerHTML=`<h3 style="margin:0 0 6px;font:italic 700 18px var(--serif)">Repos court</h3>
+   <p style="margin:0 0 8px;font-size:13px">Dés de vie restants : <b>${D.rest}</b> / ${D.tot} (d${D.die}) · modificateur de Constitution ${sg(con)}<br>PV : <b>${isNaN(pv)?'—':pv}</b>${isNaN(mx)?'':' / '+mx}</p>
+   <label style="display:flex;gap:8px;align-items:center;font-size:13px">Dés à dépenser <input type="number" id="rsn" min="0" max="${D.rest}" value="${D.rest?1:0}" style="width:60px"></label>
+   <p id="rsr" style="margin:8px 0 0;font-size:13px;color:#2e9e5b;min-height:1em"></p>
+   <p style="margin:6px 0 0;font-size:11px;color:#6b7280">Chaque dé rend 1d${D.die} ${sg(con)} PV (au moins 0). Les capacités qui reviennent au repos court sont aussi rechargées (magie de pacte, etc.).</p>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="rsc">Annuler</button><button type="button" id="rsk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Lancer et récupérer</button></div>`;
+  document.body.appendChild(dlg);dlg.showModal();
+  dlg.querySelector('#rsc').onclick=()=>{dlg.close();dlg.remove()};
+  dlg.querySelector('#rsk').onclick=()=>{
+    const n=Math.max(0,Math.min(D.rest,parseInt(dlg.querySelector('#rsn').value)||0));
+    const rolls=Array.from({length:n},()=>1+Math.floor(Math.random()*D.die));
+    const gain=rolls.reduce((t,r)=>t+Math.max(0,r+con),0);
+    if(n){
+      const cur=isNaN(pv)?0:pv,nv=isNaN(mx)?cur+gain:Math.min(mx,cur+gain);
+      setv('pv',nv);setv('dvrest',D.rest-n);
+    }
+    Object.keys(RS).forEach(k=>{if(/^pc_/.test(k))delete RS[k]});   // magie de pacte
+    const R=restoreRes('court');
+    setRS(RS);calc();autosave();
+    dlg.close();dlg.remove();
+    msg((n?'Dés : '+rolls.join(' + ')+' '+(con?'('+sg(con)+' chacun) ':'')+'→ +'+gain+' PV':'Repos court terminé')+(R.length?' · rechargé : '+R.join(', '):''));
+  };
+};
 window.addEventListener('pageshow',e=>{if(e.persisted)calc()});   // retour sur la page : les harmonisations ont pu changer
 
 function onEdit(ev){
