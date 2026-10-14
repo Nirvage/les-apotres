@@ -84,6 +84,16 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .sgrid input,.sgrid select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:#fff}
 .settings p{margin:8px 0 0;font-size:11px;color:var(--soft)}
 .objs{gap:4px}
+.prof{font-size:11px;line-height:1.35;margin-bottom:3px}
+.prof b{color:var(--c)}
+.langs{display:flex;flex-wrap:wrap;gap:3px;font-size:11px;min-height:5mm}
+.langs span{background:color-mix(in srgb,var(--c) 14%,#fff);border:1px solid color-mix(in srgb,var(--c) 40%,#fff);border-radius:999px;padding:0 7px}
+.langs i{color:var(--soft)}
+.langp{font-size:11px;margin-top:3px}
+.langp summary{cursor:pointer;color:var(--c);font-weight:600}
+#langPick{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1px 8px;margin-top:4px}
+#langPick small{grid-column:1/-1;color:var(--soft);margin-top:3px}
+#langPick label{display:flex;gap:4px;align-items:center}
 .objs input{flex:none;height:6.5mm;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px 6px}
 .bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0}
 .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
@@ -264,9 +274,16 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
    </div>
    <textarea data-k="equip" aria-label="Équipement"></textarea>
   </div></section>
-  <section class="card" style="--c:#7a4fc4"><h2>Capacités et traits</h2><div class="in">
-   <textarea data-k="capacites" aria-label="Capacités et traits"></textarea>
-  </div></section>
+  <div class="col">
+   <section class="card" style="--c:#12968f;flex:none"><h2>Langues</h2><div class="in">
+    <input type="hidden" data-k="langs">
+    <div class="langs" id="langList"></div>
+    <details class="langp noprint"><summary>Choisir les langues…</summary><div id="langPick"></div></details>
+   </div></section>
+   <section class="card" style="--c:#7a4fc4;flex:1"><h2>Capacités et traits</h2><div class="in">
+    <textarea data-k="capacites" aria-label="Capacités et traits"></textarea>
+   </div></section>
+  </div>
   <div class="col">
    <section class="card" style="--c:#d6458e;flex:none"><h2>Objets liés</h2><div class="in objs">
     <input data-k="obj0" aria-label="Objet lié 1"><input data-k="obj1" aria-label="Objet lié 2"><input data-k="obj2" aria-label="Objet lié 3"><input data-k="obj3" aria-label="Objet lié 4"><input data-k="obj4" aria-label="Objet lié 5">
@@ -274,8 +291,9 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
    <section class="card" style="--c:#b8860b;flex:2"><h2>Religion et pactes</h2><div class="in">
     <textarea data-k="religion" aria-label="Religion et pactes"></textarea>
    </div></section>
-   <section class="card" style="--c:#2f6fd0;flex:1.5"><h2>Maîtrises et langues</h2><div class="in">
-    <textarea data-k="langues" aria-label="Maîtrises et langues"></textarea>
+   <section class="card" style="--c:#2f6fd0;flex:none"><h2>Maîtrises</h2><div class="in">
+    <div class="prof" id="prof"></div>
+    <textarea data-k="langues" style="flex:none;height:14mm" aria-label="Autres maîtrises" placeholder="Autres maîtrises (sous-classe, objets…)"></textarea>
    </div></section>
   </div>
  </div>
@@ -820,6 +838,55 @@ function gear(dex){
   const sh=shields.sort((x,y)=>y.ca-x.ca)[0]||null;
   return {AR,sh};
 }
+// Maîtrises d'armures, d'armes et d'outils par classe (règles 2024) ; s'ajoutent celles de l'historique et des dons
+const PROF={
+  'Artificier':{ar:['légères','intermédiaires','boucliers'],ar_:'',w:'Armes courantes',o:'Outils de voleur, outils de bricoleur, un type d’outils d’artisan au choix'},
+  'Barbare':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Barde':{ar:['légères'],w:'Armes courantes',o:'Trois instruments de musique au choix'},
+  'Chasseur de sang':{ar:['légères','intermédiaires'],w:'Armes courantes et armes de guerre',o:'Matériel d’alchimiste'},
+  'Clerc':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes',o:''},
+  'Druide':{ar:['légères','boucliers'],w:'Armes courantes',o:'Matériel d’herboriste'},
+  'Ensorceleur':{ar:[],w:'Armes courantes',o:''},
+  'Guerrier':{ar:['légères','intermédiaires','lourdes','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Magicien':{ar:[],w:'Armes courantes',o:''},
+  'Moine':{ar:[],w:'Armes courantes et armes de guerre ayant la propriété Légère',o:'Un type d’outils d’artisan ou un instrument de musique au choix'},
+  'Occultiste':{ar:['légères'],w:'Armes courantes',o:''},
+  'Paladin':{ar:['légères','intermédiaires','lourdes','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Rôdeur':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Roublard':{ar:['légères'],w:'Armes courantes et armes de guerre ayant la propriété Finesse ou Légère',o:'Outils de voleur'},
+};
+const DONPROF={armure_legere:['légères','boucliers'],armure_inter:['intermédiaires','boucliers'],armure_lourde:['lourdes']};
+const ARORD=['légères','intermédiaires','lourdes','boucliers'];
+function renderProf(cl){
+  const P=cl&&PROF[cl[0]],ar=new Set(P?P.ar:[]),o=[];
+  if(P&&P.o)o.push(P.o);
+  const B=findBg();if(B&&B[1].outil)o.push(B[1].outil);
+  for(const g of PX.dons){
+    (DONPROF[g.id]||[]).forEach(x=>ar.add(x));
+    if(g.id==='artisan'&&g.ch.o)o.push(g.ch.o);
+    if(g.id==='musicien'&&g.ch.i)o.push(g.ch.i);
+  }
+  const a=ARORD.filter(x=>ar.has(x)),arm=a.filter(x=>x!=='boucliers');
+  const at=a.length?(arm.length?'Armures '+(arm.length>1?arm.slice(0,-1).join(', ')+' et '+arm.at(-1):arm[0]):'')+(ar.has('boucliers')?(arm.length?', boucliers':'Boucliers'):''):'Aucune';
+  setHTML($('#prof'),cl||o.length||a.length?`<div><b>Armures :</b> ${esc(at)}</div><div><b>Armes :</b> ${esc(P?P.w:'—')}</div><div><b>Outils :</b> ${esc(o.join(' ; ')||'Aucun')}</div>`:'<div style="color:var(--soft)">Choisis une classe et un historique dans les Paramètres.</div>');
+}
+// Langues (règles 2024) : choisies dans une liste, affichées dans le bloc « Langues »
+const LANGS=[['Langues courantes',['Commun','Commun des signes','Draconique','Elfique','Géant','Gnome','Gobelin','Halfelin','Nain','Orc']],['Langues rares',['Abyssal','Céleste','Commun des profondeurs','Druidique','Infernal','Primordial','Profond','Sylvestre','Argot des voleurs']]];
+const langSel=()=>val('langs').split(',').map(x=>x.trim()).filter(Boolean);
+function renderLangs(){
+  const L=langSel();
+  setHTML($('#langList'),L.length?L.map(x=>`<span>${esc(x)}</span>`).join(''):'<i>Aucune langue choisie</i>');
+  const box=$('#langPick');
+  if(!box.childElementCount)box.innerHTML=LANGS.map(([g,a])=>`<small>${g}</small>`+a.map(n=>`<label><input type="checkbox" data-lang="${esc(n)}">${esc(n)}</label>`).join('')).join('');
+  box.querySelectorAll('[data-lang]').forEach(c=>{c.checked=L.includes(c.dataset.lang)});
+}
+document.addEventListener('input',e=>{   // en capture : avant le recalcul général de la fiche
+  const c=e.target.closest&&e.target.closest('[data-lang]');if(!c)return;
+  const all=LANGS.flatMap(x=>x[1]),L=langSel().filter(x=>x!==c.dataset.lang);
+  if(c.checked)L.push(c.dataset.lang);
+  L.sort((a,b)=>(all.indexOf(a)+1||99)-(all.indexOf(b)+1||99));
+  el('langs').value=L.join(', ');renderLangs();autosave();
+},true);
 let CUR={mod:{for:0,dex:0},pb:2};   // derniers modificateurs calculés (pour l'import des armes)
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
@@ -868,6 +935,7 @@ function calc(){
   el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
   renderMagic(mod,pb,lvl,cl,cst);
   renderMal(cl,lvl);
+  renderProf(cl);renderLangs();
   renderExtras(F,lvl,pb,mod,tot);
 }
 
