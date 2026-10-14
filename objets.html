@@ -120,6 +120,8 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
    <label><small>Nom</small><input id="fq" type="search" placeholder="Sac sans fond, cape, épée…"></label>
    <label><small>Type</small><select id="fc"></select></label>
    <label><small>Rareté</small><select id="fs"></select></label>
+   <label><small>Famille (début du nom)</small><select id="ff"></select></label>
+   <label><small>Conseillé pour la classe</small><select id="fk"></select></label>
    <label><small>Harmonisation</small><select id="fl"><option value="">Indifférent</option><option value="1">Requise</option><option value="0">Non requise</option></select></label>
   </div>
   <div class="fbar">
@@ -166,7 +168,7 @@ const rabbr=s=>{const m=norm(s.q);const hits=RORDER.filter(r=>m.includes(norm(r)
 let DB=[];
 const BYN=new Map();
 const MAXH=3;   // règles 2024 : 3 objets harmonisés au maximum
-const st={sel:new Set(),har:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+const st={sel:new Set(),har:new Set(),q:'',fam:'',cla:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
 let BASE=[];
 function setup(data){
@@ -175,6 +177,36 @@ function setup(data){
   const opts=(first,arr)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   $('#fc').innerHTML=opts('Tous',TORDER.filter(t=>DB.some(s=>s.t===t)));
   $('#fs').innerHTML=opts('Toutes',RORDER);
+  $('#fk').innerHTML=opts('Toutes',CLASSES);
+}
+const fam=n=>String(n).split(/[ '’-]/)[0];
+// Objets conseillés par classe, d'après la description :
+//  · harmonisation réservée (« par un magicien », « par un lanceur de sorts »…) → ces classes seulement
+//  · bonus aux sorts, objet qui lance des sorts (baguette, bâton, sceptre à charges), parchemin → lanceurs de sorts
+//  · armure / bouclier → classes qui maîtrisent cette catégorie ; arme → classes martiales
+//  · caractéristique augmentée ou fixée → classes dont c'est la caractéristique principale ; discrétion, serrures → roublard (rôdeur, moine)
+const CLASSES=['Artificier','Barbare','Barde','Chasseur de sang','Clerc','Druide','Ensorceleur','Guerrier','Magicien','Moine','Occultiste','Paladin','Rôdeur','Roublard'];
+const CASTERS=['Artificier','Barde','Clerc','Druide','Ensorceleur','Magicien','Occultiste','Paladin','Rôdeur'];
+const ARMCL={'légère':['Artificier','Barbare','Barde','Chasseur de sang','Clerc','Druide','Guerrier','Occultiste','Paladin','Rôdeur','Roublard'],'intermédiaire':['Artificier','Barbare','Chasseur de sang','Clerc','Guerrier','Paladin','Rôdeur'],'lourde':['Guerrier','Paladin'],'Bouclier':['Artificier','Barbare','Clerc','Druide','Guerrier','Paladin','Rôdeur']};
+const MARTIAL=['Barbare','Chasseur de sang','Guerrier','Moine','Paladin','Rôdeur','Roublard'];
+const STATCL={'Force':['Barbare','Guerrier','Paladin'],'Dextérité':['Moine','Rôdeur','Roublard','Guerrier'],'Constitution':['Barbare','Guerrier','Paladin','Chasseur de sang'],'Intelligence':['Artificier','Magicien'],'Sagesse':['Clerc','Druide','Moine','Rôdeur'],'Charisme':['Barde','Ensorceleur','Occultiste','Paladin']};
+function recFor(s){
+  const t=String(s.h||'').replace(/<[^>]+>/g,''),a=norm(s.a||''),r=new Set(),add=L=>L.forEach(c=>r.add(c));
+  if(/\bpar (un|une)\b/.test(a)){
+    if(a.includes('lanceur de sorts'))add(CASTERS);
+    CLASSES.forEach(c=>{if(a.includes(norm(c)))r.add(c)});
+    if(r.size)return r;
+  }
+  if(/jets? d.attaque de sort|DD de sauvegarde de vos sorts/i.test(t)||s.t==='Parchemin'||(/^(Baguette|Bâton|Sceptre)$/.test(s.t)&&/lancer|lancez/i.test(t)))add(CASTERS);
+  if(s.t==='Armure'){
+    if(s.cat==='Bouclier')add(ARMCL.Bouclier);
+    else Object.keys(ARMCL).forEach(k=>{if(k!=='Bouclier'&&(!s.cat||s.cat.includes(k)))add(ARMCL[k])});
+  }
+  if(s.t==='Arme'||s.t==='Munition')add(MARTIAL);
+  if(/Discrétion/.test(t))add(['Roublard','Rôdeur','Moine']);
+  if(/Escamotage|outils de voleur|serrure/i.test(t))r.add('Roublard');
+  for(const k in STATCL)if(new RegExp('(votre|valeur de) '+k+' (passe|augmente|devient|change)','i').test(t))add(STATCL[k]);
+  return r;
 }
 // Objets du livre + créations personnelles (Persos.custom())
 function index(){
@@ -183,7 +215,13 @@ function index(){
   DB.forEach((s,i)=>{
     s.i=i;s.idx=norm(s.n+' '+s.en);
     [s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
+    s.fam=fam(s.n);s.rec=recFor(s);
   });
+  // Familles : premier mot du nom, quand plus de 3 objets commencent par lui (Anneau, Cape, Bottes…)
+  const cnt={};DB.forEach(s=>cnt[s.fam]=(cnt[s.fam]||0)+1);
+  const F=Object.keys(cnt).filter(k=>cnt[k]>3).sort((a,b)=>a.localeCompare(b,'fr'));
+  $('#ff').innerHTML='<option value="">Toutes</option>'+F.map(k=>`<option value="${esc(k)}">${esc(k)} (${cnt[k]})</option>`).join('');
+  $('#ff').value=F.includes(st.fam)?st.fam:'';
 }
 let WEAP=null;   // armes de equipement.json (arme de base d'une arme magique créée)
 async function editCustom(it){
@@ -224,12 +262,12 @@ const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s
 function card(s,remove){
   const col=rcol(s);
   return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
   <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.fam||s.fam===st.fam)&&(!st.cla||s.rec.has(st.cla))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
@@ -258,9 +296,9 @@ function collect(){
     titre:$('#titre').value,
     objets:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
     harmonises:DB.filter(s=>st.har.has(s.n)).map(s=>s.n),
-    filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
+    filtres:{q:st.q,fam:st.fam,cla:st.cla,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
-function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
+function syncInputs(){$('#fq').value=st.q;$('#ff').value=st.fam;$('#fk').value=st.cla;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
 function apply(o){
   const d=o&&o.data;
   if(!d||!Array.isArray(d.objets))throw new Error('format');
@@ -268,12 +306,12 @@ function apply(o){
   d.objets.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
   (d.harmonises||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s&&s.a&&st.sel.has(s.n)&&st.har.size<MAXH)st.har.add(s.n)});
   const f=d.filtres||{};
-  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
+  st.q=f.q||'';st.fam=f.fam||'';st.cla=f.cla||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
   syncInputs();renderAll();
   return unknown;
 }
 function blank(){
-  st.sel.clear();st.har.clear();st.q=st.cls=st.sch=st.lvl=st.only='';
+  st.sel.clear();st.har.clear();st.q=st.fam=st.cla=st.cls=st.sch=st.lvl=st.only='';
   syncInputs();renderAll();
 }
 function show(obj){
@@ -308,10 +346,10 @@ function setMode(m){
   scrollTo(0,0);
 }
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
-[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
+[['#ff','fam'],['#fk','cla'],['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
 $('#bNew').onclick=()=>editCustom(null);
-$('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
+$('#bReset').onclick=()=>{st.q=st.fam=st.cla=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
   const nom=($('#titre').value||Persos.current().nom||'objets').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
