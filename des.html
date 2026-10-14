@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lanceur de dés D&amp;D 5e</title>
+<link rel="stylesheet" href="style.css?v=20261014c">
+<style>
+.wrap{max-width:560px;margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:12px}
+.wrap .dz{min-height:60vh}
+.aide{background:#fff;border-radius:10px;box-shadow:0 4px 24px #0005;padding:10px 14px;font-size:13px}
+.aide h2{margin:0 0 4px;font:italic 700 15px var(--serif);color:#2a3170}
+.aide ul{margin:0;padding-left:18px}
+.aide code{background:#eceefb;border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Lanceur de dés</b>
+ </div>
+</div>
+<div class="wrap">
+ <div data-dz-host></div>
+ <section class="aide">
+  <h2>Formules</h2>
+  <ul>
+   <li><code>2d6+3</code> : deux d6 plus 3 ; <code>1d8+1d6+2</code> : plusieurs dés à la suite.</li>
+   <li><code>4d6kh3</code> : garde les 3 meilleurs (caractéristiques) ; <code>2d20kl1</code> : garde le plus bas.</li>
+   <li><code>d%</code> ou <code>d100</code> : dé de pourcentage.</li>
+   <li>Avantage ou désavantage : s’applique au prochain jet de d20, puis revient à Normal.</li>
+   <li>Sur la fiche de personnage, clique directement sur une compétence, un jet de sauvegarde, un modificateur, l’initiative ou le bouton d20 d’une attaque.</li>
+  </ul>
+ </section>
+</div>
+<script src="des.js?v=20261014a"></script>
+</body>
+</html>
