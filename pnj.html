@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Générateur de PNJ</title>
+<link rel="stylesheet" href="style.css?v=20261014c">
+<style>
+@page{size:A4;margin:10mm}
+.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
+.intro{padding:14px 20px 16px;font-size:14px;line-height:1.5}
+.intro h1{margin:0 0 4px;font:italic 700 26px var(--serif);color:#2a3170}
+.intro p{margin:4px 0;color:var(--soft)}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;margin-top:12px}
+.ctl label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--soft);font-weight:600}
+.ctl select{padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:14px;background:#fff;min-width:150px}
+.ctl button{padding:8px 14px;border:0;border-radius:7px;background:#6b3fa0;color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+.ctl button.alt{background:#fff;color:#6b3fa0;border:1px solid #6b3fa0}
+.ctl button:hover,.ctl button:focus-visible{filter:brightness(1.1);outline:2px solid var(--gold)}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:16px}
+.pnj{padding:0 0 12px;overflow:hidden;break-inside:avoid}
+.pnj header{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;background:#6b3fa0;color:#fff}
+.pnj header div{flex:1;min-width:0}
+.pnj h2{margin:0;font:italic 700 20px var(--serif)}
+.pnj header small{display:block;font-size:12.5px;opacity:.9;margin-top:2px}
+.pnj header button{flex:none;padding:5px 9px;border:1px solid #ffffff66;border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:12.5px}
+.pnj header button:hover,.pnj header button:focus-visible{background:#ffffff22;outline:2px solid var(--gold)}
+.pnj dl{margin:8px 14px 0;font-size:13.5px;line-height:1.45}
+.pnj .row{display:flex;gap:6px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #e4e6f2}
+.pnj .row:last-child{border-bottom:0}
+.pnj dt{flex:0 0 96px;font-size:11.5px;color:var(--soft);font-weight:600;padding-top:2px}
+.pnj dd{flex:1;margin:0;min-width:0}
+.pnj .rr{flex:none;width:28px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#6b3fa0;cursor:pointer;font-size:14px;line-height:1}
+.pnj .rr:hover,.pnj .rr:focus-visible{background:#f1ecf8;outline:2px solid var(--gold)}
+.pnj.kept header{background:#3d5a80}
+h3.sec{margin:22px 0 0;padding:8px 14px;font:italic 700 19px var(--serif);color:#fff}
+.empty{padding:14px 20px;color:var(--soft)}
+.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
+.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
+@media screen and (max-width:700px){
+ .wrap{padding:0 8px;margin-top:10px}
+ .intro{padding:12px 14px}
+ .intro h1{font-size:22px}
+ .list{grid-template-columns:1fr}
+ .ctl label{flex:1 1 140px}
+ .ctl select{min-width:0;min-height:40px}
+ .ctl button{flex:1 1 auto;min-height:42px}
+ .pnj .rr{width:36px;height:34px}
+ .pnj dt{flex-basis:84px}
+}
+@media print{
+ .ctl,.rr,.pnj header button{display:none!important}
+ .wrap{max-width:none;margin:0;padding:0}
+ .panel{box-shadow:none}
+ #cur{display:none}
+ .list{grid-template-columns:1fr 1fr;gap:8px}
+ .pnj dl{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Générateur de PNJ</b>
+  <span id="msg" role="status"></span>
+  <button id="bPrint">Imprimer / PDF</button>
+ </div>
+ <div class="persos" id="persos"></div>
+</div>
+<div class="wrap">
+<section class="panel lock" id="lock" hidden><b>Page réservée</b>Cette page est réservée au maître du jeu.</section>
+<div id="mj" hidden>
+<section class="panel intro">
+ <h1>Générateur de PNJ</h1>
+ <p>Un personnage non joueur en un clic : nom, espèce, âge, métier, apparence, trait de caractère, manie, motivation et secret. Le bouton ↻ retire une seule ligne. « Garder » met le PNJ de côté pour la partie ; ils sont enregistrés avec le personnage « mj ».</p>
+ <div class="ctl">
+  <label>Espèce<select id="fesp"></select></label>
+  <label>Genre<select id="fgen"><option value="">Au hasard</option><option value="m">Homme</option><option value="f">Femme</option></select></label>
+  <label>Rôle<select id="frole"></select></label>
+  <button type="button" id="bOne">Nouveau PNJ</button>
+  <button type="button" class="alt" id="bThree">3 PNJ</button>
+ </div>
+</section>
+<div id="cur" class="list"></div>
+<div id="keep"></div>
+</div>
+</div>
+<script src="persos.js?v=20261014d"></script>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return Math.floor(a[0]/4294967296*n)};
+const un=l=>l[rnd(l.length)];
+// « masculin|féminin » : garde la forme qui correspond au genre du PNJ
+const g=(s,f)=>s.replace(/([^\s|,.;:()]*)\|([^\s|,.;:()]*)/g,(_,m,w)=>f==='f'?w:m);
+
+/* ---------- Espèces : poids (fréquence), prénoms, noms de famille, âges ----------
+   ages : [jeune adulte, âge mûr, vieillesse] en années */
+const ESP={
+ Humain:{p:40,m:['Aldric','Bastien','Corentin','Damien','Edmond','Gaspard','Hugues','Jehan','Lucien','Mathis','Octave','Renaud','Silas','Thibault','Victor','Anselme','Baudouin','Clovis','Florent','Gauvain'],
+  f:['Adèle','Bérénice','Clémence','Delphine','Éloïse','Fleur','Gisèle','Héloïse','Isaure','Jeanne','Lise','Margot','Noémie','Ombeline','Perrine','Rosalie','Solène','Tiphaine','Viviane','Yseult'],
+  n:['Ancelin','Beaumont','Corbin','Dufresne','Fauvel','Garnier','Lebrun','Marchal','Morvan','Pellerin','Roussel','Tessier','Vautrin','du Pré','de Valmont','Brisebois','Cordier','Lefèvre'],ages:[18,40,65]},
+ Elfe:{p:9,m:['Aerendil','Caelith','Elandor','Faelar','Galathil','Ilphas','Lucan','Naeris','Quarion','Soveliss','Thamior','Varis'],
+  f:['Adrie','Althaea','Birel','Caelynn','Enna','Ielenia','Keyleth','Lia','Naivara','Sariel','Shava','Valanthe'],
+  n:['Amakiir','Galanodel','Holimion','Ilphelkiir','Liadon','Meliamne','Naïlo','Siannodel','Xiloscient','Feuillargent','Brisevent'],ages:[100,350,600]},
+ Nain:{p:9,m:['Adrik','Baern','Bruenor','Dain','Eberk','Gardain','Harbek','Kildrak','Morgran','Orsik','Rurik','Thorin','Vondal'],
+  f:['Amber','Bardryn','Dagnal','Eldeth','Gunnloda','Helja','Kathra','Liftrasa','Riswynn','Torbera','Vistra'],
+  n:['Barbe-de-Fer','Brasdepierre','Dankil','Gorunn','Holderhek','Loderr','Marteau-Rouge','Rumnaheim','Torunn','Ungart','Forgefeu'],ages:[50,150,300]},
+ Halfelin:{p:8,m:['Alton','Cade','Eldon','Garret','Lyle','Merric','Milo','Osborn','Perrin','Roscoe','Wellby'],
+  f:['Andry','Bree','Callie','Cora','Euphémia','Kithri','Lavinia','Merla','Nedda','Seraphina','Verna'],
+  n:['Bonbouc','Brindefeuille','Hautecolline','Pied-Léger','Sous-le-Chêne','Tealeaf','Tosscobble','Ventrepommes','Grandpanier'],ages:[20,60,130]},
+ Gnome:{p:6,m:['Alston','Boddynock','Brocc','Dimble','Eldon','Fonkin','Frug','Gimble','Glim','Orryn','Zook'],
+  f:['Bimpnottin','Breena','Carlin','Donella','Ellyjobell','Lilli','Loopmottin','Nissa','Orla','Roywyn','Zanna'],
+  n:['Beren','Daergel','Folkor','Garrick','Nackle','Murnig','Ningel','Scheppen','Timbers','Turen','Rouage'],ages:[40,200,400]},
+ Orc:{p:6,m:['Dench','Feng','Gell','Henk','Holg','Imsh','Keth','Krusk','Mhurren','Ront','Shump','Thokk'],
+  f:['Baggi','Emen','Engong','Kansif','Myev','Neega','Ovak','Ownka','Shautha','Sutha','Vola','Yevelda'],
+  n:['Crocsanglant','Brise-Os','Poing-de-Pierre','du clan Ulgrath','Hurlelune','Tranchecol'],ages:[14,30,70]},
+ Tieffelin:{p:6,m:['Akmenos','Amnon','Barakas','Damakos','Ekemon','Iados','Kairon','Leucis','Mélech','Mordai','Skamos'],
+  f:['Akta','Anakis','Bryseis','Criella','Damaia','Ea','Kallista','Lerissa','Makaria','Nemeia','Orianna'],
+  n:['Espoir','Gloire','Ardeur','Chant','Tourment','Patience','Quête','Révérence','Doute','Peine'],ages:[18,45,90]},
+ 'Drakéide':{p:5,m:['Arjhan','Balasar','Bharash','Donaar','Ghesh','Heskan','Kriv','Medrash','Nadarr','Pandjed','Rhogar','Torinn'],
+  f:['Akra','Biri','Daar','Farideh','Harann','Havilar','Jheri','Kava','Korinn','Mishann','Sora','Thava'],
+  n:['Clethtinthiallor','Daardendrian','Delmirev','Drachedandion','Kepeshkmolik','Kerrhylon','Myastan','Nemmonis','Yarjerit'],ages:[15,40,80]},
+ Goliath:{p:4,m:['Aukan','Eglath','Gae-Al','Gauthak','Ilikan','Keothi','Kuori','Lo-Kag','Manneo','Maveith','Thotham'],
+  f:['Gauthak','Imeral','Kuori','Nalla','Orilo','Paavu','Pethani','Thalai','Uthal','Vaunea'],
+  n:['Anakalathai','Elanithino','Gathakanathi','Kalagiano','Katho-Olavi','Thuliaga','Vaimei-Laga'],ages:[18,40,80]},
+ Aasimar:{p:3,m:['Aurèle','Cassiel','Ezéchiel','Iriel','Lumien','Raziel','Séraphin','Uriel'],
+  f:['Aelia','Célestine','Ithiel','Lumina','Seraphine','Soléa','Vespérine','Zariel'],
+  n:['Clairval','Dorélune','Hautelumière','Lysandre','Solbrun'],ages:[18,60,140]},
+ Gobelin:{p:2,m:['Grik','Nob','Snig','Zarg','Krek','Pog','Ziv'],f:['Brix','Nix','Skra','Tikka','Vexa','Zuzz'],
+  n:['Grattepoche','Mordille','Vifargent','Tirelaine'],ages:[8,25,55]},
+ Tabaxi:{p:2,m:['Nuage-sur-la-Montagne','Cinq-Fois-Rien','Lune-qui-Danse','Ombre-Furtive','Plume-Tombée'],f:['Rayon-de-Soleil','Neige-sur-la-Branche','Chant-du-Matin','Perle-Noire','Brise-du-Soir'],
+  n:[''],ages:[18,40,80]}
+};
+const AGE=[['jeune','jeune'],['adulte','adulte'],['d’âge mûr','d’âge mûr'],['âgé|âgée','vieux|vieille']];
+
+/* ---------- Rôles et métiers ---------- */
+const ROLES={
+ commerce:{t:'Commerce et artisanat',l:['marchand|marchande d’étoffes','forgeron|forgeronne','apothicaire','boulanger|boulangère','tanneur|tanneuse','orfèvre','prêteur|prêteuse sur gages','colporteur|colporteuse','charpentier|charpentière','marchand|marchande de chevaux','cartographe','tailleur|couturière']},
+ taverne:{t:'Taverne et voyage',l:['tavernier|tavernière','serveur|serveuse','cuisinier|cuisinière','palefrenier|palefrenière','barde','cocher|cochère','batelier|batelière','guide de montagne','joueur|joueuse de cartes','aubergiste']},
+ ordre:{t:'Garde et armée',l:['garde de la ville','capitaine de la garde','sergent recruteur','mercenaire','vétéran|vétérane estropié|estropiée','geôlier|geôlière','chasseur|chasseuse de primes','éclaireur|éclaireuse','douanier|douanière']},
+ noble:{t:'Noblesse et pouvoir',l:['baron|baronne','héritier|héritière d’une maison ruinée','intendant|intendante d’un domaine','conseiller|conseillère du bourgmestre','bourgmestre','juge','percepteur|perceptrice des impôts','diplomate','courtisan|courtisane']},
+ clerge:{t:'Clergé et savoir',l:['prêtre|prêtresse','acolyte','moine|moniale','sage','bibliothécaire','scribe','astrologue','alchimiste','mage itinérant|itinérante','guérisseur|guérisseuse','précepteur|préceptrice']},
+ rue:{t:'Bas-fonds',l:['voleur|voleuse à la tire','receleur|receleuse','mendiant|mendiante','espion|espionne','faussaire','contrebandier|contrebandière','chef d’une bande de gamins','diseur|diseuse de bonne aventure','ratier|ratière','fossoyeur|fossoyeuse']},
+ campagne:{t:'Campagne',l:['fermier|fermière','berger|bergère','meunier|meunière','bûcheron|bûcheronne','chasseur|chasseuse','pêcheur|pêcheuse','garde-chasse','herboriste','ermite','rebouteux|rebouteuse']}
+};
+
+/* ---------- Apparence ---------- */
+const CARRURE=['grand|grande et maigre','petit|petite et trapu|trapue','corpulent|corpulente','sec|sèche et nerveux|nerveuse','massif|massive, épaules larges','fluet|fluette','de taille moyenne, voûté|voûtée','élancé|élancée','bedonnant|bedonnante','musclé|musclée, port militaire'],
+ CHEV=['cheveux noirs tressés','crâne rasé','cheveux roux en bataille','longs cheveux blancs','cheveux gris coupés court','cheveux blonds sales','chevelure brune bouclée','cheveux poivre et sel noués en queue','cheveux teints de bleu','calvitie avancée','cheveux d’un châtain terne','mèche blanche sur cheveux sombres'],
+ YEUX=['yeux gris perçants','yeux noisette rieurs','yeux bleus délavés','yeux sombres et cernés','yeux vairons','yeux verts en amande','un œil laiteux','regard fuyant','yeux très clairs, presque transparents','yeux rouges d’avoir pleuré ou trop bu'],
+ MARQUE=['une cicatrice qui barre la joue','un nez cassé plusieurs fois','des taches de rousseur partout','un tatouage tribal sur le cou','il manque deux doigts à la main gauche','une dent en or','un bandeau sur l’œil','des mains couvertes de brûlures','une coiffure soigneusement entretenue','une tache de vin sur le front','des oreilles percées de nombreux anneaux','une démarche boiteuse','des ongles noircis par le travail','un sourire édenté','des sourcils broussailleux','une voix étonnamment grave','un grain de beauté sur la lèvre','des cicatrices de vérole'],
+ TENUE=['vêtements usés mais propres','habits colorés et voyants','tenue de voyage poussiéreuse','vêtements trop grands pour lui|elle','tenue sobre et sombre, impeccable','tablier taché','haillons rapiécés','bijoux de pacotille partout','cape doublée de fourrure','uniforme fatigué','robe ou tunique brodée de symboles','bottes neuves, seul luxe apparent'];
+
+/* ---------- Personnalité ---------- */
+const TRAIT=['Bavard|Bavarde, ne laisse jamais finir une phrase','Méfiant|Méfiante, répond aux questions par des questions','Jovial|Joviale, rit de ses propres plaisanteries','Timide, rougit quand on lui parle','Arrogant|Arrogante, rappelle sans cesse son rang','Généreux|Généreuse, offre à boire à tout le monde','Pessimiste, voit partout un mauvais présage','Curieux|Curieuse, pose mille questions sur les aventuriers','Grognon|Grognonne mais au fond serviable','Flatteur|Flatteuse, trop poli|polie pour être honnête','Pieux|Pieuse, cite sans cesse les écritures','Impulsif|Impulsive, s’emporte pour un rien','Calme et posé|posée, parle lentement','Superstitieux|Superstitieuse, touche du bois en permanence','Romantique, rêve d’aventures lointaines','Cynique, ne croit plus en rien','Distrait|Distraite, oublie ce qu’on vient de lui dire','Honnête jusqu’à la maladresse','Vantard|Vantarde, exagère tous ses exploits','Nerveux|Nerveuse, regarde sans cesse par-dessus son épaule','Protecteur|Protectrice envers les plus faibles','Avare, compte chaque pièce','Rêveur|Rêveuse, a la tête dans les étoiles','Sarcastique, a toujours une pique en réserve'],
+ MANIE=['tapote la table du bout des doigts','se gratte le menton en réfléchissant','sifflote sans s’en rendre compte','appelle tout le monde « mon brave »','parle de soi à la troisième personne','mâchonne une brindille ou une pipe éteinte','fait craquer ses doigts','emploie des mots savants à tort','chuchote comme pour un complot','ponctue ses phrases par « par les dieux ! »','compte sur ses doigts en parlant','ne regarde jamais dans les yeux','rit trop fort','termine les phrases des autres','a un accent étranger prononcé','bégaie quand il|elle est nerveux|nerveuse','joue avec une pièce de monnaie','renifle avant chaque phrase','parle à son animal comme à une personne','corrige la grammaire de ses interlocuteurs'],
+ MOTIV=['Rembourser une dette à une personne dangereuse','Retrouver un frère ou une sœur disparu depuis des années','Devenir riche, quel qu’en soit le prix','Venger la mort d’un proche','Protéger sa famille d’une menace qu’il|qu’elle n’ose pas nommer','Obtenir le respect de son père ou de sa mère','Quitter cette ville au plus vite','Prouver son innocence dans une vieille affaire','Racheter une faute passée','Gagner la main de la personne qu’il|qu’elle aime','Découvrir la vérité sur ses origines','Faire tomber un rival en affaires','Servir fidèlement son dieu ou son ordre','Retrouver un objet de famille volé','Garder son commerce à flot malgré la crise','Se faire un nom, entrer dans les chansons','Fuir un passé criminel','Guérir d’une maladie ou d’une malédiction','Monter dans la hiérarchie de sa guilde','Mener une vie tranquille, sans histoires','Percer un mystère ancien','Protéger la nature ou un lieu sacré'],
+ SECRET=['Doit de l’argent à la guilde des voleurs','Est un|une espion|espionne à la solde d’une cité rivale','A été témoin d’un meurtre et n’a rien dit','Est l’enfant illégitime d’un noble','Cache un objet magique sous son lit','Vole son employeur depuis des années','A déserté l’armée','Appartient en secret à un culte','Est en réalité bien plus riche qu’il|qu’elle ne le montre','Ne sait pas lire et le cache','A conclu un pacte avec une créature des Feywild','Est recherché|recherchée sous un autre nom dans une autre région','Entretient une liaison avec une personne mariée','Connaît un passage secret sous la ville','Est malade et n’en a plus pour longtemps','A trahi d’anciens compagnons d’aventure','N’a aucun secret, mais aime le laisser croire','Est un|une métamorphe qui a pris la place du vrai personnage'],
+ ATTITUDE=['Amical|Amicale envers les aventuriers','Indifférent|Indifférente envers les aventuriers','Hostile envers les aventuriers','Prudent|Prudente : attend de voir','Intéressé|Intéressée : flaire une bonne affaire'];
+
+/* ---------- Génération ---------- */
+function pickEsp(){
+  const f=$('#fesp').value;if(f)return f;
+  const t=Object.values(ESP).reduce((s,e)=>s+e.p,0);let r=rnd(t);
+  for(const k in ESP){r-=ESP[k].p;if(r<0)return k}
+  return 'Humain';
+}
+function nom(o){const e=ESP[o.esp],p=un(e[o.gen]),n=un(e.n);return n?p+' '+n:p}
+function age(o){
+  const e=ESP[o.esp],i=rnd(4),a=e.ages;
+  const ans=[a[0]+rnd(Math.max(1,Math.round((a[1]-a[0])/3))),a[0]+rnd(a[1]-a[0]),a[1]+rnd(Math.max(1,a[2]-a[1])),a[2]+rnd(Math.max(1,Math.round(a[2]/5)))][i];
+  return g(AGE[i][rnd(2)],o.gen)+' ('+ans+' ans)';
+}
+function metier(o){const r=o.role||un(Object.keys(ROLES));return g(un(ROLES[r].l),o.gen)}
+function apparence(o){return g(un(CARRURE),o.gen)+' ; '+un(CHEV)+', '+un(YEUX)}
+const F={
+ nom,age,metier,apparence,
+ marque:o=>g(un(MARQUE),o.gen),tenue:o=>g(un(TENUE),o.gen),
+ trait:o=>g(un(TRAIT),o.gen),manie:o=>g(un(MANIE),o.gen),
+ motiv:o=>g(un(MOTIV),o.gen),secret:o=>g(un(SECRET),o.gen),attitude:o=>g(un(ATTITUDE),o.gen)
+};
+const LIGNES=[['age','Âge'],['metier','Métier'],['apparence','Apparence'],['marque','Signe distinctif'],['tenue','Tenue'],['trait','Caractère'],['manie','Manie'],['motiv','Motivation'],['secret','Secret'],['attitude','Attitude']];
+function make(){
+  const o={id:'n'+Date.now().toString(36)+rnd(1e6).toString(36),esp:pickEsp(),gen:$('#fgen').value||un(['m','f']),role:$('#frole').value};
+  for(const k in F)o[k]=F[k](o);
+  return o;
+}
+
+/* ---------- Affichage ---------- */
+let cur=[],data={garde:[]};
+function card(o,kept){
+  return `<article class="panel pnj${kept?' kept':''}" data-id="${o.id}"><header><div><h2>${esc(o.nom)}</h2><small>${esc(o.esp)} · ${o.gen==='f'?'femme':'homme'}</small></div>
+${kept?'':'<button type="button" class="rr-nom" data-k="nom" title="Autre nom" aria-label="Autre nom">↻</button><button type="button" data-a="keep">Garder</button>'}${kept?'<button type="button" data-a="del">Retirer</button>':''}</header>
+<dl>${LIGNES.map(([k,t])=>`<div class="row"><dt>${t}</dt><dd>${esc(o[k])}</dd>${kept?'':`<button type="button" class="rr" data-k="${k}" title="Tirer à nouveau : ${t}" aria-label="Tirer à nouveau : ${t}">↻</button>`}</div>`).join('')}</dl></article>`;
+}
+function draw(){
+  $('#cur').innerHTML=cur.map(o=>card(o,false)).join('');
+  const g=data.garde;
+  $('#keep').innerHTML=g.length?`<h3 class="sec panel" style="background:#3d5a80;border-top:0">PNJ gardés (${g.length})</h3><div class="list">${g.map(o=>card(o,true)).join('')}</div>`:'';
+}
+function render(){
+  const c=Persos.current(),mj=!!c&&c.nom.trim().toLowerCase()==='mj';
+  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#bPrint').hidden=!mj;
+  draw();
+}
+function gen(n){cur=Array.from({length:n},make);draw()}
+
+$('#fesp').innerHTML='<option value="">Au hasard</option>'+Object.keys(ESP).map(k=>`<option>${esc(k)}</option>`).join('');
+$('#frole').innerHTML='<option value="">Au hasard</option>'+Object.entries(ROLES).map(([k,r])=>`<option value="${k}">${esc(r.t)}</option>`).join('');
+$('#bOne').onclick=()=>gen(1);
+$('#bThree').onclick=()=>gen(3);
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.pnj button');if(!b)return;
+  const id=b.closest('.pnj').dataset.id;
+  if(b.dataset.k){const o=cur.find(x=>x.id===id);if(o){o[b.dataset.k]=F[b.dataset.k](o);draw();
+    const nb=$(`.pnj[data-id="${id}"] button[data-k="${b.dataset.k}"]`);if(nb)nb.focus()}return}
+  if(b.dataset.a==='keep'){const o=cur.find(x=>x.id===id);if(!o)return;
+    data.garde.unshift(o);cur=cur.filter(x=>x!==o);Persos.save();draw();msg('« '+o.nom+' » gardé');return}
+  if(b.dataset.a==='del'){const o=data.garde.find(x=>x.id===id);if(!o||!confirm('Retirer « '+o.nom+' » des PNJ gardés ?'))return;
+    data.garde=data.garde.filter(x=>x!==o);Persos.save();draw();msg('« '+o.nom+' » retiré')}
+});
+$('#bPrint').onclick=()=>window.print();
+Persos.init({part:'pnj',mount:$('#persos'),msg,
+  collect:()=>({version:1,type:'pnj-dnd-5e',data}),
+  apply:o=>{const d=o&&o.data;data={garde:d&&Array.isArray(d.garde)?d.garde:[]};render()},
+  onName:render});
+gen(1);
+</script>
+</body>
+</html>
