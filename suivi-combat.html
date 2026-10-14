@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Suivi de combat du MJ</title>
+<link rel="stylesheet" href="style.css?v=20261014c">
+<link rel="stylesheet" href="monstres.css?v=20261014">
+<style>
+.wrap{max-width:1000px;margin:16px auto;padding:0 12px}
+.panel{padding:10px 14px 12px}
+.panel h2{font:italic 700 16px var(--serif);color:#2a3170;margin:0 0 8px}
+small.l{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
+.add{display:grid;grid-template-columns:3fr 70px 1.4fr auto;gap:8px 10px;align-items:end}
+.add2{display:grid;grid-template-columns:2fr 70px 70px 80px auto;gap:8px 10px;align-items:end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.add input,.add select,.add2 input{width:100%;border:1px solid var(--line);border-radius:5px;padding:6px 8px;background:#fff;min-width:0}
+.b{border:1.5px solid var(--c,#2a3170);background:#fff;color:var(--c,#2a3170);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12.5px;white-space:nowrap}
+.b:hover{background:color-mix(in srgb,var(--c,#2a3170) 10%,#fff)}
+.b.f{background:var(--c,#2a3170);color:#fff}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.round{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:12px;padding:10px 14px;background:#fff;border-radius:9px;box-shadow:0 1px 6px #0003}
+.round .rn{font:italic 700 20px var(--serif);color:#2a3170}
+.round .who{flex:1 1 200px;color:var(--soft);font-size:13px}
+.round .who b{color:#2a3170}
+.list{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.cb{background:#fff;border-radius:9px;box-shadow:0 1px 6px #0003;border-left:6px solid var(--c);padding:7px 10px}
+.cb.on{outline:3px solid var(--gold);box-shadow:0 2px 12px #d9a21b88}
+.cb.ko{opacity:.55;background:#eee}
+.l1{display:flex;align-items:center;gap:10px}
+.ini{width:52px;text-align:center;font:700 18px system-ui;border:1.5px solid var(--c);border-radius:7px;padding:4px 2px;color:var(--c)}
+.nm{flex:1;min-width:0}
+.nm input{width:100%;border:0;border-bottom:1px dashed transparent;font:italic 700 16px var(--serif);padding:1px 0;background:transparent;min-width:0}
+.nm input:focus,.nm input:hover{border-bottom-color:var(--line);outline:0}
+.nm small{display:block;font-size:11.5px;color:var(--soft)}
+.st{display:flex;gap:6px;align-items:center;flex:none}
+.st label{text-align:center;font:700 10px system-ui;color:var(--soft)}
+.st input{display:block;width:46px;text-align:center;border:1px solid var(--line);border-radius:5px;padding:4px 2px;font:600 14px system-ui}
+.st .sl{font:700 16px system-ui;color:var(--soft);padding-top:12px}
+.st .tmp{color:#12968f}
+.hp{height:5px;border-radius:3px;background:#e4e6f2;margin-top:6px;overflow:hidden}
+.hp i{display:block;height:100%;background:var(--hc,#2e9e5b)}
+.l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px}
+.l2 .amt{width:64px;border:1px solid var(--line);border-radius:5px;padding:5px 6px;text-align:center}
+.l2 .sp1{flex:1}
+.ets{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.ets:empty{display:none}
+.chip{border:0;border-radius:999px;padding:3px 9px;font:600 11.5px system-ui;background:#8b1e3f;color:#fff;cursor:pointer}
+.chip.conc{background:#7a4fc4}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px;margin-top:7px;padding:7px;background:#f4f5fb;border-radius:7px}
+.pal button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 7px;cursor:pointer;font-size:12px;line-height:1.25}
+.pal button small{display:block;color:var(--soft);font-size:10.5px}
+.pal button.on{background:#8b1e3f;color:#fff;border-color:#8b1e3f}
+.pal button.on small{color:#fde}
+.note{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:12.5px}
+.det{margin-top:8px}
+.empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
+.foot{margin-top:12px;padding:10px 14px;font-size:13px;color:var(--soft)}
+.foot b{color:#2a3170}
+details.ref{margin-top:12px}
+details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a3170}
+.ref dl{margin:8px 0 0;font-size:13px;line-height:1.45}
+.ref dt{font-weight:700;color:#8b1e3f;margin-top:6px}
+.ref dd{margin:0}
+.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
+.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
+@media screen and (max-width:700px){
+ .wrap{padding:0 8px;margin-top:10px}
+ .add{grid-template-columns:80px 1fr}.add>:first-child{grid-column:1/-1}.add>:last-child{grid-column:1/-1}
+ .add2{grid-template-columns:1fr 1fr 1fr}.add2>:first-child{grid-column:1/-1}.add2>:last-child{grid-column:1/-1}
+ .l1{flex-wrap:wrap}
+ .nm{flex:1 1 150px}
+ .st{width:100%;justify-content:flex-end}
+ .b{min-height:36px}
+ .l2 .amt{min-height:36px;width:70px}
+}
+@media print{.panel,.round,.l2,.foot,details.ref{display:none!important}.cb{box-shadow:none;border:1px solid #ccc;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Suivi de combat</b>
+  <span id="msg" role="status"></span>
+  <a href="rencontres.html" id="lRenc" style="color:inherit">Rencontres</a>
+ </div>
+ <div class="persos" id="persos"></div>
+</div>
+<div class="wrap">
+<section class="panel lock" id="lock" hidden><b>Page réservée</b>Cette page est réservée au maître du jeu.</section>
+<div id="mj" hidden>
+ <section class="panel">
+  <h2>Ajouter des combattants</h2>
+  <div class="add">
+   <label><small class="l">Monstre du bestiaire</small><input id="aM" list="dlM" placeholder="Gobelin, loup, ogre…" autocomplete="off"><datalist id="dlM"></datalist></label>
+   <label><small class="l">Nombre</small><input id="aQ" type="number" min="1" max="30" value="1"></label>
+   <label><small class="l">Points de vie</small><select id="aP"><option value="moy">Moyenne du bestiaire</option><option value="de">Tirés aux dés</option></select></label>
+   <button class="b f" id="bAddM">Ajouter</button>
+  </div>
+  <div class="add2">
+   <label><small class="l">Autre combattant (PNJ, invocation…)</small><input id="oN" placeholder="Nom"></label>
+   <label><small class="l">Initiative</small><input id="oI" type="number"></label>
+   <label><small class="l">CA</small><input id="oC" type="number"></label>
+   <label><small class="l">PV max</small><input id="oP" type="number" min="1"></label>
+   <button class="b" id="bAddO">Ajouter</button>
+  </div>
+  <div class="btns">
+   <button class="b" id="bPJ" style="--c:#2e9e5b">Ajouter les personnages joueurs</button>
+   <button class="b" id="bRoll">Relancer l’initiative des monstres</button>
+   <button class="b" id="bNew" style="--c:#c8402f">Nouveau combat</button>
+  </div>
+ </section>
+ <div class="round">
+  <span class="rn" id="rn">Round 1</span>
+  <span class="who" id="who"></span>
+  <button class="b" id="bPrev" title="Revenir au combattant précédent">◀ Précédent</button>
+  <button class="b f" id="bNext">Tour suivant ▶</button>
+ </div>
+ <div class="list" id="list"></div>
+ <section class="panel foot" id="foot"></section>
+ <details class="panel ref"><summary>Les états et leurs effets (règles 2024)</summary><dl id="ref"></dl></details>
+</div>
+</div>
+<script src="persos.js?v=20261014e"></script>
+<script src="monstres.js?v=20261014"></script>
+<script>
+const $=s=>document.querySelector(s);
+const M=Monstres,esc=M.esc;
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',6000)};
+// États (règles 2024), avec un résumé de leurs effets
+const ETATS=[
+ ['À terre','Ne se déplace qu’en rampant ou en se relevant (moitié de sa vitesse). Désavantage à ses attaques. Les attaques contre lui ont l’avantage à 1,5 m ou moins, le désavantage au-delà.'],
+ ['Agrippé','Vitesse 0. Désavantage aux attaques contre toute autre cible que celui qui l’agrippe. Peut être déplacé avec lui. S’échapper : action, test de Force (Athlétisme) ou de Dextérité (Acrobaties) contre le DD d’évasion.'],
+ ['Assourdi','N’entend rien et rate automatiquement les tests qui reposent sur l’ouïe.'],
+ ['Aveuglé','Ne voit rien et rate automatiquement les tests qui reposent sur la vue. Désavantage à ses attaques, avantage aux attaques contre lui.'],
+ ['Charmé','Ne peut pas attaquer le charmeur ni le cibler avec des effets nuisibles. Le charmeur a l’avantage aux tests d’interaction sociale avec lui.'],
+ ['Effrayé','Désavantage aux tests et aux attaques tant que la source de sa peur est en vue. Ne peut pas s’en approcher volontairement.'],
+ ['Empoisonné','Désavantage aux jets d’attaque et aux tests de caractéristique.'],
+ ['Entravé','Vitesse 0. Désavantage à ses attaques et aux jets de sauvegarde de Dextérité, avantage aux attaques contre lui.'],
+ ['Épuisement','Niveaux 1 à 6 : −2 par niveau à tous les tests d20, vitesse −1,5 m par niveau. Mort au niveau 6. Un repos long retire un niveau.'],
+ ['Étourdi','Neutralisé. Rate automatiquement les jets de sauvegarde de Force et de Dextérité. Avantage aux attaques contre lui.'],
+ ['Inconscient','Neutralisé et à terre, lâche ce qu’il tient, vitesse 0. Rate automatiquement les sauvegardes de Force et de Dextérité. Avantage aux attaques contre lui ; une attaque qui le touche à 1,5 m ou moins est un coup critique.'],
+ ['Invisible','Avantage à l’initiative. Les effets qui demandent de le voir ne l’affectent pas. Avantage à ses attaques, désavantage aux attaques contre lui (sauf si l’attaquant le voit).'],
+ ['Neutralisé','Ni action, ni action bonus, ni réaction. Sa concentration est rompue, il ne peut pas parler. Désavantage à l’initiative.'],
+ ['Paralysé','Neutralisé, vitesse 0. Rate automatiquement les sauvegardes de Force et de Dextérité. Avantage aux attaques contre lui ; une attaque qui le touche à 1,5 m ou moins est un coup critique.'],
+ ['Pétrifié','Changé en pierre : neutralisé, vitesse 0, résistance à tous les dégâts, immunisé contre le poison. Rate automatiquement les sauvegardes de Force et de Dextérité. Avantage aux attaques contre lui.']
+];
+const EINFO=Object.fromEntries(ETATS);
+const KEY='dnd_combat_v1';
+let S={round:1,tour:null,list:[]};
+const open=new Set(),pal=new Set();
+const uid=()=>'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.list))S=s}catch(e){}}
+const d20=()=>1+M.rnd(20);
+const sorted=()=>S.list.map((c,i)=>[c,i]).sort((a,b)=>((b[0].init??-99)-(a[0].init??-99))||((b[0].ib||0)-(a[0].ib||0))||(a[1]-b[1])).map(x=>x[0]);
+const byId=id=>S.list.find(c=>c.id===id);
+const ko=c=>c.type==='m'&&c.pv<=0;
+const color=c=>c.type==='pj'?'#2e9e5b':c.type==='m'&&M.get(c.m)?M.col(M.get(c.m)):'#5d6b7a';
+
+// Ajout de monstres : numérotés s'il y en a plusieurs du même nom
+function addMonstre(m,q,mode){
+  const same=S.list.filter(c=>c.m===m.n);
+  let k=same.length?Math.max(...same.map(c=>parseInt(c.nom.replace(m.n,''),10)||1)):0;
+  const many=q>1||same.length>0;
+  if(same.length===1&&same[0].nom===m.n){same[0].nom=m.n+' 1';k=1}
+  for(let i=0;i<q;i++){
+    const pv=mode==='de'?M.rollPV(m):M.pv(m).moy,ib=M.dex(m);
+    S.list.push({id:uid(),type:'m',m:m.n,nom:many?m.n+' '+(++k):m.n,init:d20()+ib,ib,ca:M.ca(m),pv,pvmax:pv,tmp:0,et:{},conc:false,note:''});
+  }
+}
+function findM(v){
+  const n=M.norm(v);if(!n)return null;
+  const A=M.all();
+  return A.find(m=>M.norm(m.n)===n||M.norm(m.en)===n)||A.find(m=>M.norm(m.n).startsWith(n))||A.find(m=>(' '+m.idx).includes(' '+n))||A.find(m=>m.idx.includes(n));
+}
+$('#bAddM').onclick=()=>{
+  const m=findM($('#aM').value);
+  if(!m){msg('Monstre introuvable dans le bestiaire');return}
+  const q=Math.min(30,Math.max(1,parseInt($('#aQ').value,10)||1));
+  addMonstre(m,q,$('#aP').value);
+  $('#aM').value='';$('#aQ').value=1;
+  save();render();msg(q+' × '+m.n+' ajouté'+(q>1?'s':'')+', initiative lancée');
+};
+$('#aM').addEventListener('keydown',e=>{if(e.key==='Enter')$('#bAddM').click()});
+$('#bAddO').onclick=()=>{
+  const nom=$('#oN').value.trim();if(!nom){msg('Donne un nom au combattant');return}
+  const n=id=>{const x=parseInt($(id).value,10);return isNaN(x)?null:x};
+  const pv=n('#oP')||0;
+  S.list.push({id:uid(),type:'autre',m:'',nom,init:n('#oI'),ib:0,ca:n('#oC'),pv,pvmax:pv,tmp:0,et:{},conc:false,note:''});
+  ['#oN','#oI','#oC','#oP'].forEach(id=>$(id).value='');
+  save();render();
+};
+$('#bPJ').onclick=()=>{
+  const J=M.joueurs(),have=new Set(S.list.filter(c=>c.type==='pj').map(c=>c.nom));
+  const add=J.filter(j=>!have.has(j.nom));
+  if(!J.length){msg('Aucun personnage joueur : crée-les depuis l’accueil');return}
+  if(!add.length){msg('Les personnages joueurs sont déjà dans le combat');return}
+  add.forEach(j=>S.list.push({id:uid(),type:'pj',m:'',nom:j.nom,init:null,ib:j.init,ca:j.ca,pv:j.pv||j.pvmax,pvmax:j.pvmax,tmp:0,et:{},conc:false,note:''}));
+  save();render();msg(add.length+' personnage'+(add.length>1?'s':'')+' ajouté'+(add.length>1?'s':'')+' : saisis leur jet d’initiative');
+};
+$('#bRoll').onclick=()=>{S.list.forEach(c=>{if(c.type==='m')c.init=d20()+c.ib});save();render();msg('Initiative des monstres relancée')};
+$('#bNew').onclick=()=>{
+  if(S.list.length&&!confirm('Nouveau combat : les monstres et autres combattants sont retirés, les personnages joueurs restent (initiative à ressaisir). Continuer ?'))return;
+  S.list=S.list.filter(c=>c.type==='pj');S.list.forEach(c=>{c.init=null;c.conc=false});
+  S.round=1;S.tour=null;open.clear();pal.clear();save();render();
+};
+// Tour suivant : saute les monstres à 0 PV (les personnages à 0 PV font leurs jets contre la mort)
+function step(dir){
+  const o=sorted().filter(c=>!ko(c));if(!o.length)return;
+  let i=o.findIndex(c=>c.id===S.tour);
+  if(i<0){S.tour=o[0].id;if(S.round<1)S.round=1}
+  else{
+    i+=dir;
+    if(i>=o.length){i=0;S.round++}
+    if(i<0){if(S.round>1){i=o.length-1;S.round--}else i=0}
+    S.tour=o[i].id;
+  }
+  save();render();
+  const c=byId(S.tour);
+  if(c&&c.type==='pj'&&c.pv<=0)msg(c.nom+' est à 0 PV : jet de sauvegarde contre la mort');
+  const el=document.querySelector(`.cb[data-id="${S.tour}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('#bNext').onclick=()=>step(1);
+$('#bPrev').onclick=()=>step(-1);
+
+function hpColor(c){const r=c.pvmax?c.pv/c.pvmax:1;return r>.5?'#2e9e5b':r>.25?'#d8791a':'#c8402f'}
+function card(c){
+  const m=c.type==='m'?M.get(c.m):null,on=c.id===S.tour;
+  const sub=c.type==='pj'?'Personnage joueur'+(c.init==null?' · initiative à saisir':'')
+    :m?`${m.tail} · ${m.typ} · FP ${m.fp} · ${M.xp(m).toLocaleString('fr-FR')} PX`:'Autre combattant';
+  const ets=Object.keys(c.et).map(e=>`<button class="chip" data-a="unet" data-e="${esc(e)}" title="${esc(EINFO[e]||'')} (cliquer pour retirer)">${esc(e)}${e==='Épuisement'?' '+c.et[e]:''} ✕</button>`).join('')
+    +(c.conc?'<button class="chip conc" data-a="conc" title="Cliquer pour retirer">Concentration ✕</button>':'');
+  const num=(k,v,lab,cls='')=>`<label>${lab}<input type="number" inputmode="numeric" data-f="${k}" value="${v??''}" class="${cls}"></label>`;
+  return `<div class="cb${on?' on':''}${ko(c)?' ko':''}" data-id="${c.id}" style="--c:${color(c)}">
+  <div class="l1"><input class="ini" type="number" inputmode="numeric" data-f="init" value="${c.init??''}" placeholder="?" aria-label="Initiative" title="Initiative (bonus ${c.ib>=0?'+':''}${c.ib||0})">
+   <div class="nm"><input data-f="nom" value="${esc(c.nom)}" aria-label="Nom"><small>${esc(sub)}${ko(c)?' · <b>hors de combat</b>':''}</small></div>
+   <div class="st">${num('ca',c.ca,'CA')}${num('pv',c.pv,'PV')}<span class="sl">/</span>${num('pvmax',c.pvmax,'MAX')}${num('tmp',c.tmp||'','TEMP','tmp')}</div></div>
+  ${c.pvmax?`<div class="hp" style="--hc:${hpColor(c)}"><i style="width:${Math.max(0,Math.min(100,c.pv/c.pvmax*100))}%"></i></div>`:''}
+  <div class="l2"><input class="amt" type="number" inputmode="numeric" min="0" placeholder="PV" aria-label="Montant de PV">
+   <button class="b" data-a="deg" style="--c:#c8402f">Dégâts</button><button class="b" data-a="soin" style="--c:#2e9e5b">Soins</button><button class="b" data-a="ptmp" style="--c:#12968f">PV temp.</button>
+   <span class="sp1"></span>
+   <button class="b" data-a="pal" style="--c:#8b1e3f">États</button>${m?`<button class="b" data-a="det">${open.has(c.id)?'Masquer le profil':'Profil'}</button>`:''}<button class="b" data-a="del" style="--c:#5d6b7a" title="Retirer du combat" aria-label="Retirer du combat">✕</button></div>
+  <div class="ets">${ets}</div>
+  ${pal.has(c.id)?`<div class="pal">${ETATS.map(([e,d])=>`<button data-a="et" data-e="${esc(e)}" class="${c.et[e]?'on':''}" title="${esc(d)}">${esc(e)}${e==='Épuisement'?' (niv. '+(c.et[e]||0)+')':''}<small>${esc(d.split('. ')[0])}</small></button>`).join('')}<button data-a="conc" class="${c.conc?'on':''}">Concentration<small>JS de Con à chaque dégât</small></button></div><input class="note" data-f="note" value="${esc(c.note||'')}" placeholder="Note (durée d’un sort, source de la peur…)">`:c.note?`<div class="ets"><small>${esc(c.note)}</small></div>`:''}
+  ${m&&open.has(c.id)?`<div class="det">${M.block(m)}</div>`:''}
+  </div>`;
+}
+function render(){
+  const mj=M.estMJ();
+  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#lRenc').hidden=!mj;
+  if(!mj)return;
+  const o=sorted();
+  $('#rn').textContent='Round '+S.round;
+  const t=byId(S.tour);
+  $('#who').innerHTML=t?'Au tour de <b>'+esc(t.nom)+'</b>':o.length?'Clique sur « Tour suivant » pour commencer le combat.':'';
+  $('#list').innerHTML=o.length?o.map(card).join(''):'<div class="empty-msg">Aucun combattant. Ajoute des monstres du bestiaire, les personnages joueurs ou d’autres combattants, ou prépare une rencontre dans le <a href="rencontres.html">calculateur de rencontres</a>.</div>';
+  const ms=S.list.filter(c=>c.type==='m'),tot=ms.reduce((s,c)=>s+(M.get(c.m)?M.xp(M.get(c.m)):0),0),
+    win=ms.filter(ko).reduce((s,c)=>s+(M.get(c.m)?M.xp(M.get(c.m)):0),0),np=S.list.filter(c=>c.type==='pj').length;
+  $('#foot').innerHTML=ms.length?`PX des monstres de la rencontre : <b>${tot.toLocaleString('fr-FR')}</b> · vaincus : <b>${win.toLocaleString('fr-FR')} PX</b>${np?` soit <b>${Math.floor(win/np).toLocaleString('fr-FR')} PX</b> par personnage (${np})`:''}.`:'Les PX des monstres vaincus s’affichent ici.';
+  $('#foot').hidden=!S.list.length;
+}
+// PV : les dégâts entament d'abord les PV temporaires
+function degats(c,n){
+  const t=Math.min(c.tmp||0,n);c.tmp=(c.tmp||0)-t;
+  const was=c.pv;c.pv=Math.max(0,c.pv-(n-t));
+  const out=[];
+  if(c.conc&&n>0)out.push(`${c.nom} : JS de Constitution DD ${Math.min(30,Math.max(10,Math.floor(n/2)))} pour garder sa concentration`);
+  if(was>0&&c.pv===0){
+    if(c.type==='pj'){c.et['Inconscient']=1;out.push(c.nom+' tombe à 0 PV : inconscient, jets contre la mort')}
+    else{c.conc=false;out.push(c.nom+' est hors de combat')}
+  }else if(c.type==='pj'&&was===0&&n>0)out.push(c.nom+' subit des dégâts à 0 PV : un échec au jet contre la mort (deux sur un coup critique)');
+  if(out.length)msg(out.join(' · '));
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const el=b.closest('.cb'),c=el&&byId(el.dataset.id);if(!c)return;
+  const a=b.dataset.a,n=Math.max(0,parseInt(el.querySelector('.amt').value,10)||0);
+  if(a==='deg'){if(!n)return msg('Saisis un nombre de PV');degats(c,n)}
+  else if(a==='soin'){if(!n)return msg('Saisis un nombre de PV');const was=c.pv;c.pv=c.pvmax?Math.min(c.pvmax,c.pv+n):c.pv+n;if(was<=0&&c.pv>0&&c.type==='pj')delete c.et['Inconscient']}
+  else if(a==='ptmp'){if(!n)return msg('Saisis un nombre de PV');c.tmp=Math.max(c.tmp||0,n);msg('Les PV temporaires ne se cumulent pas : on garde le plus élevé')}
+  else if(a==='pal'){pal.has(c.id)?pal.delete(c.id):pal.add(c.id)}
+  else if(a==='det'){open.has(c.id)?open.delete(c.id):open.add(c.id)}
+  else if(a==='del'){if(!confirm('Retirer '+c.nom+' du combat ?'))return;if(S.tour===c.id){step(1);if(S.tour===c.id)S.tour=null}S.list=S.list.filter(x=>x!==c)}
+  else if(a==='conc'){c.conc=!c.conc}
+  else if(a==='et'||a==='unet'){
+    const k=b.dataset.e;
+    if(k==='Épuisement'&&a==='et'){const v=(c.et[k]||0)+1;if(v>6)delete c.et[k];else{c.et[k]=v;if(v===6)msg(c.nom+' : épuisement 6, la créature meurt')}}
+    else if(c.et[k])delete c.et[k];else c.et[k]=1;
+  }
+  save();render();
+});
+document.addEventListener('change',e=>{
+  const f=e.target.dataset.f,el=e.target.closest('.cb');if(!f||!el)return;
+  const c=byId(el.dataset.id);if(!c)return;
+  if(f==='nom'||f==='note')c[f]=e.target.value;
+  else{const x=parseInt(e.target.value,10);c[f]=isNaN(x)?(f==='init'||f==='ca'?null:0):x}
+  if(f==='pv'&&c.type==='pj'&&c.pv>0)delete c.et['Inconscient'];
+  save();render();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.classList.contains('amt')){const b=e.target.parentNode.querySelector('[data-a=deg]');if(b)b.click()}
+});
+$('#ref').innerHTML=ETATS.map(([e,d])=>`<dt>${esc(e)}</dt><dd>${esc(d)}</dd>`).join('')+'<dt>Concentration</dt><dd>Quand une créature qui se concentre subit des dégâts : jet de sauvegarde de Constitution, DD 10 ou la moitié des dégâts si c’est plus (maximum 30). Rompue aussi si elle est neutralisée ou meurt.</dd>';
+
+load();
+let ready=false;
+function boot(){
+  render();
+  if(ready||!M.estMJ())return;
+  ready=true;
+  M.load().then(db=>{
+    $('#dlM').innerHTML=db.map(m=>`<option value="${esc(m.n)}">FP ${esc(m.fp)} · ${esc(m.typ)}</option>`).join('');
+    // Rencontre envoyée depuis le calculateur
+    const q=M.recevoir();let k=0;
+    q.forEach(x=>{const m=M.get(x.n);if(m){addMonstre(m,Math.max(1,x.q|0),x.mode||'moy');k+=Math.max(1,x.q|0)}});
+    if(k){save();msg(k+' monstre'+(k>1?'s':'')+' ajouté'+(k>1?'s':'')+' depuis le calculateur de rencontres')}
+    render();
+  }).catch(()=>msg('Impossible de charger le bestiaire (bestiaire.json)'));
+}
+Persos.init({part:'combat',mount:$('#persos'),msg,collect:()=>null,apply:boot,onName:boot});
+</script>
+</body>
+</html>

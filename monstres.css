@@ -1,0 +1,25 @@
+/* Profil de monstre (même rendu que le bestiaire), pour les pages du MJ qui chargent monstres.js */
+.sp{--c:#2a3170;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--c) 5%,#fff)}
+.sp header{display:flex;align-items:center;gap:8px;background:var(--c);color:#fff;padding:5px 9px}
+.sp .ti{flex:1;min-width:0}
+.sp h3{margin:0;font:italic 700 16px/1.15 var(--serif)}
+.sp .sub{font-size:11px;opacity:.92}
+.sp .body{padding:6px 10px 9px;font-size:12.5px;line-height:1.45}
+.sp .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
+.sp .meta div{min-width:0}
+.sp .meta dt{font:700 10px system-ui;color:var(--c)}
+.sp .meta dd{margin:0;font-size:12px}
+.sp .ab6{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;text-align:center;margin:6px 0;padding:4px 0;border-top:1px solid var(--c);border-bottom:1px solid var(--c)}
+.sp .ab6 b{display:block;font:700 10px system-ui;color:var(--c)}
+.sp .ab6 span{font-size:12px}
+.sp .lines div{margin:1px 0}
+.sp .lines b{color:var(--c)}
+.sp .sec{margin-top:8px}
+.sp .sec h4{margin:0 0 3px;font:italic 700 14px var(--serif);color:var(--c);border-bottom:1px solid color-mix(in srgb,var(--c) 40%,#fff)}
+.sp .sec p{margin:3px 0;white-space:pre-line}
+.sp .sec .intro{font-style:italic;color:var(--soft)}
+.sp .srcn{margin-top:8px;font-size:10.5px;color:var(--soft);font-style:italic}
+@media screen and (max-width:760px){
+ .sp .meta{grid-template-columns:1fr 1fr}
+ .sp .ab6 span{font-size:11px}
+}

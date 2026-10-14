@@ -113,6 +113,16 @@ footer{color:#b9bfe6;font-size:12px}
   <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
   <span class="go">Ouvrir les boutiques</span>
  </a>
+ <a class="card mjonly" href="suivi-combat.html" style="--c:#8b1e3f" hidden>
+  <h2>Suivi de combat</h2>
+  <p>L’ordre d’initiative, les PV des monstres tirés du bestiaire, les dégâts et soins, les états (agrippé, effrayé…) et la concentration, round après round.</p>
+  <span class="go">Ouvrir le suivi de combat</span>
+ </a>
+ <a class="card mjonly" href="rencontres.html" style="--c:#7a4fc4" hidden>
+  <h2>Calculateur de rencontres</h2>
+  <p>La difficulté d’une rencontre selon le niveau du groupe (règles 2024), avec des rencontres proposées à partir du bestiaire.</p>
+  <span class="go">Ouvrir le calculateur</span>
+ </a>
  <a class="card mjonly" href="aide-mj.html" style="--c:#3d5a80" hidden>
   <h2>Aide-mémoire du MJ</h2>
   <p>Les prix et repères de base : taverne, auberge, train de vie, services, sorts payants, revente, voyages et degrés de difficulté.</p>
@@ -162,7 +172,7 @@ function chips(){
     b.setAttribute('aria-pressed',p.actif);b.onclick=()=>{Persos.activate(p.id);chips()};
     $('#chips').appendChild(b);
   });
-  // Pages du MJ (quêtes, boutiques) visibles uniquement avec le personnage « mj »
+  // Pages du MJ (quêtes, boutiques, combat, rencontres) visibles uniquement avec le personnage « mj »
   const a=Persos.list().find(p=>p.actif),mj=!!a&&a.nom.trim().toLowerCase()==='mj';
   document.querySelectorAll('.mjonly').forEach(c=>c.hidden=!mj);
 }
