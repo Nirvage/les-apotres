@@ -23,6 +23,8 @@ header p{margin:8px 0 0;color:#d9defa}
 .card:nth-child(5){--c:#12968f}
 .card:nth-child(6){--c:#c8402f}
 .card:nth-child(7){--c:#9c3d8f}
+.card:nth-child(8){--c:#7a5600}
+.card[hidden]{display:none}
 #chips{display:flex;flex-wrap:wrap;gap:6px}
 .perso{width:100%;max-width:1000px;background:#1d2150;border:1px solid #ffffff22;border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff}
 .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
@@ -101,6 +103,11 @@ footer{color:#b9bfe6;font-size:12px}
   <p>Les jeux de cartes magiques : Cartes merveilleuses (2014), Tarot merveilleux (2024) et Deck of Many More Things, avec l’effet de chaque carte.</p>
   <span class="go">Ouvrir les cartes</span>
  </a>
+ <a class="card" href="quetes.html" id="cardMJ" hidden>
+  <h2>Quêtes du MJ</h2>
+  <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
+  <span class="go">Ouvrir les quêtes</span>
+ </a>
 </nav>
 <div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
@@ -115,6 +122,9 @@ function chips(){
     b.setAttribute('aria-pressed',p.actif);b.onclick=()=>{Persos.activate(p.id);chips()};
     $('#chips').appendChild(b);
   });
+  // Carte des quêtes visible uniquement avec le personnage « mj »
+  const a=Persos.list().find(p=>p.actif);
+  $('#cardMJ').hidden=!(a&&a.nom.trim().toLowerCase()==='mj');
 }
 chips();
 $('#bNew').onclick=()=>{const p=Persos.create();if(p){chips();msg('Personnage « '+p.nom+' » créé')}};
