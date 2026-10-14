@@ -14,17 +14,14 @@ header p{margin:8px 0 0;color:#d9defa}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;width:100%;max-width:1000px}
 .card{--c:#2f6fd0;display:flex;flex-direction:column;gap:8px;background:#fff;border:2px solid var(--c);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:0 6px 28px #0006;transition:transform .15s,box-shadow .15s}
 .card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:0 10px 32px #0008;outline:3px solid var(--gold);outline-offset:2px}
-.card h2{margin:0;padding:10px 16px;background:var(--c);color:#fff;font:italic 700 20px var(--serif)}
+.card h2,.card h3{margin:0;padding:10px 16px;background:var(--c);color:#fff;font:italic 700 20px var(--serif)}
 .card p{margin:0;padding:6px 16px 0;color:var(--soft);flex:1}
 .card .go{margin:6px 16px 16px;align-self:flex-start;background:var(--c);color:#fff;font-weight:600;border-radius:7px;padding:7px 14px}
-.card:nth-child(2){--c:#7a4fc4}
-.card:nth-child(3){--c:#d8791a}
-.card:nth-child(4){--c:#2e9e5b}
-.card:nth-child(5){--c:#12968f}
-.card:nth-child(6){--c:#c8402f}
-.card:nth-child(7){--c:#9c3d8f}
-.card:nth-child(8){--c:#7a5600}
-.card[hidden]{display:none}
+.card[hidden],.grp[hidden]{display:none}
+.grp{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:12px}
+.ghead{border-bottom:2px solid var(--gold);padding-bottom:6px;color:#fff}
+.ghead h2{margin:0;font:italic 700 24px var(--serif);color:var(--gold)}
+.ghead p{margin:2px 0 0;font-size:13px;color:#cfd4f5}
 #chips{display:flex;flex-wrap:wrap;gap:6px}
 .perso{width:100%;max-width:1000px;background:#1d2150;border:1px solid #ffffff22;border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff}
 .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
@@ -67,98 +64,111 @@ footer{color:#b9bfe6;font-size:12px}
  <input type="file" id="file" accept="application/json,.json" hidden>
  <iframe id="pf" title="Impression" style="position:fixed;left:-9999px;top:0;width:1100px;height:900px;border:0" aria-hidden="true"></iframe>
 </section>
-<nav class="cards" aria-label="Pages">
- <a class="card" href="fiche.html">
-  <h2>Fiche de personnage</h2>
-  <p>Caractéristiques, compétences, combat, dons, espèce et notes.</p>
-  <span class="go">Ouvrir la fiche</span>
- </a>
- <a class="card" href="grimoire.html">
-  <h2>Grimoire de sorts</h2>
-  <p>Choisis tes sorts par nom, classe, école et niveau.</p>
-  <span class="go">Ouvrir le grimoire</span>
- </a>
- <a class="card" href="objets.html">
-  <h2>Objets magiques</h2>
-  <p>Tous les objets magiques et leurs effets : choisis ceux de ton personnage.</p>
-  <span class="go">Ouvrir les objets</span>
- </a>
- <a class="card" href="equipement.html">
-  <h2>Équipement</h2>
-  <p>Armes, armures, potions de soins, matériel, outils, montures : choisis ton équipement avec les quantités, le poids et la valeur totale.</p>
-  <span class="go">Ouvrir l’équipement</span>
- </a>
- <a class="card" href="familiers.html">
-  <h2>Familiers et compagnons</h2>
-  <p>Choisis tes familiers (Appel de familier, Pacte de la chaîne, compagnons de Rôdeur…) avec leurs statistiques complètes.</p>
-  <span class="go">Ouvrir les familiers</span>
- </a>
- <a class="card" href="guide.html">
-  <h2>Guide du débutant</h2>
-  <p>Les notions de base : dés, caractéristiques, combat, magie, repos, création de personnage et vocabulaire.</p>
-  <span class="go">Ouvrir le guide</span>
- </a>
- <a class="card" href="cartes.html">
-  <h2>Cartes merveilleuses</h2>
-  <p>Les jeux de cartes magiques : Cartes merveilleuses (2014), Tarot merveilleux (2024) et Deck of Many More Things, avec l’effet de chaque carte.</p>
-  <span class="go">Ouvrir les cartes</span>
- </a>
- <a class="card mjonly" href="quetes.html" hidden>
-  <h2>Quêtes du MJ</h2>
-  <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
-  <span class="go">Ouvrir les quêtes</span>
- </a>
- <a class="card mjonly" href="boutique.html" style="--c:#5c4a1e" hidden>
-  <h2>Boutiques du MJ</h2>
-  <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
-  <span class="go">Ouvrir les boutiques</span>
- </a>
- <a class="card mjonly" href="suivi-combat.html" style="--c:#8b1e3f" hidden>
-  <h2>Suivi de combat</h2>
-  <p>L’ordre d’initiative, les PV des monstres tirés du bestiaire, les dégâts et soins, les états (agrippé, effrayé…) et la concentration, round après round.</p>
-  <span class="go">Ouvrir le suivi de combat</span>
- </a>
- <a class="card mjonly" href="rencontres.html" style="--c:#7a4fc4" hidden>
-  <h2>Calculateur de rencontres</h2>
-  <p>La difficulté d’une rencontre selon le niveau du groupe (règles 2024), avec des rencontres proposées à partir du bestiaire.</p>
-  <span class="go">Ouvrir le calculateur</span>
- </a>
- <a class="card mjonly" href="aide-mj.html" style="--c:#3d5a80" hidden>
-  <h2>Aide-mémoire du MJ</h2>
-  <p>Les prix et repères de base : taverne, auberge, train de vie, services, sorts payants, revente, voyages et degrés de difficulté.</p>
-  <span class="go">Ouvrir l’aide-mémoire</span>
- </a>
- <a class="card mjonly" href="pnj.html" style="--c:#6b3fa0" hidden>
-  <h2>Générateur de PNJ</h2>
-  <p>Un PNJ en un clic : nom selon l’espèce, âge, métier, apparence, trait de caractère, manie, motivation et secret, avec la possibilité de garder ceux qui servent.</p>
-  <span class="go">Ouvrir le générateur</span>
- </a>
- <a class="card" href="dons.html" style="--c:#2e9e5b">
-  <h2>Dons</h2>
-  <p>Tous les dons (origine, généraux, styles de combat, faveurs épiques) avec un filtre par prérequis : vois d’un coup d’œil ceux que ton personnage peut prendre, et ajoute-les à sa fiche.</p>
-  <span class="go">Ouvrir les dons</span>
- </a>
- <a class="card" href="especes.html" style="--c:#b0632a">
-  <h2>Espèces</h2>
-  <p>Toutes les espèces jouables : pouvoirs, taille, vitesse, durée de vie, apparence et culture (règles 2024, suppléments et anciennes espèces 2014).</p>
-  <span class="go">Ouvrir les espèces</span>
- </a>
- <a class="card" href="combat.html" style="--c:#8e3a9d">
-  <h2>Règles de combat</h2>
-  <p>Le combat en bref : ton tour, les actions, les réactions, l’abri, les attaques d’opportunité, les dégâts et les jets contre la mort.</p>
-  <span class="go">Ouvrir les règles</span>
- </a>
- <a class="card" href="etats.html" style="--c:#6b7280">
-  <h2>Les états</h2>
-  <p>Aveuglé, à terre, agrippé, effrayé, paralysé… l’effet de chaque état, un tableau récapitulatif et comment en sortir.</p>
-  <span class="go">Ouvrir les états</span>
- </a>
- <a class="card" href="bestiaire.html" style="--c:#8b1e3f">
-  <h2>Bestiaire</h2>
-  <p>Tous les monstres avec leur profil complet (règles 2024, et 2014 pour ceux absents en 2024) : recherche par nom, type, taille et facteur de puissance.</p>
-  <span class="go">Ouvrir le bestiaire</span>
- </a>
-</nav>
+<section class="grp" aria-labelledby="g1">
+ <div class="ghead"><h2 id="g1">Outils du joueur</h2><p>Tout ce qui sert à construire et suivre ton personnage.</p></div>
+ <nav class="cards" aria-label="Outils du joueur">
+  <a class="card" href="fiche.html" style="--c:#2f6fd0">
+   <h3>Fiche de personnage</h3>
+   <p>Caractéristiques, compétences, combat, dons, espèce et notes.</p>
+   <span class="go">Ouvrir la fiche</span>
+  </a>
+  <a class="card" href="grimoire.html" style="--c:#7a4fc4">
+   <h3>Grimoire de sorts</h3>
+   <p>Choisis tes sorts par nom, classe, école et niveau.</p>
+   <span class="go">Ouvrir le grimoire</span>
+  </a>
+  <a class="card" href="objets.html" style="--c:#d8791a">
+   <h3>Objets magiques</h3>
+   <p>Tous les objets magiques et leurs effets : choisis ceux de ton personnage.</p>
+   <span class="go">Ouvrir les objets</span>
+  </a>
+  <a class="card" href="equipement.html" style="--c:#2e9e5b">
+   <h3>Équipement</h3>
+   <p>Armes, armures, potions de soins, matériel, outils, montures : choisis ton équipement avec les quantités, le poids et la valeur totale.</p>
+   <span class="go">Ouvrir l’équipement</span>
+  </a>
+  <a class="card" href="familiers.html" style="--c:#12968f">
+   <h3>Familiers et compagnons</h3>
+   <p>Choisis tes familiers (Appel de familier, Pacte de la chaîne, compagnons de Rôdeur…) avec leurs statistiques complètes.</p>
+   <span class="go">Ouvrir les familiers</span>
+  </a>
+  <a class="card" href="dons.html" style="--c:#2e9e5b">
+   <h3>Dons</h3>
+   <p>Tous les dons (origine, généraux, styles de combat, faveurs épiques) avec un filtre par prérequis : vois d’un coup d’œil ceux que ton personnage peut prendre, et ajoute-les à sa fiche.</p>
+   <span class="go">Ouvrir les dons</span>
+  </a>
+  <a class="card" href="especes.html" style="--c:#b0632a">
+   <h3>Espèces</h3>
+   <p>Toutes les espèces jouables : pouvoirs, taille, vitesse, durée de vie, apparence et culture (règles 2024, suppléments et anciennes espèces 2014).</p>
+   <span class="go">Ouvrir les espèces</span>
+  </a>
+ </nav>
+</section>
+<section class="grp" aria-labelledby="g2">
+ <div class="ghead"><h2 id="g2">Règles et infos</h2><p>Les règles à garder sous la main et les références du jeu.</p></div>
+ <nav class="cards" aria-label="Règles et infos">
+  <a class="card" href="guide.html" style="--c:#c8402f">
+   <h3>Guide du débutant</h3>
+   <p>Les notions de base : dés, caractéristiques, combat, magie, repos, création de personnage et vocabulaire.</p>
+   <span class="go">Ouvrir le guide</span>
+  </a>
+  <a class="card" href="combat.html" style="--c:#8e3a9d">
+   <h3>Règles de combat</h3>
+   <p>Le combat en bref : ton tour, les actions, les réactions, l’abri, les attaques d’opportunité, les dégâts et les jets contre la mort.</p>
+   <span class="go">Ouvrir les règles</span>
+  </a>
+  <a class="card" href="etats.html" style="--c:#6b7280">
+   <h3>Les états</h3>
+   <p>Aveuglé, à terre, agrippé, effrayé, paralysé… l’effet de chaque état, un tableau récapitulatif et comment en sortir.</p>
+   <span class="go">Ouvrir les états</span>
+  </a>
+  <a class="card" href="bestiaire.html" style="--c:#8b1e3f">
+   <h3>Bestiaire</h3>
+   <p>Tous les monstres avec leur profil complet (règles 2024, et 2014 pour ceux absents en 2024) : recherche par nom, type, taille et facteur de puissance.</p>
+   <span class="go">Ouvrir le bestiaire</span>
+  </a>
+  <a class="card" href="cartes.html" style="--c:#9c3d8f">
+   <h3>Cartes merveilleuses</h3>
+   <p>Les jeux de cartes magiques : Cartes merveilleuses (2014), Tarot merveilleux (2024) et Deck of Many More Things, avec l’effet de chaque carte.</p>
+   <span class="go">Ouvrir les cartes</span>
+  </a>
+ </nav>
+</section>
+<section class="grp mjonly" aria-labelledby="g3" hidden>
+ <div class="ghead"><h2 id="g3">Outils du MJ</h2><p>Préparer et mener les parties.</p></div>
+ <nav class="cards" aria-label="Outils du MJ">
+  <a class="card mjonly" href="suivi-combat.html" style="--c:#8b1e3f" hidden>
+   <h3>Suivi de combat</h3>
+   <p>L’ordre d’initiative, les PV des monstres tirés du bestiaire, les dégâts et soins, les états (agrippé, effrayé…) et la concentration, round après round.</p>
+   <span class="go">Ouvrir le suivi de combat</span>
+  </a>
+  <a class="card mjonly" href="rencontres.html" style="--c:#7a4fc4" hidden>
+   <h3>Calculateur de rencontres</h3>
+   <p>La difficulté d’une rencontre selon le niveau du groupe (règles 2024), avec des rencontres proposées à partir du bestiaire.</p>
+   <span class="go">Ouvrir le calculateur</span>
+  </a>
+  <a class="card mjonly" href="pnj.html" style="--c:#6b3fa0" hidden>
+   <h3>Générateur de PNJ</h3>
+   <p>Un PNJ en un clic : nom selon l’espèce, âge, métier, apparence, trait de caractère, manie, motivation et secret, avec la possibilité de garder ceux qui servent.</p>
+   <span class="go">Ouvrir le générateur</span>
+  </a>
+  <a class="card mjonly" href="quetes.html" style="--c:#7a5600" hidden>
+   <h3>Quêtes du MJ</h3>
+   <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
+   <span class="go">Ouvrir les quêtes</span>
+  </a>
+  <a class="card mjonly" href="boutique.html" style="--c:#5c4a1e" hidden>
+   <h3>Boutiques du MJ</h3>
+   <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
+   <span class="go">Ouvrir les boutiques</span>
+  </a>
+  <a class="card mjonly" href="aide-mj.html" style="--c:#3d5a80" hidden>
+   <h3>Aide-mémoire du MJ</h3>
+   <p>Les prix et repères de base : taverne, auberge, train de vie, services, sorts payants, revente, voyages et degrés de difficulté.</p>
+   <span class="go">Ouvrir l’aide-mémoire</span>
+  </a>
+ </nav>
+</section>
 <div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
 <script src="persos.js?v=20261014e"></script>
