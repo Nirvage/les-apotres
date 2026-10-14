@@ -11,6 +11,7 @@
        collect:()=>({...}),          // renvoie les données à enregistrer
        apply:(obj,perso)=>{...},     // charge les données (obj vaut null pour un personnage vierge)
        onName:nom=>{...},            // optionnel : le nom a changé via le sélecteur
+       title:input,                  // optionnel : champ qui affiche le nom du personnage et permet de le modifier
        msg:texte=>{...}              // optionnel : message de confirmation
      });
      Persos.save();                  // à appeler après chaque modification
@@ -69,6 +70,12 @@ function flush(){
 }
 function show(p){
   try{cfg.apply(p[cfg.part],p)}catch(e){cfg.apply(null,p)}
+  if(cfg.title)cfg.title.value=p.nom;
+}
+// Le nom a changé (ici, dans une autre page ou un autre onglet) : la page suit
+function named(n){
+  if(cfg.title&&!(document.activeElement===cfg.title&&document.hasFocus()))cfg.title.value=n;
+  if(cfg.onName)cfg.onName(n);
 }
 function select(id){
   if(id===cur)return;
@@ -113,7 +120,7 @@ function rename(){
   p.nom=n;
   if(p.fiche&&p.fiche.data)p.fiche.data.nom=n;   // le nom écrit sur la fiche suit
   save(s);render();
-  if(cfg.onName)cfg.onName(n);
+  named(n);
 }
 function remove(){
   var s=load(),p=s.persos[cur];
@@ -132,7 +139,9 @@ function setName(n){
   if(!n||!cur)return;
   var s=load(),p=s.persos[cur];
   if(!p||p.nom===n)return;
-  p.nom=n;save(s);render();
+  p.nom=n;
+  if(cfg.part!=='fiche'&&p.fiche&&p.fiche.data)p.fiche.data.nom=n;   // le nom écrit sur la fiche suit
+  save(s);render();
 }
 
 /* ---------- Interface ---------- */
@@ -162,6 +171,10 @@ function render(){
 
 function init(c){
   cfg=c;box=c.mount;
+  if(c.title){   // champ du nom en haut de la page : le modifier renomme le personnage
+    c.title.addEventListener('input',function(){setName(c.title.value)});
+    c.title.addEventListener('blur',function(){var p=load().persos[cur];if(p&&!c.title.value.trim())c.title.value=p.nom});
+  }
   var s=load();
   cur=s.persos[s.actif]?s.actif:s.ordre[0];
   s.actif=cur;save(s);
@@ -176,7 +189,12 @@ addEventListener('storage',function(e){
   if(!s.persos[cur]){
     cur=s.persos[s.actif]?s.actif:s.ordre[0];
     render();show(s.persos[cur]);
-  }else render();
+  }else{
+    render();
+    var o=null;try{o=JSON.parse(e.oldValue)}catch(x){}
+    var n=s.persos[cur].nom;
+    if(!(o&&o.persos&&o.persos[cur]&&o.persos[cur].nom===n))named(n);
+  }
 });
 
 /* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */

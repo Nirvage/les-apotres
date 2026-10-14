@@ -156,7 +156,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div id="book" class="wrap">
  <main class="sheet">
   <div class="hero">
-   <input id="titre" placeholder="Nom du grimoire ou du personnage" aria-label="Nom du grimoire">
+   <input id="titre" placeholder="Nom du personnage" aria-label="Nom du personnage">
    <p id="sum"></p>
   </div>
   <section class="prep" id="prep" aria-label="Sorts préparés"></section>
@@ -361,7 +361,6 @@ function apply(o){
   if(!d||!Array.isArray(d.sorts))throw new Error('format');
   st.sel.clear();let unknown=0;
   d.sorts.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
-  $('#titre').value=d.titre||'';
   const f=d.filtres||{};
   st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=(f.only==='p')?'p':f.only?'1':'';
   st.prep.clear();(d.prepares||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.prep.add(s.n)});st.terrain=d.terrain||'';st.dons=d.dons&&typeof d.dons==='object'?d.dons:{};
@@ -370,7 +369,6 @@ function apply(o){
 }
 function blank(){
   st.sel.clear();st.prep.clear();st.terrain='';st.dons={};st.q=st.cls=st.sch=st.lvl=st.only='';
-  $('#titre').value='';
   syncInputs();renderAll();
 }
 // Affiche le grimoire d'un personnage (obj vaut null pour un personnage vierge)
@@ -460,7 +458,7 @@ async function boot(){
   try{AUTO=await (await fetch('sorts_auto.json')).json()}catch(e){AUTO=null}
   try{const j=await (await fetch('classes.json')).json();CLS=j.classes||{};EMP=j.emplacements||null}catch(e){CLS={}}
   try{DOND=await (await fetch('dons.json')).json()}catch(e){DOND=[]}
-  Persos.init({part:'grimoire',mount:$('#persos'),collect,apply:show,msg});
+  Persos.init({part:'grimoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
 }
 boot();
 </script>

@@ -136,7 +136,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div id="book" class="wrap">
  <main class="sheet">
   <div class="hero">
-   <input id="titre" placeholder="Nom de l’inventaire ou du personnage" aria-label="Nom de l’inventaire">
+   <input id="titre" placeholder="Nom du personnage" aria-label="Nom du personnage">
    <p id="sum"></p>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
@@ -234,7 +234,6 @@ function apply(o){
   st.sel.clear();st.har.clear();let unknown=0;
   d.objets.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
   (d.harmonises||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s&&s.a&&st.sel.has(s.n)&&st.har.size<MAXH)st.har.add(s.n)});
-  $('#titre').value=d.titre||'';
   const f=d.filtres||{};
   st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
   syncInputs();renderAll();
@@ -242,7 +241,6 @@ function apply(o){
 }
 function blank(){
   st.sel.clear();st.har.clear();st.q=st.cls=st.sch=st.lvl=st.only='';
-  $('#titre').value='';
   syncInputs();renderAll();
 }
 function show(obj){
@@ -321,7 +319,7 @@ async function boot(){
     return;
   }
   setup(data);
-  Persos.init({part:'objets',mount:$('#persos'),collect,apply:show,msg});
+  Persos.init({part:'objets',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
 }
 boot();
 </script>

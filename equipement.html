@@ -37,7 +37,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
 .srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
-.qty{display:inline-flex;align-items:center;gap:4px;font-weight:700}.qty button{width:26px;height:26px;padding:0}.qin{width:56px;padding:4px;text-align:center;border:1px solid var(--line);border-radius:5px;font-weight:700}
+.qty{display:inline-flex;align-items:center;gap:4px;font-weight:700}.qty button:not(.rm){width:26px;height:26px;padding:0}.qin{width:56px;padding:4px;text-align:center;border:1px solid var(--line);border-radius:5px;font-weight:700}
 .tot{margin-top:10px;padding:8px 12px;border-radius:8px;background:#eef0fb;color:#2a3170;font-weight:600;font-size:13px}
 .pr{font-size:11.5px;font-weight:600;color:#2a3170;white-space:nowrap}
 
@@ -135,7 +135,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 <div id="book" class="wrap">
  <main class="sheet">
   <div class="hero">
-   <input id="titre" placeholder="Nom de l’inventaire ou du personnage" aria-label="Nom de l’inventaire">
+   <input id="titre" placeholder="Nom du personnage" aria-label="Nom du personnage">
    <p id="sum"></p>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
@@ -219,13 +219,12 @@ function apply(o){
     const n=typeof x==='string'?x:x&&x.n,q=typeof x==='string'?1:Math.max(1,Math.min(999,parseInt(x&&x.qte)||1));
     const s=BYN.get(norm(String(n)));if(s)st.sel.set(s.n,q);else unknown++;
   });
-  $('#titre').value=d.titre||'';
   const f=d.filtres||{};
   st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
   syncInputs();renderAll();
   return unknown;
 }
-function blank(){st.sel.clear();st.q=st.cls=st.sch=st.lvl=st.only='';$('#titre').value='';syncInputs();renderAll()}
+function blank(){st.sel.clear();st.q=st.cls=st.sch=st.lvl=st.only='';syncInputs();renderAll()}
 function show(obj){st.open.clear();st.tab=0;if(obj)apply(obj);else blank()}
 function autosave(){Persos.save()}
 function setQ(s,q){q=Math.max(0,Math.min(999,q));q?st.sel.set(s.n,q):st.sel.delete(s.n);renderAll()}
@@ -300,7 +299,7 @@ async function boot(){
     return;
   }
   setup(data);
-  Persos.init({part:'equipement',mount:$('#persos'),collect,apply:show,msg});
+  Persos.init({part:'equipement',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
 }
 boot();
 </script>
