@@ -380,6 +380,8 @@ window.Persos={
   save:flush,
   setName:setName,
   custom:customAll,setCustom:customSet,renameCustom:customRename,
-  current:function(){return load().persos[cur]}
+  current:function(){return load().persos[cur]},
+  // Modifie le personnage actif depuis une page qui ne le gère pas (ex. ajouter un don depuis la page des dons)
+  edit:function(fn){var s=load(),q=s.persos[s.actif];if(!q)return false;fn(q);save(s);return true}
 };
 })();

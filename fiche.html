@@ -353,6 +353,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <div class="xcol">
    <section class="card" style="--c:#c8402f"><h2>Dons</h2><div class="in">
     <div class="xbar noprint" style="--c:#c8402f"><select id="donSel" aria-label="Choisir un don"></select><button type="button" id="bDon">Ajouter</button><button type="button" id="bDonNew" style="white-space:nowrap" title="Crée ton propre don : il sera disponible pour tous tes personnages">Créer un don</button></div>
+    <a class="noprint" href="dons.html" style="font-size:11px;color:var(--c)">Tous les dons, filtrés selon les prérequis du personnage →</a>
     <div id="xDons" style="display:flex;flex-direction:column;gap:5px"></div>
    </div></section>
   </div>
@@ -364,7 +365,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  <section class="card" style="--c:#3b4fd0"><h2 id="xClsT">Capacités de classe</h2><div class="in" id="xCls"></div></section>
 </main>
 
-<script src="persos.js?v=20261014d"></script>
+<script src="persos.js?v=20261014e"></script>
 <script src="custom.js?v=20261014c"></script>
 <script>
 const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
@@ -879,6 +880,7 @@ function renderProf(cl){
     if(g.id==='musicien'&&g.ch.i)o.push(g.ch.i);
   }
   const a=ARORD.filter(x=>ar.has(x)),arm=a.filter(x=>x!=='boucliers');
+  if(DERIV)DERIV.ar=a;
   const at=a.length?(arm.length?'Armures '+(arm.length>1?arm.slice(0,-1).join(', ')+' et '+arm.at(-1):arm[0]):'')+(ar.has('boucliers')?(arm.length?', boucliers':'Boucliers'):''):'Aucune';
   setHTML($('#prof'),cl||o.length||a.length?`<div><b>Armures :</b> ${esc(at)}</div><div><b>Armes :</b> ${esc(P?P.w:'—')}</div><div><b>Outils :</b> ${esc(o.join(' ; ')||'Aucun')}</div>`:'<div style="color:var(--soft)">Choisis une classe et un historique dans les Paramètres.</div>');
 }
@@ -900,6 +902,7 @@ document.addEventListener('input',e=>{   // en capture : avant le recalcul gén�
   el('langs').value=L.join(', ');renderLangs();autosave();
 },true);
 let CUR={mod:{for:0,dex:0},pb:2};   // derniers modificateurs calculés (pour l'import des armes)
+let DERIV=null;   // valeurs calculées, enregistrées avec la fiche pour les autres pages (prérequis des dons)
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
   const pb=Math.ceil(lvl/4)+1;
@@ -940,6 +943,7 @@ function calc(){
   $('#ca').textContent=ca+nb('b_ca')+F.ca;
   $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
+  DERIV={niv:lvl,tot:{...tot},cl:cl?cl[0]:'',cast:!!cst,ar:[]};
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
   $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd')+F.sdd:'—';
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')+F.satk):'—';
@@ -965,7 +969,7 @@ $('#clsel').addEventListener('change',()=>{
 function collect(){
   const d={};
   document.querySelectorAll('[data-k]').forEach(e=>d[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);
-  d.ress=RS;d.extras=PX;
+  d.ress=RS;d.extras=PX;d.derive=DERIV;
   return {version:5,type:'fiche-dnd-5e',data:d};
 }
 function apply(obj){
@@ -1386,6 +1390,7 @@ async function boot(){
     onName:n=>{el('nom').value=n},
     msg
   });
+  Persos.save();   // enregistre les valeurs calculées (DERIV) même sans modification
 }
 boot();
 </script>
