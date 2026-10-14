@@ -54,6 +54,19 @@
 .card .draw:hover{background:#f1f2fb}
 .card .drawn{font-size:12px;font-weight:600;color:#2a3170;background:#fff2c6;border-radius:999px;padding:2px 9px}
 .card.got{background:#fffbea}
+.drawbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 20px 4px;padding:10px 12px;border:1px dashed var(--c);border-radius:9px;background:#f7f7fd}
+.drawbox label{font-size:13px}
+.drawbox select{padding:5px 8px;border:1px solid var(--line);border-radius:6px}
+.rand{padding:8px 14px;border:0;border-radius:8px;background:var(--c);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+.rand:hover{filter:brightness(1.1)}
+.rand:disabled{opacity:.5;cursor:default;filter:none}
+.drawbox .left{color:var(--soft);font-size:12.5px}
+.drawbox .res{flex:1 1 100%}
+.drawbox .res:empty{display:none}
+.res .card{background:#fff;box-shadow:0 2px 12px #0002;animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.92) rotateY(60deg);opacity:0}to{transform:none;opacity:1}}
+.card.flash{outline:3px solid var(--gold);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.res .card{animation:none}}
 .k-B{--k:#2e9e5b}.k-N{--k:#c8402f}.k-M{--k:#d8791a}
 .empty{padding:10px 20px;color:var(--soft)}
 .note{margin:12px 20px 0;background:#fff6e5;border-left:4px solid #d8791a;border-radius:6px;padding:7px 12px;font-size:13px}
@@ -65,13 +78,15 @@
  .grid{grid-template-columns:minmax(0,1fr)}
  .note{margin:12px 12px 0}
  .track{padding:12px 12px 14px}
+ .drawbox{margin:8px 12px 4px}
+ .rand{flex:1 1 100%;min-height:42px}
  .card .draw,.b{min-height:36px}
  .cfbar input,.fk{flex:1 1 100%}
  .cfbar .f{flex:1 1 auto;min-height:36px}
  .card p{font-size:14px}
 }
 @media print{
- .tabs,.cfbar,.intro .noprint,.card .act,#bClearT,.track .hint,#trlist .rm{display:none!important}
+ .tabs,.cfbar,.intro .noprint,.drawbox,.card .act,#bClearT,.track .hint,#trlist .rm{display:none!important}
  .track:has(.none){display:none}
  .wrap{max-width:none;margin:0;padding:0}
  .panel{box-shadow:none}
@@ -245,6 +260,12 @@ $('#decks').innerHTML=DECKS.map(d=>{
   return `<section class="panel deck" id="${d.id}" style="--c:${d.c}">
  <h2>${d.titre} <small style="font:400 13px var(--sans);opacity:.85">— ${d.en}</small></h2>
  <div class="rules">${d.regles}<p style="color:var(--soft);font-size:12.5px">Source : ${d.src}.${has13?' La mention « jeu de 13 » signale les cartes présentes dans le petit jeu ; les autres n’existent que dans le jeu de 22 cartes.':''}</p></div>
+ <div class="drawbox">
+  ${has13?`<label>Jeu <select class="size" aria-label="Taille du jeu"><option value="22">de 22 cartes</option><option value="13">de 13 cartes</option></select></label>`:''}
+  <button type="button" class="rand" data-d="${d.id}">🎴 Tirer une carte au hasard</button>
+  <span class="left"></span>
+  <div class="res" role="status" aria-live="polite"></div>
+ </div>
  <div class="grid">${d.cartes.map(c=>`<article class="card k-${c[2]}" data-n="${c[0]}" data-s="${norm(c[0]+' '+c[1]+' '+c[3])}" data-k="${c[2]}">
   <h3>${c[0]}<small>${c[1]}</small></h3>
   <div class="tags"><span>${K[c[2]]}</span>${c[4]?'<span class="t13">Jeu de 13</span>':''}</div>
@@ -260,7 +281,7 @@ function render(){
   DECKS.forEach(d=>{
     const sec=document.getElementById(d.id);sec.hidden=d.id!==deck;
     let n=0;
-    sec.querySelectorAll('.card').forEach(c=>{const ok=(!kind||c.dataset.k===kind)&&(!q||c.dataset.s.includes(q));c.hidden=!ok;if(ok)n++});
+    sec.querySelectorAll('.grid .card').forEach(c=>{const ok=(!kind||c.dataset.k===kind)&&(!q||c.dataset.s.includes(q));c.hidden=!ok;if(ok)n++});
     sec.querySelector('.empty').hidden=n>0;
     if(d.id===deck)$('#cnt').textContent=n+' carte'+(n>1?'s':'')+' sur '+d.cartes.length;
   });
@@ -289,14 +310,32 @@ function renderTrack(){
 <input data-note="${i}" value="${esc(t.note||'')}" placeholder="Note : choix fait, objet reçu, PNJ…" aria-label="Note sur ce tirage"></li>`}).join('')
     :'<li class="none">Aucune carte tirée pour l’instant.</li>';
   const cnt={};tirages.forEach(t=>{const k=t.d+'|'+t.n;cnt[k]=(cnt[k]||0)+1});
-  $$('.card').forEach(el=>{
+  $$('.grid .card').forEach(el=>{
     const n=cnt[el.closest('.deck').id+'|'+el.dataset.n]||0,b=el.querySelector('.drawn');
     el.classList.toggle('got',n>0);b.hidden=!n;b.textContent='Tirée'+(n>1?' ×'+n:'');
   });
+  $$('.drawbox').forEach(box=>{
+    const r=restantes(box),b=box.querySelector('.rand');
+    b.disabled=!r.length;
+    box.querySelector('.left').textContent=r.length?r.length+' carte'+(r.length>1?'s':'')+' pas encore tirée'+(r.length>1?'s':''):'Toutes les cartes de ce jeu ont été tirées';
+  });
 }
+// Cartes du jeu (taille 13 ou 22 si le jeu le permet) que le personnage n'a pas encore tirées
+function restantes(box){
+  const id=box.closest('.deck').id,sz=box.querySelector('.size'),pris=new Set(tirages.filter(t=>t.d===id).map(t=>t.n));
+  return DK[id].cartes.filter(c=>!pris.has(c[0])&&!(sz&&sz.value==='13'&&!c[4]));
+}
+document.addEventListener('change',e=>{if(e.target.classList.contains('size')){e.target.closest('.drawbox').querySelector('.res').innerHTML='';renderTrack()}});
 document.addEventListener('click',e=>{
-  const b=e.target.closest('.draw,.rm');if(!b)return;
-  if(b.classList.contains('draw')){tirages.push({d:b.dataset.d,n:b.dataset.n,t:new Date().toISOString(),note:''});msg('« '+b.dataset.n+' » ajoutée aux cartes tirées')}
+  const b=e.target.closest('.draw,.rm,.rand');if(!b)return;
+  if(b.classList.contains('rand')){
+    const box=b.closest('.drawbox'),r=restantes(box);if(!r.length)return;
+    const a=new Uint32Array(1);crypto.getRandomValues(a);const c=r[a[0]%r.length];
+    tirages.push({d:b.dataset.d,n:c[0],t:new Date().toISOString(),note:''});
+    box.querySelector('.res').innerHTML=`<article class="card k-${c[2]}"><h3>${c[0]}<small>${c[1]}</small></h3><div class="tags"><span>${K[c[2]]}</span>${c[4]?'<span class="t13">Jeu de 13</span>':''}</div><p>${c[3]}</p></article>`;
+    msg('Carte tirée : « '+c[0]+' » (ajoutée aux cartes tirées)');
+  }
+  else if(b.classList.contains('draw')){tirages.push({d:b.dataset.d,n:b.dataset.n,t:new Date().toISOString(),note:''});msg('« '+b.dataset.n+' » ajoutée aux cartes tirées')}
   else{const t=tirages.splice(+b.dataset.rm,1)[0];if(t)msg('« '+t.n+' » retirée')}
   renderTrack();Persos.save();
 });
@@ -307,7 +346,7 @@ $('#bClearT').onclick=()=>{
 };
 Persos.init({part:'cartes',mount:$('#persos'),msg,
   collect:()=>({version:1,type:'cartes-dnd-5e',data:{tirages}}),
-  apply:o=>{tirages=o&&o.data&&Array.isArray(o.data.tirages)?o.data.tirages.filter(t=>t&&t.n):[];renderTrack()},
+  apply:o=>{$$('.res').forEach(r=>r.innerHTML='');tirages=o&&o.data&&Array.isArray(o.data.tirages)?o.data.tirages.filter(t=>t&&t.n):[];renderTrack()},
   onName:renderTrack});
 </script>
 </body>
