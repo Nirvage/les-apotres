@@ -244,6 +244,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <div class="dots" style="--c:#c8402f"><span>Échecs</span><input type="checkbox" data-k="df1"><input type="checkbox" data-k="df2"><input type="checkbox" data-k="df3"></div>
    </div></section>
    <section class="card" style="--c:#d8791a;flex:1"><h2>Attaques et sorts</h2><div class="in">
+    <button type="button" id="bAtk" class="noprint" title="Remplit les lignes d’attaque avec les armes de la page Équipement et les armes magiques avec lesquelles tu es harmonisé : nom, bonus pour toucher et dégâts">Importer les armes</button>
     <div class="atk h"><span>Nom</span><span>Bonus</span><span>Dégâts / type</span></div>
     <div id="atks"></div>
    </div></section>
@@ -319,6 +320,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <div class="xbar noprint"><input type="search" id="malQ" placeholder="Filtrer les malédictions…" aria-label="Filtrer les malédictions" style="flex:1;border:1px solid var(--line);border-radius:5px;padding:3px 6px;font-size:11px"></div>
     <div id="xMal"></div></div></section>
    <section class="card" style="--c:#7a4fc4" id="xSubC"><h2 id="xSubT">Sous-classe</h2><div class="in" id="xSub"></div></section>
+   <section class="card" style="--c:#d6458e" id="xObC" hidden><h2>Objets harmonisés</h2><div class="in" id="xOb"></div></section>
    <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
   </div>
   <div class="xcol">
@@ -460,7 +462,7 @@ function renderMagic(mod,pb,lvl,cl,cst){
 
 // ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
 let ESPD=null,DOND=null,SCD=null,CAPD=null,BGD=null;
-const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{},mal:[]});
+const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{},mal:[],oh:{}});
 function findBg(){return BGD&&PX.bg.k&&BGD[PX.bg.k]?[PX.bg.k,BGD[PX.bg.k]]:null}
 // Le don d'origine de l'historique est ajouté automatiquement (et retiré si l'historique change)
 function syncBgFeat(){
@@ -494,15 +496,75 @@ function resMax(r,lvl,pb,mod){
   if(m&&m.mod)return Math.max(m.min||0,mod[m.mod]||0);
   return 0;
 }
+// Effets des objets magiques sur la fiche, appliqués seulement si le personnage est harmonisé avec l'objet (page Objets magiques).
+// set : la caractéristique passe à n (sans effet si elle est déjà plus haute) ; carac : +n (max) ; ca, sv (tous les jets de sauvegarde),
+// tests (tests de caractéristique, compétences et initiative), init, satk (attaque de sort), sdd (DD des sorts), vit. Les objets « +1, +2 ou +3 » proposent un choix.
+const PLUS=fx=>[1,2,3].map(n=>['+'+n,fx(n)]);
+const SORTN=n=>[{t:'satk',n},{t:'sdd',n}];
+const FXO={
+  "Amulette de bonne santé":[{t:'set',v:'con',n:19}],
+  "Bandeau d'intelligence":[{t:'set',v:'int',n:19}],
+  "Gantelets de puissance d'ogre":[{t:'set',v:'for',n:19}],
+  "Ceinturon de force de géant":{choix:[['Géant des collines (Force 21)',[{t:'set',v:'for',n:21}]],['Géant du givre (Force 23)',[{t:'set',v:'for',n:23}]],['Géant des pierres (Force 23)',[{t:'set',v:'for',n:23}]],['Géant du feu (Force 25)',[{t:'set',v:'for',n:25}]],['Géant des nuages (Force 27)',[{t:'set',v:'for',n:27}]],['Géant des tempêtes (Force 29)',[{t:'set',v:'for',n:29}]]]},
+  "Ceinturon des nains":[{t:'carac',v:'con',n:2,max:20}],
+  "Éclat de Xeluan":[{t:'carac',v:'for',n:4,max:22},{t:'satk',n:1}],
+  "Pierre de Ioun":{choix:[['Agilité (Dextérité +2)',[{t:'carac',v:'dex',n:2,max:20}]],['Vigueur (Constitution +2)',[{t:'carac',v:'con',n:2,max:20}]],['Intuition (Sagesse +2)',[{t:'carac',v:'sag',n:2,max:20}]],['Intellect (Intelligence +2)',[{t:'carac',v:'int',n:2,max:20}]],['Commandement (Charisme +2)',[{t:'carac',v:'cha',n:2,max:20}]],['Force (Force +2)',[{t:'carac',v:'for',n:2,max:20}]],['Protection (CA +1)',[{t:'ca',n:1}]],['Autre pierre (pas d’effet sur la fiche)',[]]]},
+  "Anneau de protection":[{t:'ca',n:1},{t:'sv',n:1}],
+  "Cape de protection":[{t:'ca',n:1},{t:'sv',n:1}],
+  "Armure d'écailles de dragon":[{t:'ca',n:1}],
+  "Armure démoniaque":[{t:'ca',n:1}],
+  "Armure de golem de cuir":[{t:'ca',n:1}],
+  "Mailles de l'éfrit":[{t:'ca',n:3}],
+  "Armure de scorpion":[{t:'init',n:5}],
+  "Bâton de défense":[{t:'ca',n:1}],
+  "Bouclier du cavalier":[{t:'ca',n:2}],
+  "Bouclier de bélier":[{t:'ca',n:1}],
+  "Bouclier de la tortue":[{t:'ca',n:1}],
+  "Bracelets de défense":[{t:'ca',n:2,cond:'sans armure ni bouclier'}],
+  "Insigne de la Garde":[{t:'ca',n:2,cond:'sans bouclier'}],
+  "Scarabée de protection":[{t:'ca',n:1}],
+  "Robe de l'archimage":[{t:'ca',n:5,cond:'CA de base 15 + Dex, sans armure'},...SORTN(2)],
+  "Robe aux étoiles":[{t:'sv',n:1}],
+  "Lame porte-bonheur":[{t:'sv',n:1}],
+  "Pierre porte-bonheur":[{t:'sv',n:1},{t:'tests',n:1}],
+  "Morsure de Harkon":[{t:'sv',n:1},{t:'tests',n:1}],
+  "Bâton de surpuissance":[{t:'ca',n:2},{t:'sv',n:2},{t:'satk',n:2}],
+  "Bâton du thaumaturge":[{t:'satk',n:2}],
+  "Bâton des forêts":[{t:'satk',n:2}],
+  "Bâton aveuglant":[{t:'satk',n:1}],
+  "Bâton de l'ivoire griffu":[{t:'satk',n:1}],
+  "Bâton du voyageur":[{t:'satk',n:1}],
+  "Talisman du bien absolu":[{t:'satk',n:2}],
+  "Talisman du mal absolu":[{t:'satk',n:2}],
+  "Bracelets de célérité":[{t:'vit',n:3}],
+  "Baguette du mage de guerre +1, +2 ou +3":{choix:PLUS(n=>[{t:'satk',n}])},
+  "Amulette du dévot":{choix:PLUS(SORTN)},
+  "Grimoire arcanique":{choix:PLUS(SORTN)},
+  "Outil universel":{choix:PLUS(SORTN)},
+  "Sceptre du gardien des pactes":{choix:PLUS(SORTN)},
+  "Tambour du faiseur de rythme":{choix:PLUS(SORTN)},
+  "Fiole de puits de sang":{choix:PLUS(SORTN)},
+  "Faucille lunaire":{choix:PLUS(SORTN)},
+  "Jeu du donneur de destin":{choix:[['Rare (+1)',SORTN(1)],['Très rare (+2)',SORTN(2)],['Légendaire (+3)',SORTN(3)]]},
+};
+// Objets avec lesquels le personnage actif est harmonisé (choisis sur la page Objets magiques)
+const harmonises=()=>{const o=Persos.part('objets');return o&&o.data&&Array.isArray(o.data.harmonises)?o.data.harmonises:[]};
+const fxObj=n=>{const d=FXO[n];if(!d)return null;if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
 // Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
-  const F={cap:{},ab:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,res:[],lines:[],E:findEsp(),cl:findClass()};
+  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
   const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
       if(f.niv&&lvl<f.niv)continue;
       const v=f.v||(f.c?ch[f.c]:null);
-      if(f.t==='carac'){if(v){add(F.ab,v,1);F.cap[v]=Math.max(F.cap[v]||20,f.max||20);F.lines.push([src,ABN[v]+' +1'])}}
+      if(f.t==='carac'){if(v){add(F.ab,v,f.n||1);F.cap[v]=Math.max(F.cap[v]||20,f.max||20);F.lines.push([src,ABN[v]+' +'+(f.n||1)])}}
+      else if(f.t==='set'){F.set[v]=Math.max(F.set[v]||0,f.n);F.lines.push([src,ABN[v]+' '+f.n+' (si plus faible)'])}
+      else if(f.t==='sv'&&f.n){F.svb+=f.n;F.lines.push([src,'jets de sauvegarde '+sg(f.n)])}
+      else if(f.t==='tests'){F.tst+=f.n;F.lines.push([src,'tests de caractéristique et initiative '+sg(f.n)])}
+      else if(f.t==='init'){F.init+=f.n;F.lines.push([src,'initiative '+sg(f.n)])}
+      else if(f.t==='satk'){F.satk+=f.n;F.lines.push([src,'attaque de sort '+sg(f.n)])}
+      else if(f.t==='sdd'){F.sdd+=f.n;F.lines.push([src,'DD des sorts '+sg(f.n)])}
       else if(f.t==='bg_carac'){
         const m=ch.mode||'+2 / +1',abl=(PX.bg.k&&BGD&&BGD[PX.bg.k]?BGD[PX.bg.k].carac:[]);
         const give=(k,n)=>{add(F.ab,k,n);F.cap[k]=Math.max(F.cap[k]||20,20);F.lines.push([src,ABN[k]+' +'+n])};
@@ -515,7 +577,7 @@ function fxCompute(lvl,pb){
       else if(f.t==='init_pb'){F.init+=pb;F.lines.push([src,'initiative '+sg(pb)])}
       else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
       else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
-      else if(f.t==='ca'){F.ca+=f.n;F.lines.push([src,'CA +'+f.n])}
+      else if(f.t==='ca'){F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
       else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max,repos:f.repos,niv:f.niv});
     }
   };
@@ -532,6 +594,7 @@ function fxCompute(lvl,pb){
   }
   const sf=F.cl&&SCD&&SCD[F.cl[0]]&&SCD[F.cl[0]][val('sclasse')];
   if(sf)run(sf.fx||[],{},val('sclasse'),'s_');
+  for(const n of harmonises()){const fx=fxObj(n);if(fx)run(fx,{},n,'o_')}
   // capacités de classe : seuls les effets sur les valeurs de la fiche (les réserves de classe sont déjà au-dessus)
   if(F.cl&&CAPD&&CAPD[F.cl[0]])for(const f of CAPD[F.cl[0]])
     if(f.niv<=lvl)run((f.fx||[]).filter(x=>x.t!=='res').map(x=>({...x,niv:0})),{},f.nom,'c_');
@@ -606,15 +669,24 @@ function renderExtras(F,lvl,pb,mod,tot){
       +RES.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
   }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus (un même don peut être pris plusieurs fois).</p>';
   setHTML($('#xDons'),dh);
+  // Objets harmonisés
+  const H=harmonises();
+  $('#xObC').hidden=!H.length;
+  if(H.length)setHTML($('#xOb'),'<ul class="xl">'+H.map(n=>{
+    const d=FXO[n];
+    if(!d)return `<li><b>${esc(n)}</b> — pas d’effet chiffré à appliquer sur la fiche</li>`;
+    if(Array.isArray(d))return `<li><b>${esc(n)}</b> — effets appliqués (voir « Effets appliqués »)</li>`;
+    return `<li><b>${esc(n)}</b><div class="chs">${chHTML('oh',{id:n,lbl:'Version de l’objet',opts:d.choix.map(c=>c[0])},PX.oh[n])}</div></li>`;
+  }).join('')+'</ul>');
   // Effets appliqués
   const spd=E?E[1].vit+F.vit:F.vit?9+F.vit:null;
   const row=(a,b)=>`<b>${a}</b><span>${b}</span>`;
   let fx=F.lines.map(([a,b])=>row(esc(a),esc(b))).join('');
   if(spd!=null)fx+=row('Vitesse',fm(spd)+' m');
-  const ac=AB.filter(([k])=>F.ab[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
+  const ac=AB.filter(([k])=>F.ab[k]||F.set[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
   if(ac)fx+=row('Caractéristiques finales',esc(ac));
-  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
-  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B);
+  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA, de sauvegarde, de sorts (objets harmonisés compris) et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B&&!H.length);
 }
 // Liste de choix de la classe (Malédictions de sang du Chasseur de sang) : sélecteur avec limite selon le niveau
 let MALQ='';
@@ -681,6 +753,7 @@ function syncEspece(){
   el('espece').value=r?(l?r+' ('+short(l)+')':r):'';
 }
 
+let CUR={mod:{for:0,dex:0},pb:2};   // derniers modificateurs calculés (pour l'import des armes)
 function calc(){
   const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
   const pb=Math.ceil(lvl/4)+1;
@@ -693,24 +766,26 @@ function calc(){
   AB.forEach(([k])=>{
     const base=parseInt(val('ab_'+k))||10;
     tot[k]=F.ab[k]?Math.max(base,Math.min(F.cap[k]||20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20 (30 pour une faveur épique)
+    if(F.set[k])tot[k]=Math.max(tot[k],F.set[k]);   // objet qui fixe la valeur (Bandeau d'intelligence…)
     mod[k]=Math.floor((tot[k]-10)/2);
     $('#m_'+k).textContent=sg(mod[k]);
-    {const fe=$('#f_'+k);fe.hidden=tot[k]===base;fe.textContent='→ '+tot[k];fe.title='Valeur finale avec les bonus (espèce, historique, dons)'}
-    el('ab_'+k).title=F.ab[k]?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, historique, dons)':'';
-    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0));
+    {const fe=$('#f_'+k);fe.hidden=tot[k]===base;fe.textContent='→ '+tot[k];fe.title='Valeur finale avec les bonus (espèce, historique, dons, objets harmonisés)'}
+    el('ab_'+k).title=tot[k]!==base?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, historique, dons, objets harmonisés)':'';
+    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0)+F.svb);
     $('#sv_'+k).classList.toggle('fx',!!F.sv[k]);
   });
   const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
-  SK.forEach(([n,a],i)=>{$('#sk_'+i).textContent=sg(mod[a]+bonus(i));$('#sk_'+i).classList.toggle('fx',!!F.sk[i])});
+  SK.forEach(([n,a],i)=>{$('#sk_'+i).textContent=sg(mod[a]+bonus(i)+F.tst);$('#sk_'+i).classList.toggle('fx',!!F.sk[i])});
   $('#pb').textContent=sg(pb);
   const nb=k=>parseInt(val(k))||0;
-  $('#init').textContent=sg(mod.dex+nb('b_init')+F.init);
+  $('#init').textContent=sg(mod.dex+nb('b_init')+F.init+F.tst);
   $('#ca').textContent=10+mod.dex+nb('b_ca')+F.ca;
-  $('#pp').textContent=10+mod.sag+bonus(PERC);
+  $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
-  $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd'):'—';
-  $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')):'—';
+  $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd')+F.sdd:'—';
+  $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')+F.satk):'—';
+  CUR={mod,pb};
   el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
   renderMagic(mod,pb,lvl,cl,cst);
   renderMal(cl,lvl);
@@ -754,6 +829,7 @@ function apply(obj){
     PX.auto=x.auto&&typeof x.auto==='object'?x.auto:{};
     PX.mal=Array.isArray(x.mal)?x.mal.filter(n=>typeof n==='string'):[];
     if(!PX.sp.ch)PX.sp.ch={};
+    PX.oh=x.oh&&typeof x.oh==='object'?x.oh:{};
   }
   fillSub();el('sclasse').value=d.sclasse||'';
   fillSpec();el('sespece').value=d.sespece||'';
@@ -865,6 +941,90 @@ document.addEventListener('click',async e=>{
     dlg.close();dlg.remove();
   };
 });
+// Armes : celles de la page Équipement et les armes magiques harmonisées remplissent les lignes « Attaques » (nom, bonus pour toucher, dégâts)
+const normW=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘]/g,"'");
+function baseChoices(s,W){   // armes de base possibles pour une arme magique, d'après le début de sa description
+  const txt=s.h.replace(/<[^>]+>/g,'');
+  if(/b[aâ]ton de combat/i.test(txt))return W.filter(w=>w.n==='Bâton');
+  let head=normW((txt.match(/^[^.]*?\(([^)]*)\)/)||[])[1]||'')+' | '+normW(txt.split('.')[0])+' | '+normW(s.n);
+  const r=[];
+  for(const w of [...W].sort((x,y)=>y.n.length-x.n.length)){   // les noms longs d'abord (« lance d'arçon » avant « lance »)
+    const en=w.en&&!W.some(x=>normW(x.n)===normW(w.en))?w.en:'';   // « Lance » (anglais de lance d'arçon) est aussi un nom français
+    for(const nm of [w.n,en,w.n==='Serpe'?'faucille':''].filter(Boolean)){   // nom français ou anglais (glaive → coutille, faucille → serpe)
+      const re=new RegExp('(^|[^a-z])'+normW(nm).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![a-z])','g');
+      if(re.test(head)){if(!r.includes(w))r.push(w);head=head.replace(re,'$1#')}
+    }
+  }
+  if(r.length)return W.filter(w=>r.includes(w));
+  if(/\barc\b/.test(head))return W.filter(w=>/^arc /.test(normW(w.n)));
+  if(/epee/.test(head))return W.filter(w=>/epee|rapiere|cimeterre/.test(normW(w.n)));
+  if(/hache/.test(head))return W.filter(w=>/hache/.test(normW(w.n)));
+  if(/corps a corps/.test(head))return W.filter(w=>/corps à corps/.test(w.c));
+  return W;
+}
+function magicBonus(s){
+  const txt=s.h.replace(/<[^>]+>/g,'');
+  const c=FXO[s.n]&&!Array.isArray(FXO[s.n])&&PX.oh[s.n];
+  if(c&&/\+(\d)/.test(c))return +c.match(/\+(\d)/)[1];
+  const m=txt.match(/\+(\d) aux jets d'attaque et de dégâts/);
+  return m?+m[1]:0;
+}
+function atkLine(name,w,mb,prof){
+  const dmg=(w.h.match(/Dégâts : ([^.]*)\./)||[])[1]||'';
+  const props=(w.h.match(/Propriétés : ([^.]*)\./)||[])[1]||'';
+  const dist=/à distance/.test(w.c),fin=/Finesse/.test(props);
+  const m=CUR.mod,am=dist?m.dex:fin?Math.max(m.for,m.dex):m.for;
+  const hit=am+(prof?CUR.pb:0)+mb,dm=am+mb;
+  const d=dmg.match(/^(\S+)\s+(.*)$/);
+  return [name,sg(hit),d?d[1]+(dm?sg(dm):'')+' '+d[2]:dmg];
+}
+document.addEventListener('click',async e=>{
+  if(!e.target.closest('#bAtk'))return;
+  Persos.save();calc();
+  let EQ,OB;
+  try{[EQ,OB]=await Promise.all(['equipement.json','objets.json'].map(async f=>(await fetch(f)).json()))}catch(x){alert('Impossible de lire les listes d’équipement et d’objets.');return}
+  const W=EQ.filter(x=>x.t==='Arme'),byO={};OB.forEach(x=>byO[x.n]=x);
+  const eq=Persos.part('equipement'),EL=eq&&eq.data&&eq.data.objets||[];
+  const C=[];   // armes proposées : {nom, opts (armes de base), mb (bonus magique)}
+  EL.forEach(o=>{const w=W.find(x=>x.n===o.n);if(w)C.push({nom:w.n,opts:[w],mb:0})});
+  harmonises().forEach(n=>{
+    const s=byO[n];if(!s)return;
+    const txt=s.h.replace(/<[^>]+>/g,'');
+    if(s.t!=='Arme'&&!/b[aâ]ton de combat/i.test(txt))return;
+    const opts=baseChoices(s,W);if(!opts.length)return;
+    C.push({nom:n,opts,mb:magicBonus(s),magic:1});
+  });
+  if(!C.length){alert('Aucune arme trouvée : choisis des armes sur la page Équipement, ou harmonise-toi avec une arme magique sur la page Objets magiques.');return}
+  const rows=[0,1,2,3,4].map(i=>['n','b','d'].map(k=>el('a'+i+'_'+k)));
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;max-width:520px;box-shadow:0 10px 40px #0008';
+  dlg.innerHTML='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Importer les armes</h3><p style="margin:0 0 8px;color:var(--soft);font-size:12px">Bonus pour toucher = modificateur (Force, Dextérité pour les armes à distance, le meilleur des deux pour Finesse) + bonus de maîtrise si l’arme est maîtrisée + bonus magique. Une arme déjà présente dans les attaques est mise à jour ; les autres prennent les lignes vides (5 au maximum).</p><div id="atl" style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto"></div><p id="atw" style="color:#c8402f;font-size:12px;margin:6px 0 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="atc">Annuler</button><button type="button" id="atk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Importer</button></div>';
+  const box=dlg.querySelector('#atl');
+  C.forEach((c,i)=>{
+    const d=document.createElement('div');d.style.cssText='display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:13px';
+    d.innerHTML=`<label style="display:flex;gap:6px;align-items:center;flex:1 1 200px"><input type="checkbox" data-u="${i}" checked> <b>${esc(c.nom)}</b>${c.mb?' ('+sg(c.mb)+')':''}</label>`
+      +(c.opts.length>1?`<select data-w="${i}" aria-label="Arme de base">${c.opts.map((w,j)=>`<option value="${j}">${esc(w.n)}</option>`).join('')}</select>`:c.magic?`<small>${esc(c.opts[0].n)}</small>`:'')
+      +`<label style="display:flex;gap:4px;align-items:center;font-size:12px"><input type="checkbox" data-p="${i}" checked> maîtrisée</label>`;
+    box.appendChild(d);
+  });
+  document.body.appendChild(dlg);dlg.showModal();
+  dlg.querySelector('#atc').onclick=()=>{dlg.close();dlg.remove()};
+  dlg.querySelector('#atk').onclick=()=>{
+    let skipped=0;
+    C.forEach((c,i)=>{
+      if(!box.querySelector(`[data-u="${i}"]`).checked)return;
+      const ws=box.querySelector(`[data-w="${i}"]`),w=c.opts[ws?+ws.value:0];
+      const name=c.nom;   // arme magique : son nom suffit (l'arme de base donne les dégâts)
+      const line=atkLine(name,w,c.mb,box.querySelector(`[data-p="${i}"]`).checked);
+      const r=rows.find(r=>r[0].value.trim()===name)||rows.find(r=>r.every(x=>!x.value.trim()));
+      if(!r){skipped++;return}
+      r.forEach((x,k)=>{x.value=line[k];fire(x)});
+    });
+    if(skipped){dlg.querySelector('#atw').textContent='Il n’y a que 5 lignes d’attaque : '+skipped+' arme(s) n’ont pas pu être ajoutée(s).';return}
+    dlg.close();dlg.remove();
+  };
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)calc()});   // retour sur la page : les harmonisations ont pu changer
 document.addEventListener('click',e=>{
   if(!e.target.closest('#bEq'))return;
   Persos.save();
@@ -892,7 +1052,7 @@ function onEdit(ev){
   }
   if(t.dataset&&t.dataset.x!==undefined){   // choix d'espèce ou de don
     const [p,id]=t.dataset.x.split('|');
-    const ch=p==='sp'?PX.sp.ch:p==='bg'?PX.bg.ch:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
+    const ch=p==='sp'?PX.sp.ch:p==='bg'?PX.bg.ch:p==='oh'?PX.oh:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
     if(!ch)return;
     ch[id]=t.value;
     if(t.type==='text'){autosave();return}   // texte libre : pas de recalcul (garde le curseur)
