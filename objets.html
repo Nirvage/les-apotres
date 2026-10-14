@@ -122,6 +122,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
    <label><small>Rareté</small><select id="fs"></select></label>
    <label><small>Famille (début du nom)</small><select id="ff"></select></label>
    <label><small>Conseillé pour la classe</small><select id="fk"></select></label>
+   <label><small>Rôle</small><select id="fr"></select></label>
    <label><small>Harmonisation</small><select id="fl"><option value="">Indifférent</option><option value="1">Requise</option><option value="0">Non requise</option></select></label>
   </div>
   <div class="fbar">
@@ -190,7 +191,7 @@ const rabbr=s=>{const m=norm(s.q);const hits=RORDER.filter(r=>m.includes(norm(r)
 let DB=[];
 const BYN=new Map();
 const MAXH=3;   // règles 2024 : 3 objets harmonisés au maximum
-const st={sel:new Set(),har:new Set(),q:'',fam:'',cla:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+const st={sel:new Set(),har:new Set(),q:'',fam:'',cla:'',role:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
 let BASE=[];
 function setup(data){
@@ -200,6 +201,7 @@ function setup(data){
   $('#fc').innerHTML=opts('Tous',TORDER.filter(t=>DB.some(s=>s.t===t)));
   $('#fs').innerHTML=opts('Toutes',RORDER);
   $('#fk').innerHTML=opts('Toutes',CLASSES);
+  $('#fr').innerHTML=opts('Tous',ROLES);
 }
 const fam=n=>String(n).split(/[ '’-]/)[0];
 // Objets conseillés par classe, d'après la description :
@@ -230,6 +232,29 @@ function recFor(s){
   for(const k in STATCL)if(new RegExp('(votre|valeur de) '+k+' (passe|augmente|devient|change)','i').test(t))add(STATCL[k]);
   return r;
 }
+// Rôle d'un objet (plusieurs possibles), d'après son type et sa description
+const ROLES=['Offensif','Défensif','Soin','Contrôle','Mobilité','Magie','Amélioration','Détection','Discrétion','Consommable','Utilitaire'];
+const ROLE_RE={
+  'Offensif':/\d+d\d+(?: \+ \d+)? (?:points de )?dégâts|dégâts \S+ supplémentaires|aux jets d'attaque et de dégâts|subit \d+d\d+/i,
+  'Défensif':/à la CA|Classe d'Armure|\brésistance aux\b|\bimmunisé|aux jets de sauvegarde|points de vie temporaires|avantage aux jets de sauvegarde/i,
+  'Soin':/regagne[rz]? (?:\d+d\d+ |des |autant de |tous ses |tous vos )?points de vie|récupère[rz]? (?:\d+d\d+ )?points de vie|guérison|soins/i,
+  'Amélioration':/(?:votre|valeur de) (?:Force|Dextérité|Constitution|Intelligence|Sagesse|Charisme) (?:passe|augmente|devient)|bonus de maîtrise augmente|avantage aux tests de|bonus de \+\d aux tests/i,
+  'Contrôle':/\b(?:est|soit|devient|reste|a l'état) (?:Charmée?|Effrayée?|Paralysée?|Entravée?|Étourdie?|Aveuglée?|Neutralisée?|Pétrifiée?|Inconsciente?|Assourdie?)|(?:l'état|états?) (?:Charmé|Effrayé|Paralysé|Entravé|Étourdi|Aveuglé|À terre|Neutralisé|Pétrifié|Assourdi|Agrippé|Inconscient)|\bdevient (?:Charmé|Effrayé|Paralysé|Entravé|Étourdi|Aveuglé|Neutralisé|Pétrifié)/i,
+  'Mobilité':/Vitesse de (?:vol|nage|escalade|fouissement)|Vitesse (?:augmente|est doublée)|téléport|lévit|vous pouvez voler|marcher sur|portail|respirer (?:normalement )?sous l'eau|Saut/i,
+  'Magie':/jets? d'attaque de sort|DD de sauvegarde de vos sorts|lancer (?:le sort |l'un des sorts |un sort |)<i>|lancez? <i>|emplacement de sort|focaliseur/i,
+  'Détection':/détect|vision dans le noir|voir (?:les créatures )?invisibles?|Vision véritable|Perception|repérer|localis|lire|comprendre (?:toutes les|n'importe quelle) langue/i,
+  'Discrétion':/Invisible|invisibilité|Discrétion|déguis|change[rz]? (?:votre|d')apparence|indétectable/i,
+};
+function rolesOf(s){
+  const t=String(s.h||'').replace(/<(?!\/?i>)[^>]+>/g,' '),r=new Set();
+  if(s.t==='Arme'||s.t==='Munition')r.add('Offensif');
+  if(s.t==='Armure')r.add('Défensif');
+  if(s.t==='Parchemin')r.add('Magie');
+  for(const k in ROLE_RE)if(ROLE_RE[k].test(t))r.add(k);
+  if(/^(Potion|Parchemin|Munition)$/.test(s.t)||/^(Huile|Élixir|Philtre|Onguent|Poussière|Pastille|Graine|Baume|Encens|Pigments)/.test(s.n)||/usage unique|un seul usage|(?:l'objet|il|elle) (?:est consommée?|disparaît) (?:une fois|après)/i.test(t))r.add('Consommable');
+  if(!r.size||/contenir|ranger|range[rz]? |transport|lumière (?:vive|faible) dans un rayon|outils?\b|réparer|nettoy|cuisin|nourriture/i.test(t))r.add('Utilitaire');
+  return r;
+}
 // Objets du livre + créations personnelles (Persos.custom())
 function index(){
   DB=BASE.concat(Persos.custom().objets.filter(s=>s&&s.n&&TORDER.includes(s.t)));
@@ -237,7 +262,7 @@ function index(){
   DB.forEach((s,i)=>{
     s.i=i;s.idx=norm(s.n+' '+s.en);
     [s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
-    s.fam=fam(s.n);s.rec=recFor(s);
+    s.fam=fam(s.n);s.rec=recFor(s);s.roles=rolesOf(s);
   });
   // Familles : premier mot du nom, quand plus de 3 objets commencent par lui (Anneau, Cape, Bottes…)
   const cnt={};DB.forEach(s=>cnt[s.fam]=(cnt[s.fam]||0)+1);
@@ -284,12 +309,12 @@ const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s
 function card(s,remove){
   const col=rcol(s);
   return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div>${prix(s)?`<div><dt>Prix d’achat indicatif</dt><dd>${esc(prix(s))}</dd></div>`:''}<div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div>${prix(s)?`<div><dt>Prix d’achat indicatif</dt><dd>${esc(prix(s))}</dd></div>`:''}<div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.roles&&s.roles.size?`<div><dt>Rôle</dt><dd>${[...s.roles].join(', ')}</dd></div>`:''}${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
   <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.fam||s.fam===st.fam)&&(!st.cla||s.rec.has(st.cla))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.fam||s.fam===st.fam)&&(!st.cla||s.rec.has(st.cla))&&(!st.role||s.roles.has(st.role))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
@@ -318,9 +343,9 @@ function collect(){
     titre:$('#titre').value,
     objets:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
     harmonises:DB.filter(s=>st.har.has(s.n)).map(s=>s.n),
-    filtres:{q:st.q,fam:st.fam,cla:st.cla,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
+    filtres:{q:st.q,fam:st.fam,cla:st.cla,role:st.role,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
 }
-function syncInputs(){$('#fq').value=st.q;$('#ff').value=st.fam;$('#fk').value=st.cla;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
+function syncInputs(){$('#fq').value=st.q;$('#ff').value=st.fam;$('#fk').value=st.cla;$('#fr').value=st.role;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
 function apply(o){
   const d=o&&o.data;
   if(!d||!Array.isArray(d.objets))throw new Error('format');
@@ -328,12 +353,12 @@ function apply(o){
   d.objets.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
   (d.harmonises||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s&&s.a&&st.sel.has(s.n)&&st.har.size<MAXH)st.har.add(s.n)});
   const f=d.filtres||{};
-  st.q=f.q||'';st.fam=f.fam||'';st.cla=f.cla||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
+  st.q=f.q||'';st.fam=f.fam||'';st.cla=f.cla||'';st.role=f.role||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
   syncInputs();renderAll();
   return unknown;
 }
 function blank(){
-  st.sel.clear();st.har.clear();st.q=st.fam=st.cla=st.cls=st.sch=st.lvl=st.only='';
+  st.sel.clear();st.har.clear();st.q=st.fam=st.cla=st.role=st.cls=st.sch=st.lvl=st.only='';
   syncInputs();renderAll();
 }
 function show(obj){
@@ -368,7 +393,7 @@ function setMode(m){
   scrollTo(0,0);
 }
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
-[['#ff','fam'],['#fk','cla'],['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
+[['#ff','fam'],['#fk','cla'],['#fr','role'],['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
 $('#bNew').onclick=()=>editCustom(null);
 // Objet au hasard parmi ceux qui correspondent aux filtres
@@ -386,7 +411,7 @@ $('#bRand').onclick=()=>{
   };
   show();document.body.appendChild(dlg);dlg.showModal();
 };
-$('#bReset').onclick=()=>{st.q=st.fam=st.cla=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
+$('#bReset').onclick=()=>{st.q=st.fam=st.cla=st.role=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
   const nom=($('#titre').value||Persos.current().nom||'objets').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
