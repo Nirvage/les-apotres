@@ -549,7 +549,10 @@ const FXO={
 };
 // Objets avec lesquels le personnage actif est harmonisé (choisis sur la page Objets magiques)
 const harmonises=()=>{const o=Persos.part('objets');return o&&o.data&&Array.isArray(o.data.harmonises)?o.data.harmonises:[]};
-const fxObj=n=>{const d=FXO[n];if(!d)return null;if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
+// Éléments personnalisés (objets / équipement créés par le joueur), s'ils existent : même forme que objets.json / equipement.json, effets dans fx
+const custom=k=>{try{const c=Persos.custom&&Persos.custom();return c&&Array.isArray(c[k])?c[k]:[]}catch(x){return []}};
+const fxCustom=n=>{const o=custom('objets').find(x=>x.n===n);return o&&Array.isArray(o.fx)?o.fx.filter(f=>f.t!=='arme'):null};
+const fxObj=n=>{const d=FXO[n];if(!d)return fxCustom(n);if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
 // Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
   const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
@@ -674,6 +677,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   $('#xObC').hidden=!H.length;
   if(H.length)setHTML($('#xOb'),'<ul class="xl">'+H.map(n=>{
     const d=FXO[n];
+    if(!d&&fxCustom(n)&&fxCustom(n).length)return `<li><b>${esc(n)}</b> — effets appliqués (voir « Effets appliqués »)</li>`;
     if(!d)return `<li><b>${esc(n)}</b> — pas d’effet chiffré à appliquer sur la fiche</li>`;
     if(Array.isArray(d))return `<li><b>${esc(n)}</b> — effets appliqués (voir « Effets appliqués »)</li>`;
     return `<li><b>${esc(n)}</b><div class="chs">${chHTML('oh',{id:n,lbl:'Version de l’objet',opts:d.choix.map(c=>c[0])},PX.oh[n])}</div></li>`;
@@ -966,6 +970,7 @@ function magicBonus(s){
   const txt=s.h.replace(/<[^>]+>/g,'');
   const c=FXO[s.n]&&!Array.isArray(FXO[s.n])&&PX.oh[s.n];
   if(c&&/\+(\d)/.test(c))return +c.match(/\+(\d)/)[1];
+  const fa=Array.isArray(s.fx)&&s.fx.find(f=>f.t==='arme');if(fa)return +fa.n||0;
   const m=txt.match(/\+(\d) aux jets d'attaque et de dégâts/);
   return m?+m[1]:0;
 }
@@ -983,7 +988,7 @@ document.addEventListener('click',async e=>{
   Persos.save();calc();
   let EQ,OB;
   try{[EQ,OB]=await Promise.all(['equipement.json','objets.json'].map(async f=>(await fetch(f)).json()))}catch(x){alert('Impossible de lire les listes d’équipement et d’objets.');return}
-  const W=EQ.filter(x=>x.t==='Arme'),byO={};OB.forEach(x=>byO[x.n]=x);
+  const W=EQ.concat(custom('equipement')).filter(x=>x.t==='Arme'&&x.h),byO={};OB.concat(custom('objets')).forEach(x=>byO[x.n]=x);
   const eq=Persos.part('equipement'),EL=eq&&eq.data&&eq.data.objets||[];
   const C=[];   // armes proposées : {nom, opts (armes de base), mb (bonus magique)}
   EL.forEach(o=>{const w=W.find(x=>x.n===o.n);if(w)C.push({nom:w.n,opts:[w],mb:0})});
