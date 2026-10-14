@@ -155,6 +155,27 @@ const RA={'Courant':'C','Peu courant':'PC','Rare':'R','Très rare':'TR','Légend
 const TC={'Armure':'#2f6fd0','Arme':'#c8402f','Anneau':'#b8860b','Baguette':'#7a4fc4','Bâton':'#8e3a9d','Sceptre':'#d6458e','Potion':'#2e9e5b','Parchemin':'#12968f','Munition':'#d8791a','Objet merveilleux':'#2a3170'};
 const TORDER=['Armure','Arme','Munition','Anneau','Baguette','Bâton','Sceptre','Potion','Parchemin','Objet merveilleux'];
 const RORDER=['Courant','Peu courant','Rare','Très rare','Légendaire','Artefact'];
+// Prix d'achat indicatif (Guide du Maître 2024) : selon la rareté, moitié prix pour les consommables (potions, parchemins, munitions)
+const PRIX={'Courant':100,'Peu courant':400,'Rare':4000,'Très rare':40000,'Légendaire':200000};
+const fpo=n=>n.toLocaleString('fr-FR')+' po';
+function prix(s){
+  const rar=m=>{const h=[];
+    if(/(^|[^a-z])courante?s?(?![a-z])/.test(m.replace(/peu courante?s?/g,'#')))h.push('Courant');
+    if(/peu courante?s?/.test(m))h.push('Peu courant');
+    if(/(^|[^a-z])rares?(?![a-z])/.test(m.replace(/tres rares?/g,'#')))h.push('Rare');
+    if(/tres rares?/.test(m))h.push('Très rare');
+    if(m.includes('legendaire'))h.push('Légendaire');
+    if(m.includes('artefact'))h.push('Artefact');
+    return h};
+  let hits=rar(norm(s.q));
+  if(!hits.length)hits=rar(norm(String(s.h||'').replace(/<[^>]+>/g,'')));   // rareté « variable » : celles citées dans la description
+  if(!hits.length)return '';
+  const cons=/^(Potion|Parchemin|Munition)$/.test(s.t)||/consomm/i.test(s.h||'');
+  const v=hits.map(r=>PRIX[r]).filter(Boolean).map(x=>cons?x/2:x);
+  if(!v.length)return 'Inestimable (artefact)';
+  const lo=Math.min(...v),hi=Math.max(...v);
+  return (lo===hi?fpo(lo):fpo(lo)+' à '+fpo(hi))+(cons?' (consommable)':'')+(hits.includes('Artefact')?' ; artefact inestimable':'');
+}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
@@ -262,7 +283,7 @@ const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s
 function card(s,remove){
   const col=rcol(s);
   return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div>${prix(s)?`<div><dt>Prix d’achat indicatif</dt><dd>${esc(prix(s))}</dd></div>`:''}<div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
   <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
@@ -274,7 +295,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire · '+st.har.size+'/'+MAXH+' harmonisé'+(st.har.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.cat?s.cat.split(' (')[0]:s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.cat?s.cat.split(' (')[0]:s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${prix(s)?' · '+esc(prix(s).split(' (')[0].split(' ;')[0]):''}</div></div>
     <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}${s.c_?`<div class="racts" style="margin-top:6px">${editBtn(s)}</div>`:''}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
