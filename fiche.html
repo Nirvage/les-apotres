@@ -178,6 +178,13 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
  #pg3.empty,#pg4.empty{display:none}
+ /* Pages 3 et 4 : un bloc n'est pas coupé entre deux feuilles s'il tient sur une seule,
+    et la marge de la feuille est reprise sur chaque feuille de la suite */
+ #pg3,#pg4{-webkit-box-decoration-break:clone;box-decoration-break:clone}
+ #pg3 .xcol{display:block}
+ #pg3 .xcol>*+*{margin-top:8px}
+ #pg3 .card,#pg4 .card,.don,.mrow,.xl li,.fxs>*{break-inside:avoid;page-break-inside:avoid}
+ .card h2{break-after:avoid;page-break-after:avoid}
 }
 </style>
 </head>

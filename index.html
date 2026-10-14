@@ -130,7 +130,20 @@ $('#file').onchange=ev=>{
 const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html',familiers:'familiers.html'};
 function inlineCss(t){
   return t.replace(/@page\s*[^{]*\{[^}]*\}/g,'').replace(/:root/g,':host')
-    .replace(/(^|[\s,{};])(body|html)(?=[\s\[.:,{>+~])/g,'$1.__b');
+    .replace(/(^|[\s,{};])(body|html)(?=[\s\[.:,{>+~])/g,'$1.__b')
+    .replace(/(^|[\s,{};>+~(])(input|select)(?=[\s\[.:,{>+~)])/g,(m,a,t)=>a+':is('+t+',.__'+t+')');
+}
+// Champs remplacés par du texte simple : certains navigateurs (Firefox) n'impriment pas
+// la valeur des champs placés dans un shadow DOM
+function staticize(root){
+  root.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select').forEach(e=>{
+    const s=document.createElement('span');
+    for(const a of e.attributes)if(a.name!=='value')s.setAttribute(a.name,a.value);
+    s.classList.add('__in','__'+e.tagName.toLowerCase());
+    if(e.tagName==='SELECT'){const o=[...e.options].find(o=>o.hasAttribute('selected'))||e.options[0];s.textContent=o?o.textContent:''}
+    else s.textContent=e.getAttribute('value')||'';
+    e.replaceWith(s);
+  });
 }
 function syncValues(src,dst){
   const a=src.querySelectorAll('input,textarea,select'),b=dst.querySelectorAll('input,textarea,select');
@@ -145,13 +158,16 @@ function syncValues(src,dst){
 async function snapshot(k,css0){
   const fr=$('#pf');
   await new Promise(res=>{fr.onload=()=>setTimeout(res,800);fr.src=PAGES[k]});
-  const d=fr.contentDocument;
+  const d=fr.contentDocument,w=fr.contentWindow;
+  w.dispatchEvent(new Event('beforeprint'));   // la page prépare son impression (taille du texte des zones trop remplies)
   const css=css0+[...d.querySelectorAll('style')].map(s=>s.textContent).join('\n');
   const roots=k==='fiche'?[...d.querySelectorAll('main.page')]:[d.querySelector('#book')];
   const wrap=document.createElement('div');
   roots.forEach(r=>{const c=r.cloneNode(true);syncValues(r,c);wrap.appendChild(c)});
+  w.dispatchEvent(new Event('afterprint'));
   const t=wrap.querySelector('#titre');
   if(t&&!t.getAttribute('value'))t.setAttribute('value',(Persos.list().find(p=>p.actif)||{}).nom||'');
+  staticize(wrap);
   return {k,css:inlineCss(css),html:wrap.innerHTML};
 }
 $('#bPrintAll').onclick=async()=>{
@@ -165,7 +181,7 @@ $('#bPrintAll').onclick=async()=>{
       const s=await snapshot(k,css0);
       const host=document.createElement('section');host.className='pr-sec pr-'+(k==='fiche'?'fiche':'liste');
       const sh=host.attachShadow({mode:'open'});
-      sh.innerHTML='<style>:host{display:block}.__b{background:#fff!important;min-height:0!important;padding:0!important;display:block}</style><style>'+s.css+'</style><div class="__b" data-mode="book">'+s.html+'</div>';
+      sh.innerHTML='<style>:host{display:block}.__b{background:#fff!important;min-height:0!important;padding:0!important;display:block}.__in{display:inline-grid;align-content:center;box-sizing:border-box;min-height:calc(1.3em + 5px);white-space:pre;overflow:hidden;vertical-align:bottom}</style><style>'+s.css+'</style><div class="__b" data-mode="book">'+s.html+'</div>';
       root.appendChild(host);
     }
     await new Promise(r=>setTimeout(r,300));
