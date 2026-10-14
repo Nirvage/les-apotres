@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Boutiques du MJ</title>
+<link rel="stylesheet" href="style.css?v=20261014c">
+<style>
+@page{size:A4;margin:12mm}
+.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
+.intro{padding:14px 20px 16px;font-size:14px;line-height:1.5}
+.intro h1{margin:0 0 4px;font:italic 700 26px var(--serif);color:#2a3170}
+.intro p{margin:4px 0;color:var(--soft)}
+.gen{display:grid;grid-template-columns:2fr 1fr auto auto;gap:10px 12px;align-items:end;margin-top:12px}
+.gen label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--soft);min-width:0}
+.gen select{padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;min-width:0}
+.gen .chk{flex-direction:row;align-items:center;gap:6px;padding-bottom:8px;font-size:13px;color:var(--ink)}
+.go{padding:9px 16px;border:0;border-radius:8px;background:#7a5600;color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+.go:hover{filter:brightness(1.15)}
+.tdesc{margin:8px 0 0;font-size:12.5px;color:var(--soft)}
+.saved{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;font-size:12px;color:var(--soft)}
+.saved:empty{display:none}
+.sv{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}
+.sv button{border:0;background:transparent;cursor:pointer;padding:5px 10px;font-size:13px;color:var(--ink)}
+.sv button.x{padding:5px 9px 5px 2px;color:#c8402f;font-size:15px;line-height:1}
+.sv[aria-current=true]{background:#2a3170;border-color:#2a3170}
+.sv[aria-current=true] button{color:#fff}
+.shop{margin-top:16px;padding:0 0 16px;overflow:hidden}
+.shead{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:10px 18px;background:#7a5600;color:#fff}
+.shead input{flex:1 1 260px;min-width:0;border:0;border-bottom:1px solid #ffffff66;background:transparent;color:#fff;font:italic 700 21px var(--serif);padding:2px 0}
+.shead small{font-size:12.5px;opacity:.9}
+.sum{display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px 0}
+.sum span{font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--k,#eceefb);color:#fff}
+.sec{padding:10px 18px 0}
+.sec h2{margin:6px 0 6px;font:italic 700 18px var(--serif);color:#2a3170;border-bottom:2px solid var(--k);padding-bottom:2px}
+.it{border:1px solid var(--line);border-left:5px solid var(--k);border-radius:8px;background:#fbfbff;margin-bottom:6px}
+.it summary{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:7px 10px;cursor:pointer;list-style:none}
+.it summary::-webkit-details-marker{display:none}
+.it .nm{flex:1 1 220px;min-width:0;font:italic 700 15px var(--serif);color:#2a3170}
+.it .nm small{display:block;font:400 11.5px var(--sans);color:var(--soft)}
+.it .pr{font-weight:700;color:#7a5600;white-space:nowrap}
+.it .pr s{font-weight:400;color:var(--soft);font-size:11.5px;margin-left:4px}
+.it .qt{font-size:12px;color:var(--soft);white-space:nowrap}
+.it .sold{padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:12px}
+.it .sold:hover{background:#eceefb}
+.it.out{opacity:.5}
+.it.out .nm{text-decoration:line-through}
+.it .h{padding:0 12px 10px;font-size:13px;line-height:1.5}
+.it .h table{border-collapse:collapse;margin:4px 0}
+.it .h td,.it .h th{border:1px solid var(--line);padding:1px 5px}
+.empty{padding:14px 20px;color:var(--soft)}
+.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
+.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
+.r0{--k:#6b7280}.r1{--k:#2e9e5b}.r2{--k:#2f6fd0}.r3{--k:#7a4fc4}.r4{--k:#d8791a}.rc{--k:#9a8f7a}
+@media screen and (max-width:700px){
+ .wrap{padding:0 8px;margin-top:10px}
+ .intro{padding:12px 14px}
+ .intro h1{font-size:22px}
+ .gen{grid-template-columns:1fr 1fr}
+ .gen label:first-child{grid-column:1/-1}
+ .go{grid-column:1/-1;min-height:44px}
+ .gen .chk{padding:0}
+ .sec,.sum{padding-left:10px;padding-right:10px}
+ .shead{padding:10px}
+ .it .sold{min-height:34px}
+ .sv button{padding:7px 12px}
+}
+@media print{
+ .intro,.it .sold,.saved{display:none!important}
+ .wrap{max-width:none;margin:0;padding:0}
+ .panel{box-shadow:none}
+ .it{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Boutiques du MJ</b>
+  <span id="msg" role="status"></span>
+  <button id="bPrint">Imprimer / PDF</button>
+ </div>
+ <div class="persos" id="persos"></div>
+</div>
+<div class="wrap">
+<section class="panel lock" id="lock" hidden><b>Page réservée</b>Cette page est réservée au maître du jeu.</section>
+<div id="mj" hidden>
+<section class="panel intro">
+ <h1>Générateur de boutiques</h1>
+ <p>Choisis un type de boutique et la taille de la localité : l’inventaire est tiré au hasard parmi les objets du site, avec un nombre d’objets de chaque rareté propre au type de boutique. Prix des objets magiques : Guide du Maître 2024 (peu courant 400 PO, rare 4 000, très rare 40 000, légendaire 200 000 ; moitié prix pour les consommables).</p>
+ <div class="gen">
+  <label>Type de boutique<select id="type"></select></label>
+  <label>Localité<select id="taille">
+   <option value="village">Village</option>
+   <option value="bourg">Bourg</option>
+   <option value="ville" selected>Ville</option>
+   <option value="capitale">Grande ville / capitale</option>
+  </select></label>
+  <label class="chk"><input type="checkbox" id="varp" checked> Prix variables (±20 %)</label>
+  <button class="go" id="bGen">Générer l’inventaire</button>
+ </div>
+ <p class="tdesc" id="tdesc"></p>
+ <div class="saved" id="saved"></div>
+</section>
+<div id="shop"></div>
+</div>
+</div>
+<script src="persos.js?v=20261014d"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
+const nb=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:2});
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296*n};
+const ri=(a,b)=>a+Math.floor(rnd(b-a+1));
+function pick(l,n){l=l.slice();const r=[];while(r.length<n&&l.length)r.push(l.splice(Math.floor(rnd(l.length)),1)[0]);return r}
+
+const RN=['Courant','Peu courant','Rare','Très rare','Légendaire'];
+const PRIX=[100,400,4000,40000,200000];
+// Parchemins de sort (Guide du Maître 2024) : rareté selon le niveau du sort ; prix du Manuel des joueurs pour les niveaux 0 et 1
+const SCR_R=[0,0,1,1,2,2,3,3,3,4],SCR_P=[30,50];
+const TAILLES={
+  village:{f:.25,max:2,c:.4,nom:'Village'},
+  bourg:{f:.4,max:3,c:.6,nom:'Bourg'},
+  ville:{f:.65,max:3,c:.8,nom:'Ville'},
+  capitale:{f:1,max:4,c:1,nom:'Grande ville'}
+};
+const RX=s=>new RegExp('^('+s+')','i');
+/* Types de boutique.
+   q : nombre d'objets magiques par rareté [courant, peu courant, rare, très rare, légendaire] en grande ville ;
+   mag : objets magiques vendus ; cour : marchandise courante (equipement.json) ; scr : parchemins de sort (classes, ou [] pour toutes) */
+const TYPES=[
+ {id:'armurerie',nom:'Armurerie',d:'Armes, armures, boucliers et munitions, ordinaires et magiques.',q:[4,9,6,3,1],
+  mag:o=>/^(Arme|Armure|Munition)$/.test(o.t),cour:e=>/^(Arme|Armure|Munition)$/.test(e.t)},
+ {id:'cordonnier',nom:'Cordonnier et tailleur',d:'Vêtements, bottes, capes, gants, ceintures, chapeaux et robes.',q:[3,7,6,3,1],
+  mag:o=>o.t==='Objet merveilleux'&&RX('Bottes|Chaussons|Sandales|Cape|Manteau|Gants|Gantelets|Robe|Ceinture|Chapeau|Bandeau|Bracelets|Masque|Casque|Capuche|Écharpe|Voile').test(o.n),
+  cour:e=>/(V[êe]tements|^Robe|^Costume|^Sac|^Bourse|^Couverture|cordonnier|travailleur du cuir|tisserand|^Parfum)/i.test(e.n)},
+ {id:'alchimiste',nom:'Alchimiste',d:'Potions, huiles, élixirs, poussières et ingrédients.',q:[6,12,9,4,1],
+  mag:o=>(o.t==='Potion'||RX('Huile|Élixir|Philtre|Poussière|Onguent|Baume|Pigments|Fiole|Sels').test(o.n))&&!/^Potion de soins/.test(o.n),
+  cour:e=>/(Acide|Antitoxine|Feu grégeois|Eau bénite|Potion|Poison|Fiole|Bouteille|alchimiste|herboriste|empoisonneur|Parfum|Composants)/i.test(e.n)},
+ {id:'magie',nom:'Boutique de magie',d:'Baguettes, bâtons, sceptres, anneaux, objets merveilleux et parchemins.',q:[8,15,10,10,3],
+  mag:o=>/^(Baguette|Bâton|Sceptre|Anneau|Objet merveilleux|Parchemin)$/.test(o.t),scr:[],
+  cour:e=>/(Focalisation arcanique|Livre de sorts|Composants|Parchemin de sort)/i.test(e.n)},
+ {id:'joaillier',nom:'Joaillier',d:'Anneaux, amulettes, colliers, broches, pierres précieuses et gemmes.',q:[3,7,6,3,2],
+  mag:o=>o.t==='Anneau'||(o.t==='Objet merveilleux'&&RX('Amulette|Collier|Broche|Médaillon|Pierre|Gemme|Perle|Diadème|Couronne|Bracelets|Talisman|Scarabée|Joyau').test(o.n)),
+  cour:e=>/(joaillier|^Loupe|Symbole sacré \(amulette\))/i.test(e.n),gemmes:true},
+ {id:'libraire',nom:'Libraire et scribe',d:'Livres, manuels, cartes, matériel d’écriture et parchemins de sort.',q:[9,9,6,3,1],
+  mag:o=>o.t==='Objet merveilleux'&&RX('Livre|Manuel|Tome|Grimoire|Codex|Traité|Plume|Carte|Recueil').test(o.n)&&!/^Cartes merveilleuses/.test(o.n),scr:[],
+  cour:e=>/(^Livre|^Papier|^Parchemin \(|^Encre|^Plume|^Carte|^Étui|calligraphe|cartographe|contrefaçon)/i.test(e.n)},
+ {id:'temple',nom:'Temple',d:'Articles religieux, soins, eau bénite et parchemins de sorts divins.',q:[6,7,4,1,0],
+  mag:o=>/^Potion de soins/.test(o.n)||RX('Amulette du dévot|Encensoir du dévot|Collier de prière|Talisman du bien|Eau|Perle de pouvoir|Scarabée de protection').test(o.n),scr:['Clerc','Paladin'],
+  cour:e=>/(Symbole sacré|Eau bénite|Trousse de soins|Antitoxine|herboriste|Potion de guérison|Chandelle|Encens)/i.test(e.n)},
+ {id:'ecurie',nom:'Écurie et charron',d:'Montures, selles, chariots et barques ; quelques objets magiques pour les montures.',q:[1,3,3,2,0],
+  mag:o=>RX('Fer|Fers|Figurine merveilleuse|Selle|Bride').test(o.n),
+  cour:e=>e.t==='Monture et véhicule'&&e.po<1000&&!/^Écurie/.test(e.n)},
+ {id:'musique',nom:'Luthier',d:'Instruments de musique, ordinaires et magiques.',q:[1,4,4,1,1],
+  mag:o=>RX('Instrument|Flûte|Lyre|Luth|Harpe|Tambour|Cor |Cornemuse|Mandoline|Cithare|Carillon|Lyre').test(o.n),
+  cour:e=>/Instruments de musique/.test(e.c||'')},
+ {id:'bazar',nom:'Bazar d’aventurier',d:'Matériel d’aventure, paquetages, outils, jeux et quelques babioles magiques.',q:[6,4,1,0,0],
+  mag:o=>o.t==='Objet merveilleux',
+  cour:e=>/^(Équipement d’aventurier|Outil|Paquetage)$/.test(e.t)&&!/Potion|Poison|Parchemin de sort|Focalisation|Livre de sorts/.test(e.n)}
+];
+const GEMMES=[['Azurite',10],['Hématite',10],['Malachite',10],['Turquoise',10],['Cornaline',50],['Jaspe',50],['Onyx',50],['Pierre de lune',50],['Ambre',100],['Améthyste',100],['Grenat',100],['Perle',100],['Jade',100],['Aigue-marine',500],['Perle noire',500],['Topaze',500],['Opale noire',1000],['Émeraude',1000],['Saphir bleu',1000],['Diamant',5000],['Rubis',5000],['Saphir étoilé',5000]];
+
+let OBJ=[],EQ=[],SP=[],data={liste:[],cur:null};
+const estMJ=()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'};
+// Rareté principale d'un objet (la première citée quand elle varie) ; null pour les artefacts et les raretés non précisées
+function rar(q){
+  const s=String(q||'').toLowerCase().replace(/^variable \(/,'');
+  if(s.startsWith('peu courant'))return 1;if(s.startsWith('très rare'))return 3;
+  if(s.startsWith('courant'))return 0;if(s.startsWith('rare'))return 2;if(s.startsWith('légendaire'))return 4;
+  return null;
+}
+const conso=o=>/^(Potion|Parchemin|Munition)$/.test(o.t)||/consomm/i.test(o.h||'');
+const varie=(p,on)=>{if(!on)return p;const v=p*(.8+rnd(.4));return v>=1000?Math.round(v/50)*50:v>=100?Math.round(v/5)*5:Math.max(1,Math.round(v))};
+
+function generer(){
+  const T=TYPES.find(t=>t.id===$('#type').value),S=TAILLES[$('#taille').value],vp=$('#varp').checked;
+  // Réserve d'objets magiques par rareté, parchemins de sort compris
+  const pool=[[],[],[],[],[]];
+  OBJ.forEach(o=>{const r=rar(o.q);if(r!=null&&T.mag(o)&&!/maudit/i.test(o.n))pool[r].push({n:o.n,t:o.t,r,base:PRIX[r]/(conso(o)?2:1),k:'o'})});
+  if(T.scr)SP.forEach(s=>{
+    if(T.scr.length&&!s.c.some(c=>T.scr.includes(c)))return;
+    const r=SCR_R[s.l],nom=s.n.split('|')[0];
+    pool[r].push({n:'Parchemin de sort : '+nom,t:'Parchemin ('+(s.l?'niveau '+s.l:'tour de magie')+')',r,base:s.l<2?SCR_P[s.l]:PRIX[r]/2,k:'s',ref:s.n});
+  });
+  const items=[];
+  T.q.forEach((q,r)=>{
+    if(!q||r>S.max)return;
+    const n=Math.round(q*S.f*(.75+rnd(.5)));
+    pick(pool[r],n).forEach(o=>items.push({...o,po:varie(o.base,vp),qty:o.t.startsWith('Potion')||o.k==='s'||o.t==='Munition'?ri(1,3):1}));
+  });
+  items.sort((a,b)=>a.r-b.r||a.n.localeCompare(b.n,'fr'));
+  // Marchandise courante : une partie du catalogue selon la taille de la localité
+  const cp=EQ.filter(T.cour);
+  const cour=pick(cp,Math.max(Math.min(cp.length,4),Math.min(40*S.c,Math.round(cp.length*S.c*(.8+rnd(.2)))))).map(e=>({n:e.n,t:e.c||e.t,k:'e',p:e.p,po:e.po,
+    qty:e.t==='Monture et véhicule'?ri(1,3):e.po<=1?ri(5,20):e.po<=50?ri(1,6):ri(1,2)}));
+  if(T.gemmes)pick(GEMMES.filter(g=>g[1]<=[50,500,1000,5000,5000][S.max]),Math.round(GEMMES.length*S.c*.7)).forEach(g=>cour.push({n:g[0],t:'Pierre précieuse',k:'g',p:nb(g[1])+' po',po:g[1],qty:ri(1,4)}));
+  cour.sort((a,b)=>a.t.localeCompare(b.t,'fr')||a.po-b.po);
+  const shop={id:'b'+Date.now().toString(36),nom:T.nom+' ('+S.nom.toLowerCase()+')',type:T.id,taille:$('#taille').value,magie:items,courant:cour};
+  data.liste.unshift(shop);data.liste=data.liste.slice(0,20);data.cur=shop.id;
+  Persos.save();render();
+  msg('Inventaire généré : '+items.length+' objet'+(items.length>1?'s':'')+' magique'+(items.length>1?'s':''));
+}
+
+function detail(it){
+  if(it.k==='o'){const o=OBJ.find(x=>x.n===it.n);return o?o.h:''}
+  if(it.k==='s'){const s=SP.find(x=>x.n===it.ref);return s?'<b>'+(s.l?'Niveau '+s.l:'Tour de magie')+', '+esc(s.e)+'.</b> '+s.h:''}
+  if(it.k==='e'){const e=EQ.find(x=>x.n===it.n);return e?e.h||'':''}
+  return '';
+}
+function ligne(it,i,sec){
+  const out=!it.qty,h=detail(it);
+  const prix=it.k==='e'||it.k==='g'?esc(it.p):nb(it.po)+' po'+(it.po!==it.base?'<s>'+nb(it.base)+'</s>':'');
+  return `<details class="it ${it.k==='o'||it.k==='s'?'r'+it.r:'rc'}${out?' out':''}"><summary><span class="nm">${esc(it.n)}<small>${esc(it.t)}${it.k==='o'||it.k==='s'?' · '+RN[it.r]:''}</small></span>
+<span class="pr">${prix}</span><span class="qt">${out?'Épuisé':'Stock : '+it.qty}</span>${out?'':`<button type="button" class="sold" data-sec="${sec}" data-i="${i}">Vendu</button>`}</summary>${h?'<div class="h">'+h+'</div>':''}</details>`;
+}
+function render(){
+  const mj=estMJ();
+  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#bPrint').hidden=!mj;
+  if(!mj||!OBJ.length)return;
+  $('#saved').innerHTML=data.liste.length?'<span>Boutiques enregistrées :</span>'+data.liste.map(s=>`<span class="sv" aria-current="${s.id===data.cur}"><button type="button" data-open="${s.id}">${esc(s.nom)}</button><button type="button" class="x" data-del="${s.id}" aria-label="Supprimer ${esc(s.nom)}" title="Supprimer">×</button></span>`).join(''):'';
+  const s=data.liste.find(x=>x.id===data.cur);
+  if(!s){$('#shop').innerHTML='<section class="panel empty">Choisis un type de boutique puis touche « Générer l’inventaire ».</section>';return}
+  const cnt=RN.map((n,r)=>[n,s.magie.filter(x=>x.r===r).length]).filter(x=>x[1]);
+  const T=TYPES.find(t=>t.id===s.type)||{};
+  $('#shop').innerHTML=`<section class="panel shop"><div class="shead"><input id="snom" value="${esc(s.nom)}" aria-label="Nom de la boutique"><small>${esc(T.nom||'')} · ${esc((TAILLES[s.taille]||{}).nom||'')}</small></div>
+<div class="sum">${cnt.map(([n,c])=>`<span class="r${RN.indexOf(n)}" style="background:var(--k)">${c} ${n.toLowerCase()}${c>1?'s':''}</span>`).join('')}${s.courant.length?`<span class="rc" style="background:var(--k)">${s.courant.length} article${s.courant.length>1?'s':''} courant${s.courant.length>1?'s':''}</span>`:''}</div>
+${s.magie.length?`<div class="sec"><h2 style="--k:#7a4fc4">Objets magiques</h2>${s.magie.map((it,i)=>ligne(it,i,'magie')).join('')}</div>`:''}
+${s.courant.length?`<div class="sec"><h2 style="--k:#9a8f7a">Marchandise courante</h2>${s.courant.map((it,i)=>ligne(it,i,'courant')).join('')}</div>`:''}
+${!s.magie.length&&!s.courant.length?'<p class="empty">Rien en stock.</p>':''}</section>`;
+}
+$('#type').onchange=()=>{const T=TYPES.find(t=>t.id===$('#type').value);$('#tdesc').textContent=T.d+' En grande ville : '+T.q.map((n,r)=>n+' '+RN[r].toLowerCase()).filter(x=>!x.startsWith('0')).join(', ')+' (environ deux tiers en ville, un tiers dans un bourg, un quart dans un village ; pas de légendaire hors des grandes villes, ni de très rare au village).'};
+$('#bGen').onclick=generer;
+$('#saved').onclick=e=>{
+  const o=e.target.dataset.open,d=e.target.dataset.del;
+  if(o){data.cur=o;Persos.save();render()}
+  if(d){const s=data.liste.find(x=>x.id===d);if(!s||!confirm('Supprimer « '+s.nom+' » ?'))return;
+    data.liste=data.liste.filter(x=>x.id!==d);if(data.cur===d)data.cur=data.liste[0]?data.liste[0].id:null;Persos.save();render();msg('Boutique supprimée')}
+};
+$('#shop').addEventListener('click',e=>{
+  const b=e.target.closest('.sold');if(!b)return;e.preventDefault();
+  const s=data.liste.find(x=>x.id===data.cur),it=s&&s[b.dataset.sec][b.dataset.i];if(!it)return;
+  it.qty--;Persos.save();render();msg('« '+it.n+' » vendu'+(it.qty?' (reste '+it.qty+')':' : épuisé'));
+});
+$('#shop').addEventListener('input',e=>{if(e.target.id!=='snom')return;const s=data.liste.find(x=>x.id===data.cur);if(s){s.nom=e.target.value;Persos.save()}});
+$('#shop').addEventListener('change',e=>{if(e.target.id==='snom')render()});
+$('#bPrint').onclick=()=>window.print();
+
+Persos.init({part:'boutiques',mount:$('#persos'),msg,
+  collect:()=>({version:1,type:'boutiques-dnd-5e',data}),
+  apply:o=>{const d=o&&o.data;data=d&&Array.isArray(d.liste)?{liste:d.liste,cur:d.cur}:{liste:[],cur:null};render()},
+  onName:render});
+TYPES.forEach(t=>$('#type').add(new Option(t.nom,t.id)));$('#type').onchange();
+Promise.all(['objets.json','equipement.json','spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,e,s])=>{OBJ=o;EQ=e;SP=s;render()})
+  .catch(()=>{$('#shop').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});
+</script>
+</body>
+</html>

@@ -82,7 +82,7 @@
 <div id="mj" hidden>
 <section class="panel intro">
  <h1>Quêtes pour un groupe de 5 aventuriers</h1>
- <p>Des idées de quêtes prêtes à jouer, classées par palier. La récompense est donnée en pièces d’or (PO) pour tout le groupe, avec la part de chaque aventurier. Adapte-la à ta table : pour 4 ou 6 joueurs, garde la part par personne.</p>
+ <p>Des idées de quêtes prêtes à jouer, classées par palier. La récompense est donnée en pièces d’or (PO) pour tout le groupe, avec la part de chaque aventurier. Les montants suivent les prix des objets magiques du site (Guide du Maître 2024 : peu courant 400 PO, rare 4 000 PO, très rare 40 000 PO, légendaire 200 000 PO) : à la fin de chaque palier, une quête permet à chaque aventurier d’acheter environ un objet de la rareté de ce palier. Pour 4 ou 6 joueurs, garde la part par personne.</p>
  <div class="qbar noprint">
   <input type="search" id="q" placeholder="Chercher une quête, un lieu, un monstre…" aria-label="Chercher une quête">
   <div class="fk" role="group" aria-label="Filtrer par palier" id="ft">
@@ -111,6 +111,14 @@ const TIERS={1:'Niveaux 1 à 4',2:'Niveaux 5 à 10',3:'Niveaux 11 à 16',4:'Nive
 const TN={1:'Héros locaux',2:'Héros du royaume',3:'Maîtres du royaume',4:'Maîtres du monde'};
 const ST={libre:'Pas encore jouée',prevue:'Prévue',cours:'En cours',faite:'Terminée'};
 const GROUPE=5;
+const PRIX=[['légendaire',200000],['très rare',40000],['rare',4000],['peu courant',400]];
+// Ce que la part d'un aventurier permet d'acheter, en objets magiques
+function achat(pp){
+  const r=PRIX.find(x=>pp>=x[1]*.75);
+  if(!r)return 'de quoi s’équiper, pas encore un objet peu courant';
+  const n=Math.max(1,Math.round(pp/r[1]*2)/2);
+  return 'environ '+String(n).replace('.',',')+' objet'+(n>1?'s':'')+' '+r[0]+(n>1?'s':'')+' chacun';
+}
 let QS=[],suivi={},filt={t:'',ty:'',st:'',q:''};
 // La page n'est visible que si le personnage actif s'appelle « mj »
 const estMJ=()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'};
@@ -125,7 +133,7 @@ function carte(q){
 <p><b>Accroche.</b> ${esc(q.acc)}</p>
 <p><b>Objectif.</b> ${esc(q.obj)}</p>
 <div><p><b>Complications</b></p><ul>${q.comp.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul></div>
-<div class="po"><span>Récompense : <b>${nb(q.po)} PO</b> pour le groupe</span><span>soit <b>${nb(pp)} PO</b> par aventurier</span>${q.bonus?'<span class="bn">En plus : '+esc(q.bonus)+'</span>':''}</div>
+<div class="po"><span>Récompense : <b>${nb(q.po)} PO</b> pour le groupe</span><span>soit <b>${nb(pp)} PO</b> par aventurier</span><span class="bn">Équivaut à ${achat(pp)}</span>${q.bonus?'<span class="bn">En plus : '+esc(q.bonus)+'</span>':''}</div>
 <label class="st">Suivi <select data-id="${q.id}">${Object.keys(ST).map(k=>`<option value="${k}"${k===s?' selected':''}>${ST[k]}</option>`).join('')}</select></label>
 </article>`;
 }

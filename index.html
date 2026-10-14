@@ -103,10 +103,15 @@ footer{color:#b9bfe6;font-size:12px}
   <p>Les jeux de cartes magiques : Cartes merveilleuses (2014), Tarot merveilleux (2024) et Deck of Many More Things, avec l’effet de chaque carte.</p>
   <span class="go">Ouvrir les cartes</span>
  </a>
- <a class="card" href="quetes.html" id="cardMJ" hidden>
+ <a class="card mjonly" href="quetes.html" hidden>
   <h2>Quêtes du MJ</h2>
   <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
   <span class="go">Ouvrir les quêtes</span>
+ </a>
+ <a class="card mjonly" href="boutique.html" style="--c:#5c4a1e" hidden>
+  <h2>Boutiques du MJ</h2>
+  <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
+  <span class="go">Ouvrir les boutiques</span>
  </a>
  <a class="card" href="especes.html" style="--c:#b0632a">
   <h2>Espèces</h2>
@@ -132,9 +137,9 @@ function chips(){
     b.setAttribute('aria-pressed',p.actif);b.onclick=()=>{Persos.activate(p.id);chips()};
     $('#chips').appendChild(b);
   });
-  // Carte des quêtes visible uniquement avec le personnage « mj »
-  const a=Persos.list().find(p=>p.actif);
-  $('#cardMJ').hidden=!(a&&a.nom.trim().toLowerCase()==='mj');
+  // Pages du MJ (quêtes, boutiques) visibles uniquement avec le personnage « mj »
+  const a=Persos.list().find(p=>p.actif),mj=!!a&&a.nom.trim().toLowerCase()==='mj';
+  document.querySelectorAll('.mjonly').forEach(c=>c.hidden=!mj);
 }
 chips();
 $('#bNew').onclick=()=>{const p=Persos.create();if(p){chips();msg('Personnage « '+p.nom+' » créé')}};
