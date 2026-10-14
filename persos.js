@@ -197,6 +197,62 @@ addEventListener('storage',function(e){
   }
 });
 
+/* ---------- Créations personnelles (objets magiques, équipement, dons) ----------
+   Partagées par tous les personnages du navigateur, sous une clé à part.
+   Chaque liste a la même forme que objets.json / equipement.json / dons.json, avec c_:1 en plus. */
+var CKEY='dnd_perso_custom_v1',CKINDS=['objets','equipement','dons'],cmem=null;
+function customAll(){
+  var c=parse(CKEY)||cmem||{};
+  CKINDS.forEach(function(k){if(!Array.isArray(c[k]))c[k]=[]});
+  return c;
+}
+function customSet(kind,list){
+  var c=customAll();c[kind]=list;cmem=c;
+  try{localStorage.setItem(CKEY,JSON.stringify(c))}catch(e){}
+}
+// Une création renommée : ses occurrences dans tous les personnages suivent
+function customRename(kind,oldN,newN){
+  if(oldN===newN)return;
+  var s=load(),p,d,i;
+  for(var id in s.persos){
+    p=s.persos[id];d=p[kind]&&p[kind].data;
+    if(!d)continue;
+    ['objets','harmonises'].forEach(function(k){
+      if(!Array.isArray(d[k]))return;
+      d[k]=d[k].map(function(x){
+        if(x===oldN)return newN;
+        if(x&&typeof x==='object'&&x.n===oldN){x.n=newN}
+        return x;
+      });
+    });
+  }
+  save(s);
+}
+// Créations utilisées par un personnage (pour l'export)
+function customUsed(p){
+  var c=customAll(),o={},n;
+  function names(k,f){var d=p[k]&&p[k].data;return (d&&d[f]||[]).map(function(x){return typeof x==='string'?x:x&&x.n})}
+  n=names('objets','objets');o.objets=c.objets.filter(function(x){return n.indexOf(x.n)>=0});
+  n=names('equipement','objets');o.equipement=c.equipement.filter(function(x){return n.indexOf(x.n)>=0});
+  var ex=p.fiche&&p.fiche.data&&p.fiche.data.extras,ids=(ex&&ex.dons||[]).map(function(g){return g.id});
+  o.dons=c.dons.filter(function(x){return ids.indexOf(x.id)>=0});
+  return o;
+}
+// Import : on ajoute les créations absentes (même nom, ou même identifiant pour un don : on garde l'existante)
+function customMerge(o){
+  if(!o||typeof o!=='object')return;
+  var c=customAll();
+  CKINDS.forEach(function(k){
+    if(!Array.isArray(o[k]))return;
+    o[k].forEach(function(x){
+      if(!x||typeof x!=='object'||!x.n&&!x.nom)return;
+      var dup=c[k].some(function(y){return k==='dons'?y.id===x.id||y.nom===x.nom:y.n===x.n});
+      if(!dup){x.c_=1;c[k].push(x)}
+    });
+    customSet(k,c[k]);
+  });
+}
+
 /* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
 var PARTS=['fiche','grimoire','objets','equipement','familiers'];
 function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
@@ -255,6 +311,7 @@ function exportActive(){
   o.equipement=e?{titre:e.titre||'',objets:e.objets||[]}:null;
   var fm=p.familiers&&p.familiers.data;
   o.familiers=fm?{titre:fm.titre||'',familiers:fm.familiers||[]}:null;
+  o.creations_personnelles=customUsed(p);
   return o;
 }
 function importPerso(o){
@@ -269,6 +326,7 @@ function importPerso(o){
     p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
     p.familiers=o.familiers?{version:1,type:'familiers-dnd-5e',data:{titre:o.familiers.titre||'',familiers:o.familiers.familiers||[],filtres:{}}}:null;
   }else throw new Error('format');
+  customMerge(o.creations_personnelles);
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
 }
@@ -290,6 +348,7 @@ window.Persos={
   init:init,
   save:flush,
   setName:setName,
+  custom:customAll,setCustom:customSet,renameCustom:customRename,
   current:function(){return load().persos[cur]}
 };
 })();

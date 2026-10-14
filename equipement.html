@@ -124,8 +124,9 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
   </div>
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
-      <label>Afficher&nbsp;<select id="fo"><option value="">tout l’équipement</option><option value="1">ma sélection</option></select></label>
+      <label>Afficher&nbsp;<select id="fo"><option value="">tout l’équipement</option><option value="1">ma sélection</option><option value="perso">mes créations</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
+   <button class="b add" id="bNew" title="Crée ton propre objet d’équipement : il sera disponible pour tous tes personnages">+ Créer un objet</button>
   </div>
  </section>
  <div class="list" id="list"><div class="empty-msg">Chargement des objets…</div></div>
@@ -145,6 +146,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 </div>
 
 <script src="persos.js"></script>
+<script src="custom.js"></script>
 <script>
 const TC={'Arme':'#c8402f','Armure':'#2f6fd0','Munition':'#d8791a','Équipement d’aventurier':'#2e9e5b','Paquetage':'#12968f','Outil':'#7a4fc4','Monture et véhicule':'#8e5a2b'};
 const TORDER=Object.keys(TC);
@@ -158,12 +160,34 @@ let DB=[];const BYN=new Map();
 const st={sel:new Map(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set()};
 const qty=s=>st.sel.get(s.n)||0;
 
+let BASE=[];
 function setup(data){
-  DB=data;
-  DB.forEach((s,i)=>{s.i=i;s.idx=norm(s.n+' '+s.en+' '+s.c);[s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)})});
+  BASE=data;
+  index();
   $('#fc').innerHTML='<option value="">Toutes</option>'+TORDER.filter(t=>DB.some(s=>s.t===t)).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   fillSub();
 }
+// Objets du livre + créations personnelles (Persos.custom())
+function index(){
+  DB=BASE.concat(Persos.custom().equipement.filter(s=>s&&s.n&&TORDER.includes(s.t)));
+  BYN.clear();
+  DB.forEach((s,i)=>{s.i=i;s.idx=norm(s.n+' '+s.en+' '+s.c);[s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)})});
+}
+function editCustom(it){
+  const cats={};BASE.forEach(s=>{(cats[s.t]=cats[s.t]||[]).includes(s.c)||cats[s.t].push(s.c)});
+  Custom.edit({kind:'equipement',item:it,types:TORDER,cats,
+    taken:n=>BYN.has(norm(n)),
+    done:(x,old)=>{
+      if(old&&(!x||x.n!==old.n)){
+        const q=st.sel.get(old.n);st.sel.delete(old.n);st.open.delete(old.n);
+        if(x&&q)st.sel.set(x.n,q);
+      }
+      if(x&&!old){st.sel.set(x.n,1);st.open.add(x.n)}
+      index();fillSub();renderAll();
+      msg(x?(old?'Objet modifié':'« '+x.n+' » créé et ajouté à ton équipement'):'Objet supprimé');
+    }});
+}
+const editBtn=s=>s.c_?`<button class="b noprint" style="--c:#d8791a" data-act="edit" data-i="${s.i}">Modifier</button>`:'';
 function fillSub(){
   const subs=[...new Set(DB.filter(s=>!st.cls||s.t===st.cls).map(s=>s.c))];
   if(st.sch&&!subs.includes(st.sch))st.sch='';
@@ -172,13 +196,13 @@ function fillSub(){
 }
 function card(s,remove){
   const col=TC[s.t]||'#2a3170',q=qty(s);
-  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}</h3><div class="sub">${esc(s.c)} · ${esc(s.en)}</div></div><span class="lvb">${remove?'× '+q:esc(s.p)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Coût</dt><dd>${esc(s.p)}</dd></div><div><dt>Poids</dt><dd>${s.kg?fkg(s.kg):'—'}</dd></div><div><dt>Catégorie</dt><dd>${esc(s.c)}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>${remove?`<div><dt>Quantité</dt><dd>${q} (total ${fkg(q*s.kg)} · ${fmt(q*s.po)} po)</dd></div>`:''}</dl>
-  <div class="desc">${s.h.replace(/([.)])\s+(?=<b>)/g,'$1<br>')}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button></div>`:''}</div></article>`;
+  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${s.c_?'<span class="pill" style="background:#d8791a">Création</span>':''}</h3><div class="sub">${esc(s.c)}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb">${remove?'× '+q:esc(s.p)}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Coût</dt><dd>${esc(s.p)}</dd></div><div><dt>Poids</dt><dd>${s.kg?fkg(s.kg):'—'}</dd></div><div><dt>Catégorie</dt><dd>${esc(s.c)}</dd></div>${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${remove?`<div><dt>Quantité</dt><dd>${q} (total ${fkg(q*s.kg)} · ${fmt(q*s.po)} po)</dd></div>`:''}</dl>
+  <div class="desc">${s.h.replace(/([.)])\s+(?=<b>)/g,'$1<br>')}</div>${remove?`<div class="qty noprint" style="margin-top:6px"><button class="b" data-act="dec" data-i="${s.i}">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b" data-act="inc" data-i="${s.i}">+</button> <button class="b rm" data-act="rm" data-i="${s.i}">Retirer</button> ${editBtn(s)}</div>`:s.c_?`<div class="noprint" style="margin-top:6px">${editBtn(s)}</div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q),max=st.lvl===''?null:parseFloat(st.lvl);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||s.c===st.sch)&&(max===null||isNaN(max)||s.po<=max)&&(!st.only||qty(s)>0));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||s.c===st.sch)&&(max===null||isNaN(max)||s.po<=max)&&(!st.only||(st.only==='perso'?!!s.c_:qty(s)>0)));
 }
 function totals(){let kg=0,po=0,n=0;DB.forEach(s=>{const q=qty(s);if(q){kg+=q*s.kg;po+=q*s.po;n+=q}});return{kg,po,n}}
 function renderList(){
@@ -187,7 +211,7 @@ function renderList(){
   $('#list').innerHTML=r.length?r.map(s=>{
     const q=qty(s),op=st.open.has(s.n),col=TC[s.t]||'#2a3170';
     const act=q?`<span class="qty"><button class="b" data-act="dec" data-i="${s.i}" aria-label="Retirer un exemplaire">−</button><input class="qin" type="number" min="1" max="999" value="${q}" data-i="${s.i}" aria-label="Quantité de ${esc(s.n)}"><button class="b add on" data-act="inc" data-i="${s.i}" aria-label="Ajouter un exemplaire">+</button></span>`:`<button class="b add" data-act="inc" data-i="${s.i}">Ajouter</button>`;
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}</div><div class="rs">${esc(s.c)}${s.kg?' · '+fkg(s.kg):''}</div></div><span class="pr">${esc(s.p)}</span>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${s.c_?'<span class="pill" style="background:#d8791a">Création</span>':''}</div><div class="rs">${esc(s.c)}${s.kg?' · '+fkg(s.kg):''}</div></div><span class="pr">${esc(s.p)}</span>
     <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${act}</div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
@@ -220,7 +244,7 @@ function apply(o){
     const s=BYN.get(norm(String(n)));if(s)st.sel.set(s.n,q);else unknown++;
   });
   const f=d.filtres||{};
-  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only?'1':'';
+  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=f.lvl||'';st.only=f.only==='perso'?'perso':f.only?'1':'';
   syncInputs();renderAll();
   return unknown;
 }
@@ -237,6 +261,7 @@ document.addEventListener('click',e=>{
   else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
   else if(a==='rm')setQ(s,0);
   else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
+  else if(a==='edit')editCustom(s);
   else if(a==='mode')setMode(b.dataset.m);
 });
 function setMode(m){
@@ -259,6 +284,7 @@ $('#fs').addEventListener('change',e=>{st.sch=e.target.value;renderList();autosa
 $('#fl').addEventListener('input',e=>{st.lvl=e.target.value;renderList();autosave()});
 $('#fo').addEventListener('change',e=>{st.only=e.target.value;renderList();autosave()});
 $('#titre').addEventListener('input',autosave);
+$('#bNew').onclick=()=>editCustom(null);
 $('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{

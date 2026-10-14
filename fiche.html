@@ -326,7 +326,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   </div>
   <div class="xcol">
    <section class="card" style="--c:#c8402f"><h2>Dons</h2><div class="in">
-    <div class="xbar noprint" style="--c:#c8402f"><select id="donSel" aria-label="Choisir un don"></select><button type="button" id="bDon">Ajouter</button></div>
+    <div class="xbar noprint" style="--c:#c8402f"><select id="donSel" aria-label="Choisir un don"></select><button type="button" id="bDon">Ajouter</button><button type="button" id="bDonNew" style="white-space:nowrap" title="Crée ton propre don : il sera disponible pour tous tes personnages">Créer un don</button></div>
     <div id="xDons" style="display:flex;flex-direction:column;gap:5px"></div>
    </div></section>
   </div>
@@ -339,6 +339,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 </main>
 
 <script src="persos.js"></script>
+<script src="custom.js"></script>
 <script>
 const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
 const SK=[['Acrobaties','dex'],['Arcanes','int'],['Athlétisme','for'],['Discrétion','dex'],['Dressage','sag'],['Escamotage','dex'],['Histoire','int'],['Intimidation','cha'],['Intuition','sag'],['Investigation','int'],['Médecine','sag'],['Nature','int'],['Perception','sag'],['Persuasion','cha'],['Religion','int'],['Représentation','cha'],['Supercherie','cha'],['Survie','sag']];
@@ -599,6 +600,8 @@ function fxCompute(lvl,pb){
   const sf=F.cl&&SCD&&SCD[F.cl[0]]&&SCD[F.cl[0]][val('sclasse')];
   if(sf)run(sf.fx||[],{},val('sclasse'),'s_');
   for(const n of harmonises()){const fx=fxObj(n);if(fx)run(fx,{},n,'o_')}
+  {const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];   // objets créés sans harmonisation : effets dès qu'ils sont choisis
+   for(const n of L){const c=custom('objets').find(x=>x.n===n);if(c&&!c.a&&c.fx&&c.fx.length)run(fxCustom(n),{},n,'o_')}}
   // capacités de classe : seuls les effets sur les valeurs de la fiche (les réserves de classe sont déjà au-dessus)
   if(F.cl&&CAPD&&CAPD[F.cl[0]])for(const f of CAPD[F.cl[0]])
     if(f.niv<=lvl)run((f.fx||[]).filter(x=>x.t!=='res').map(x=>({...x,niv:0})),{},f.nom,'c_');
@@ -668,7 +671,7 @@ function renderExtras(F,lvl,pb,mod,tot){
   else dh=PX.dons.map(g=>{
     const dd=DOND.find(x=>x.id===g.id);
     if(!dd)return '';
-    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}${g.bg?' · de l’historique':''}</span>${g.bg?'':`<button type="button" class="noprint" data-del="${g.u}">Retirer</button>`}</div><p>${esc(dd.desc)}</p>`
+    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}${g.bg?' · de l’historique':''}${dd.c_?' · création':''}</span>${dd.c_?`<button type="button" class="noprint" data-donedit="${esc(dd.id)}">Modifier</button>`:''}${g.bg?'':`<button type="button" class="noprint" data-del="${g.u}">Retirer</button>`}</div><p>${esc(dd.desc)}</p>`
       +(dd.choix.length?`<div class="chs">${dd.choix.map(c=>chHTML('d'+g.u,c,g.ch[c.id])).join('')}</div>`:'')
       +RES.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
   }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus (un même don peut être pris plusieurs fois).</p>';
@@ -903,7 +906,7 @@ document.addEventListener('click',async e=>{
   const o=Persos.part('objets'),D=o&&o.data||{},L=D.objets||[],H=new Set(D.harmonises||[]);
   if(!L.length){alert('Aucun objet magique choisi pour ce personnage : ajoute-en d’abord sur la page Objets magiques.');return}
   let DBo;
-  try{DBo=await (await fetch('objets.json')).json()}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
+  try{DBo=(await (await fetch('objets.json')).json()).concat(custom('objets'))}catch(x){alert('Impossible de lire la liste des objets (objets.json).');return}
   const by={};DBo.forEach(s=>by[s.n]=s);
   const ins=[0,1,2,3,4].map(i=>document.querySelector('[data-k=obj'+i+']'));
   const all=L.map(n=>by[n]||{n,a:''});
@@ -950,6 +953,7 @@ document.addEventListener('click',async e=>{
 const normW=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘]/g,"'");
 function baseChoices(s,W){   // armes de base possibles pour une arme magique, d'après le début de sa description
   const txt=s.h.replace(/<[^>]+>/g,'');
+  if(s.base){const b=W.filter(w=>w.n===s.base);if(b.length)return b}   // arme magique créée : arme de base choisie
   if(/b[aâ]ton de combat/i.test(txt))return W.filter(w=>w.n==='Bâton');
   let head=normW((txt.match(/^[^.]*?\(([^)]*)\)/)||[])[1]||'')+' | '+normW(txt.split('.')[0])+' | '+normW(s.n);
   const r=[];
@@ -1119,6 +1123,35 @@ function fit(){document.querySelectorAll('textarea').forEach(t=>{let s=11;t.styl
 function unfit(){document.querySelectorAll('textarea').forEach(t=>t.style.fontSize='')}
 addEventListener('beforeprint',fit);addEventListener('afterprint',unfit);
 $('#bPrint').onclick=()=>window.print();
+// Dons du livre + dons créés (Persos.custom()), regroupés à part dans la liste
+let DONB=null;
+function donsIndex(){
+  const mine=Persos.custom().dons.filter(x=>x&&x.id&&x.nom);
+  DOND=DONB.concat(mine);
+  const cats=[];DONB.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
+  const og=(l,a)=>a.length?`<optgroup label="${esc(l)}">${a.map(x=>`<option value="${esc(x.id)}">${esc(x.nom)}</option>`).join('')}</optgroup>`:'';
+  $('#donSel').innerHTML='<option value="">Choisir un don…</option>'+og('Mes créations',mine)+cats.map(c=>og(c,DONB.filter(x=>x.cat===c))).join('');
+}
+function editDon(it){
+  if(!DONB){alert('Les données de dons n’ont pas pu être chargées.');return}
+  const cats=[];DONB.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
+  Custom.edit({kind:'dons',item:it,cats,
+    taken:n=>DOND.some(x=>norm(x.nom)===norm(n)),
+    done:(x,old)=>{
+      if(!x&&old){
+        PX.dons.filter(g=>g.id===old.id).forEach(g=>Object.keys(RS).forEach(k=>{if(k.startsWith('d'+g.u+'_'))delete RS[k]}));
+        PX.dons=PX.dons.filter(g=>g.id!==old.id);
+      }
+      if(x&&!old)PX.dons.push({u:rid(),id:x.id,ch:{}});
+      donsIndex();LAST=new WeakMap();calc();autosave();
+      msg(x?(old?'Don modifié':'Don « '+x.nom+' » créé et ajouté à la fiche'):'Don supprimé');
+    }});
+}
+$('#bDonNew').onclick=()=>editDon(null);
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest&&ev.target.closest('[data-donedit]');
+  if(b)editDon(DOND.find(x=>x.id===b.dataset.donedit));
+});
 $('#bDon').onclick=()=>{
   const id=$('#donSel').value;
   if(!id||!DOND)return;
@@ -1151,10 +1184,7 @@ async function boot(){
   if(d.status==='fulfilled')SCD=d.value;
   if(e.status==='fulfilled')CAPD=e.value;
   if(ESPD)$('#race').innerHTML='<option value="">Choisir…</option>'+Object.keys(ESPD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
-  if(DOND){
-    const cats=[];DOND.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
-    $('#donSel').innerHTML='<option value="">Choisir un don…</option>'+cats.map(c=>`<optgroup label="${esc(c)}">${DOND.filter(x=>x.cat===c).map(x=>`<option value="${x.id}">${esc(x.nom)}</option>`).join('')}</optgroup>`).join('');
-  }
+  if(DOND){DONB=DOND;donsIndex()}
   Persos.init({
     part:'fiche',
     mount:$('#persos'),

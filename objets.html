@@ -39,7 +39,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
 .srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
-.pill.co{background:#7a4fc4}.pill.ri{background:#12968f}
+.pill.co{background:#7a4fc4}.pill.ri{background:#12968f}.pill.cu{background:#d8791a}
 
 /* Fiche de sort */
 .sp{--c:#2a3170;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--c) 6%,#fff);break-inside:avoid;page-break-inside:avoid}
@@ -124,9 +124,10 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
   </div>
   <div class="fbar">
    <span class="cnt" id="cnt"></span>
-   <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">règles 5.5 (Guide du Maître 2024)</option><option value="2014">anciens livres, version 2014</option></select></label>
+   <label>Source&nbsp;<select id="fb"><option value="">toutes</option><option value="base">règles 5.5 (Guide du Maître 2024)</option><option value="2014">anciens livres, version 2014</option><option value="perso">mes créations</option></select></label>
    <label>Afficher&nbsp;<select id="fo"><option value="">tous les objets</option><option value="1">ma sélection</option></select></label>
    <button class="b" id="bReset">Réinitialiser les filtres</button>
+   <button class="b add" id="bNew" title="Crée ton propre objet magique : il sera disponible pour tous tes personnages">+ Créer un objet</button>
   </div>
  </section>
  <div class="list" id="list"><div class="empty-msg">Chargement des objets…</div></div>
@@ -145,6 +146,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 </div>
 
 <script src="persos.js"></script>
+<script src="custom.js"></script>
 <script>
 const RC={'Courant':'#6b7280','Peu courant':'#2e9e5b','Rare':'#2f6fd0','Très rare':'#7a4fc4','Légendaire':'#d8791a','Artefact':'#c8402f'};
 const RA={'Courant':'C','Peu courant':'PC','Rare':'R','Très rare':'TR','Légendaire':'L','Artefact':'A'};
@@ -166,17 +168,46 @@ const BYN=new Map();
 const MAXH=3;   // règles 2024 : 3 objets harmonisés au maximum
 const st={sel:new Set(),har:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
 
+let BASE=[];
 function setup(data){
-  DB=data;
-  DB.forEach((s,i)=>{
-    s.i=i;s.idx=norm(s.n+' '+s.en);
-    [s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
-  });
+  BASE=data;
+  index();
   const opts=(first,arr)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   $('#fc').innerHTML=opts('Tous',TORDER.filter(t=>DB.some(s=>s.t===t)));
   $('#fs').innerHTML=opts('Toutes',RORDER);
 }
-const pills=s=>(s.a?(st.har.has(s.n)?'<span class="pill hz">Harmonisé</span>':'<span class="pill co">Harmonisation</span>'):'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
+// Objets du livre + créations personnelles (Persos.custom())
+function index(){
+  DB=BASE.concat(Persos.custom().objets.filter(s=>s&&s.n&&TORDER.includes(s.t)));
+  BYN.clear();
+  DB.forEach((s,i)=>{
+    s.i=i;s.idx=norm(s.n+' '+s.en);
+    [s.n,s.en].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
+  });
+}
+let WEAP=null;   // armes de equipement.json (arme de base d'une arme magique créée)
+async function editCustom(it){
+  if(!WEAP)try{WEAP=(await (await fetch('equipement.json')).json()).concat(Persos.custom().equipement).filter(x=>x.t==='Arme'||x.t==='Munition').map(x=>x.n)}catch(e){WEAP=[]}
+  Custom.edit({kind:'objets',item:it,types:TORDER,rares:RORDER,weapons:WEAP,
+    taken:n=>BYN.has(norm(n)),
+    done:(x,old)=>{
+      if(old&&(!x||x.n!==old.n)){
+        const h=st.har.has(old.n),on=st.sel.has(old.n);
+        st.sel.delete(old.n);st.har.delete(old.n);st.open.delete(old.n);
+        if(x&&on){st.sel.add(x.n);if(h&&x.a)st.har.add(x.n)}
+      }
+      if(x&&!x.a)st.har.delete(x.n);
+      if(x&&!old){st.sel.add(x.n);st.open.add(x.n)}
+      index();renderAll();
+      msg(x?(old?'Objet modifié':'« '+x.n+' » créé et ajouté à tes objets'):'Objet supprimé');
+    }});
+}
+const pills=s=>(s.c_?'<span class="pill cu">Création</span>':'')+(s.a?(st.har.has(s.n)?'<span class="pill hz">Harmonisé</span>':'<span class="pill co">Harmonisation</span>'):'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
+// Effets sur la fiche d'un objet créé (voir custom.js)
+const FXN={ca:'CA',sv:'jets de sauvegarde',tests:'tests de caractéristique',init:'initiative',satk:'attaque de sort',sdd:'DD des sorts',arme:'attaque et dégâts'};
+const sgn=n=>(n<0?'':'+')+n;
+const fxText=s=>(s.fx||[]).map(f=>f.t==='set'?Custom.ABN[f.v]+' '+f.n:f.t==='carac'?Custom.ABN[f.v]+' '+sgn(f.n):f.t==='vit'?'vitesse '+sgn(f.n)+' m':FXN[f.t]?FXN[f.t]+' '+sgn(f.n):'').filter(Boolean).join(', ');
+const editBtn=s=>s.c_?`<button class="b noprint" style="--c:#d8791a" data-act="edit" data-i="${s.i}">Modifier</button>`:'';
 const srcNote=s=>`<div class="srcn">Source : ${esc(s.src||'')}${s.ed==='2014'?' · objet en version 2014 (règles non mises à jour)':''}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}</div>`;
 // Descriptions d'objets plus lisibles : une ligne par paragraphe en gras, par sort à charges, par résultat de table de dés et par niveau
 function lines(h){
@@ -190,13 +221,13 @@ function lines(h){
 const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s.n)?' on':''}" data-act="har" data-i="${s.i}" aria-pressed="${st.har.has(s.n)}" title="Seuls les objets harmonisés sont importés dans les objets liés de la fiche (${MAXH} au maximum)">${st.har.has(s.n)?'✓ Harmonisé':'S’harmoniser'}</button>`:'';
 function card(s,remove){
   const col=rcol(s);
-  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''} · ${esc(s.en)}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div><div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div></dl>
-  <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
+  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
+  <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='2014')===(s.ed==='2014'))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
@@ -204,7 +235,7 @@ function renderList(){
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
     return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
-    <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
+    <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}${s.c_?`<div class="racts" style="margin-top:6px">${editBtn(s)}</div>`:''}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
 function renderBook(){
@@ -262,6 +293,7 @@ document.addEventListener('click',e=>{
   else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
   else if(a==='rm'){st.sel.delete(s.n);st.har.delete(s.n);renderAll()}
   else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
+  else if(a==='edit')editCustom(s);
   else if(a==='mode')setMode(b.dataset.m);
 });
 function setMode(m){
@@ -276,6 +308,7 @@ function setMode(m){
 $('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
 [['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
 $('#titre').addEventListener('input',autosave);
+$('#bNew').onclick=()=>editCustom(null);
 $('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
 $('#bSave').onclick=()=>{
