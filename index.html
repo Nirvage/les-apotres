@@ -92,6 +92,11 @@ footer{color:#b9bfe6;font-size:12px}
    <p>Choisis tes familiers (Appel de familier, Pacte de la chaîne, compagnons de Rôdeur…) avec leurs statistiques complètes.</p>
    <span class="go">Ouvrir les familiers</span>
   </a>
+  <a class="card" href="histoire.html" style="--c:#8a6d1f">
+   <h3>Histoire du personnage</h3>
+   <p>Écris l’histoire de ton personnage : son passé, son apparence, sa personnalité, ses liens, ses secrets et ses objectifs.</p>
+   <span class="go">Écrire l’histoire</span>
+  </a>
   <a class="card" href="dons.html" style="--c:#2e9e5b">
    <h3>Dons</h3>
    <p>Tous les dons (origine, généraux, styles de combat, faveurs épiques) avec un filtre par prérequis : vois d’un coup d’œil ceux que ton personnage peut prendre, et ajoute-les à sa fiche.</p>
@@ -171,7 +176,7 @@ footer{color:#b9bfe6;font-size:12px}
 </section>
 <div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
-<script src="persos.js?v=20261014e"></script>
+<script src="persos.js?v=20261014f"></script>
 <script>
 const $=s=>document.querySelector(s);
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',5000)};
@@ -195,7 +200,7 @@ $('#bExp').onclick=()=>{
   a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));
   a.download='personnage_'+nom+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  msg('Personnage complet exporté (fiche, grimoire, objets, équipement)');
+  msg('Personnage complet exporté (fiche, grimoire, objets, équipement, familiers, histoire…)');
 };
 $('#bImp').onclick=()=>$('#file').click();
 $('#file').onchange=ev=>{
@@ -207,7 +212,7 @@ $('#file').onchange=ev=>{
 };
 // Impression : chaque partie remplie est chargée dans un cadre caché, son rendu est copié (avec ses styles,
 // isolés dans un shadow DOM) dans un seul document, puis le tout est imprimé en une fois
-const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html',familiers:'familiers.html'};
+const PAGES={fiche:'fiche.html',grimoire:'grimoire.html',objets:'objets.html',equipement:'equipement.html',familiers:'familiers.html',histoire:'histoire.html'};
 function inlineCss(t){
   return t.replace(/@page\s*[^{]*\{[^}]*\}/g,'').replace(/:root/g,':host')
     .replace(/(^|[\s,{};])(body|html)(?=[\s\[.:,{>+~])/g,'$1.__b')

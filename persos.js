@@ -3,7 +3,7 @@
    Les pages chargent persos.js, custom.js et style.css avec « ?v=… » : changer ce numéro dans
    toutes les pages à chaque modification, sinon le navigateur peut garder l'ancienne version en cache.
 
-   Un personnage = { id, nom, fiche, grimoire }. Chaque page ne lit et n'écrit que sa
+   Un personnage = { id, nom, fiche, grimoire, … } (une entrée par page : objets, equipement, familiers, cartes, histoire). Chaque page ne lit et n'écrit que sa
    propre part ("fiche" ou "grimoire"). Tout est conservé dans le navigateur (localStorage)
    sous une seule clé ; le personnage actif est retrouvé d'une page à l'autre.
 
@@ -125,7 +125,7 @@ function rename(){
   save(s);render();
   named(n);
 }
-var TOUT='fiche, grimoire, objets magiques, équipement, familiers et cartes tirées';
+var TOUT='fiche, grimoire, objets magiques, équipement, familiers, cartes tirées et histoire';
 function remove(){
   var s=load(),p=s.persos[cur];
   if(!p||s.ordre.length<2)return;
@@ -258,7 +258,7 @@ function customMerge(o){
 }
 
 /* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
-var PARTS=['fiche','grimoire','objets','equipement','familiers','cartes'];
+var PARTS=['fiche','grimoire','objets','equipement','familiers','cartes','histoire'];
 function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
 function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
 /* Fiche : clés internes <-> noms lisibles pour le fichier exporté */
@@ -317,6 +317,7 @@ function exportActive(){
   o.familiers=fm?{titre:fm.titre||'',familiers:fm.familiers||[]}:null;
   var ct=p.cartes&&p.cartes.data;
   o.cartes_tirees=ct&&(ct.tirages||[]).length?ct.tirages:null;
+  o.histoire=histoireRemplie(p)?p.histoire.data:null;
   o.creations_personnelles=customUsed(p);
   return o;
 }
@@ -332,10 +333,16 @@ function importPerso(o){
     p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
     p.familiers=o.familiers?{version:1,type:'familiers-dnd-5e',data:{titre:o.familiers.titre||'',familiers:o.familiers.familiers||[],filtres:{}}}:null;
     p.cartes=Array.isArray(o.cartes_tirees)?{version:1,type:'cartes-dnd-5e',data:{tirages:o.cartes_tirees}}:null;
+    p.histoire=o.histoire&&typeof o.histoire==='object'?{version:1,type:'histoire-dnd-5e',data:o.histoire}:null;
   }else throw new Error('format');
   customMerge(o.creations_personnelles);
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
+}
+// Histoire du personnage : au moins une partie écrite
+function histoireRemplie(p){
+  var d=p.histoire&&p.histoire.data;
+  return !!d&&Object.keys(d).some(function(k){return typeof d[k]==='string'&&d[k].trim()});
 }
 // Parties qui contiennent quelque chose à imprimer pour le personnage actif
 function printable(){
@@ -346,6 +353,7 @@ function printable(){
   if(d('objets')&&(d('objets').objets||[]).length)r.push('objets');
   if(d('equipement')&&(d('equipement').objets||[]).length)r.push('equipement');
   if(d('familiers')&&(d('familiers').familiers||[]).length)r.push('familiers');
+  if(histoireRemplie(p))r.push('histoire');
   return r;
 }
 
