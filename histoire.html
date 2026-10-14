@@ -151,5 +151,6 @@ $('#bClear').onclick=()=>{
 
 Persos.init({part:'histoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
 </script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

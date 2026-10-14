@@ -165,5 +165,6 @@ $('#q').oninput=e=>{
 $('#bPrint').onclick=()=>window.print();
 Persos.init({part:'aidemj',mount:$('#persos'),msg,collect:()=>null,apply:render,onName:render});
 </script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

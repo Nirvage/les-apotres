@@ -275,5 +275,6 @@ $('#bPrintAll').onclick=async()=>{
   }catch(e){{console.log(e.stack);msg('Impression impossible : '+e.message)}}
 };
 </script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

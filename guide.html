@@ -295,5 +295,6 @@ code{background:#eceefb;border-radius:4px;padding:0 4px}
 </main>
 </div>
 <script>document.getElementById('bPrint').onclick=()=>window.print();</script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

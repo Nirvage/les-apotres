@@ -286,5 +286,6 @@ Persos.init({part:'butin',mount:$('#persos'),msg,
 Promise.all(['objets.json','spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,s])=>{OBJ=o;SP=s;POOL=null;render()})
   .catch(()=>{$('#loot').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});
 </script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>
