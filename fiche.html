@@ -80,6 +80,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .settings summary span{font:12px system-ui,sans-serif;color:var(--soft)}
 .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin-top:8px}
 .sgrid .w2{grid-column:span 2}
+.sgrid .imp{grid-column:1/-1;justify-self:start;background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px;font:600 13px system-ui,sans-serif;cursor:pointer}
 .sgrid input,.sgrid select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:#fff}
 .settings p{margin:8px 0 0;font-size:11px;color:var(--soft)}
 .objs{gap:4px}
@@ -177,7 +178,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <b>Fiche de personnage D&amp;D 5e</b>
   <span id="msg" role="status"></span>
   <button class="primary" id="bSave">Enregistrer (.json)</button>
-  <button id="bImp" title="Reprend ce qui a été choisi sur les autres pages : équipement, objets magiques, armure, armes et sorts du grimoire">Importer</button>
   <button id="bLoad">Charger un .json</button>
   <button id="bPrint">Exporter en PDF (A4)</button>
   <button id="bReset">Vider la fiche</button>
@@ -189,6 +189,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 <details class="settings panel noprint" open>
  <summary>Paramètres <span>(cette partie n'est pas imprimée)</span></summary>
  <div class="sgrid">
+  <button type="button" id="bImp" class="imp" title="Reprend ce qui a été choisi sur les autres pages : équipement, objets magiques, armes et sorts du grimoire">Importer les autres pages (équipement, objets magiques, armes, sorts)</button>
   <label class="w2"><small>Classe (remplit « Classe » et les dés de vie)</small><select id="clsel" data-k="clsel"></select></label>
   <label class="w2"><small>Espèce</small><select id="race" data-k="race"><option value="">Choisir…</option></select></label>
   <label class="w2"><small>Sous-espèce / lignage</small><select id="sespece" data-k="sespece" disabled><option value="">—</option></select></label>
