@@ -43,7 +43,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .sp h3{margin:0;font:italic 700 16px/1.15 var(--serif)}
 .sp .sub{font-size:11px;opacity:.92}
 .sp .body{padding:6px 10px 9px;font-size:12.5px;line-height:1.45}
-.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
+.meta{display:grid;grid-template-columns:repeat(5,auto);gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
 .meta div{min-width:0}
 .meta dt{font:700 10px system-ui;color:var(--c)}
 .meta dd{margin:0;font-size:12px}
@@ -113,6 +113,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
+const ini=m=>{const b=typeof m.init==='number'?m.init:Math.floor((m.car[1]-10)/2);return (b>=0?'+':'−')+Math.abs(b)+' ('+(10+b)+')'};
 const mod=n=>{const m=Math.floor((n-10)/2);return (m>=0?'+':'−')+Math.abs(m)};
 const AN=['FOR','DEX','CON','INT','SAG','CHA'];
 const SIZES=['Très petite','Petite','Moyenne','Moyenne ou petite','Grande','Très grande','Gigantesque'];
@@ -143,7 +144,7 @@ function block(m){
   const L=(t,v)=>v?`<div><b>${t}</b> ${esc(v)}</div>`:'';
   const src=m.v==='2014'?'SRD 5.1 (règles 2014) : ce monstre n’a pas de version 2024 dans le SRD 5.2':'SRD 5.2 (règles 2024)';
   return `<article class="sp" style="--c:${col(m)}"><header><div class="ti"><h3>${esc(m.n)}</h3><div class="sub">${esc(m.typ[0].toUpperCase()+m.typ.slice(1))} de taille ${esc(m.tail.toLowerCase())}, ${esc(m.al)} · ${esc(m.en)}</div></div></header>
-  <div class="body"><dl class="meta"><div><dt>Classe d’armure</dt><dd>${esc(m.ca)}</dd></div><div><dt>Points de vie</dt><dd>${esc(m.pv)}</dd></div><div><dt>Vitesse</dt><dd>${esc(m.vit)}</dd></div><div><dt>Facteur de puissance</dt><dd>${esc(m.fp)} · ${esc(m.px).replace(/^([\d  ]+)/,"$1 PX")} · BM ${esc(m.bm)}</dd></div></dl>
+  <div class="body"><dl class="meta"><div><dt>Classe d’armure</dt><dd>${esc(m.ca)}</dd></div><div><dt>Points de vie</dt><dd>${esc(m.pv)}</dd></div><div><dt>Vitesse</dt><dd>${esc(m.vit)}</dd></div><div><dt>Initiative</dt><dd>${ini(m)}</dd></div><div><dt>Facteur de puissance</dt><dd>${esc(m.fp)} · ${esc(m.px).replace(/^([\d  ]+)/,"$1 PX")} · BM ${esc(m.bm)}</dd></div></dl>
   <div class="ab6">${m.car.map((v,i)=>`<div><b>${AN[i]}</b><span>${v} (${mod(v)})</span></div>`).join('')}</div>
   <div class="lines">${L('Jets de sauvegarde',m.sauv)}${L('Compétences',m.comp)}${L('Vulnérabilités',m.vuln)}${L('Résistances',m.res)}${L('Immunités aux dégâts',m.imm)}${L('Immunités aux états',m.cimm)}${L('Équipement',m.equip)}${L('Sens',m.sens)}${L('Langues',m.langues)}</div>
   ${sec('Traits',m.traits)}${sec('Actions',m.actions)}${sec('Actions bonus',m.bonus)}${sec('Réactions',m.reac)}${sec('Actions légendaires',m.leg,m.legi)}
@@ -189,7 +190,7 @@ $('#bRand').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('bestiaire.json?v=20261014');
+    const r=await fetch('bestiaire.json?v=20261014b');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){

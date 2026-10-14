@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Suivi de combat du MJ</title>
 <link rel="stylesheet" href="style.css?v=20261014c">
-<link rel="stylesheet" href="monstres.css?v=20261014">
+<link rel="stylesheet" href="monstres.css?v=20261014b">
 <style>
 .wrap{max-width:1000px;margin:16px auto;padding:0 12px}
 .panel{padding:10px 14px 12px}
@@ -123,7 +123,7 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 </div>
 </div>
 <script src="persos.js?v=20261014e"></script>
-<script src="monstres.js?v=20261014"></script>
+<script src="monstres.js?v=20261014b"></script>
 <script>
 const $=s=>document.querySelector(s);
 const M=Monstres,esc=M.esc;
@@ -166,7 +166,7 @@ function addMonstre(m,q,mode){
   const many=q>1||same.length>0;
   if(same.length===1&&same[0].nom===m.n){same[0].nom=m.n+' 1';k=1}
   for(let i=0;i<q;i++){
-    const pv=mode==='de'?M.rollPV(m):M.pv(m).moy,ib=M.dex(m);
+    const pv=mode==='de'?M.rollPV(m):M.pv(m).moy,ib=M.init(m);
     S.list.push({id:uid(),type:'m',m:m.n,nom:many?m.n+' '+(++k):m.n,init:d20()+ib,ib,ca:M.ca(m),pv,pvmax:pv,tmp:0,et:{},conc:false,note:''});
   }
 }

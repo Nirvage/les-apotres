@@ -5,7 +5,7 @@
 .sp h3{margin:0;font:italic 700 16px/1.15 var(--serif)}
 .sp .sub{font-size:11px;opacity:.92}
 .sp .body{padding:6px 10px 9px;font-size:12.5px;line-height:1.45}
-.sp .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
+.sp .meta{display:grid;grid-template-columns:repeat(5,auto);gap:3px 10px;margin:0 0 6px;padding-bottom:5px;border-bottom:1px dashed var(--c)}
 .sp .meta div{min-width:0}
 .sp .meta dt{font:700 10px system-ui;color:var(--c)}
 .sp .meta dd{margin:0;font-size:12px}

@@ -23,6 +23,9 @@ function rnd(n){var a=new Uint32Array(1);crypto.getRandomValues(a);return Math.f
 function rollPV(m){var p=pv(m),t=p.b;if(!p.n)return p.moy;for(var i=0;i<p.n;i++)t+=1+rnd(p.d);return Math.max(1,t)}
 function ca(m){return parseInt(m.ca,10)||10}
 function dex(m){return Math.floor((m.car[1]-10)/2)}
+// Bonus d'initiative : celui du profil 2024 (Dex + maîtrise éventuelle), sinon le modificateur de Dex (2014)
+function init(m){return typeof m.init==='number'?m.init:dex(m)}
+function sg(n){return (n>=0?'+':'−')+Math.abs(n)}
 function sec(title,arr,intro){
   if(!arr||!arr.length)return '';
   return '<div class="sec"><h4>'+title+'</h4>'+(intro?'<p class="intro">'+esc(intro)+'</p>':'')+arr.map(function(a){return '<p><b><i>'+esc(a.n)+'.</i></b> '+esc(a.d)+'</p>'}).join('')+'</div>';
@@ -31,7 +34,7 @@ function block(m){
   function L(t,v){return v?'<div><b>'+t+'</b> '+esc(v)+'</div>':''}
   var src=m.v==='2014'?'SRD 5.1 (règles 2014)':'SRD 5.2 (règles 2024)';
   return '<article class="sp" style="--c:'+col(m)+'"><header><div class="ti"><h3>'+esc(m.n)+'</h3><div class="sub">'+esc(m.typ[0].toUpperCase()+m.typ.slice(1))+' de taille '+esc(m.tail.toLowerCase())+', '+esc(m.al)+' · '+esc(m.en)+'</div></div></header>'
-   +'<div class="body"><dl class="meta"><div><dt>Classe d’armure</dt><dd>'+esc(m.ca)+'</dd></div><div><dt>Points de vie</dt><dd>'+esc(m.pv)+'</dd></div><div><dt>Vitesse</dt><dd>'+esc(m.vit)+'</dd></div><div><dt>Facteur de puissance</dt><dd>'+esc(m.fp)+' · '+esc(m.px)+' PX · BM '+esc(m.bm)+'</dd></div></dl>'
+   +'<div class="body"><dl class="meta"><div><dt>Classe d’armure</dt><dd>'+esc(m.ca)+'</dd></div><div><dt>Points de vie</dt><dd>'+esc(m.pv)+'</dd></div><div><dt>Vitesse</dt><dd>'+esc(m.vit)+'</dd></div><div><dt>Initiative</dt><dd>'+sg(init(m))+' ('+(10+init(m))+')</dd></div><div><dt>Facteur de puissance</dt><dd>'+esc(m.fp)+' · '+esc(String(m.px).replace(/^([\d\s\u202f\u00a0]+)/,'$1 PX'))+' · BM '+esc(m.bm)+'</dd></div></dl>'
    +'<div class="ab6">'+m.car.map(function(v,i){return '<div><b>'+AN[i]+'</b><span>'+v+' ('+mod(v)+')</span></div>'}).join('')+'</div>'
    +'<div class="lines">'+L('Jets de sauvegarde',m.sauv)+L('Compétences',m.comp)+L('Vulnérabilités',m.vuln)+L('Résistances',m.res)+L('Immunités aux dégâts',m.imm)+L('Immunités aux états',m.cimm)+L('Équipement',m.equip)+L('Sens',m.sens)+L('Langues',m.langues)+'</div>'
    +sec('Traits',m.traits)+sec('Actions',m.actions)+sec('Actions bonus',m.bonus)+sec('Réactions',m.reac)+sec('Actions légendaires',m.leg,m.legi)
@@ -40,7 +43,7 @@ function block(m){
 var DB=null,BYN={};
 function load(){
   if(DB)return Promise.resolve(DB);
-  return fetch('bestiaire.json?v=20261014').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
+  return fetch('bestiaire.json?v=20261014b').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
     DB=d;d.forEach(function(m,i){m.i=i;m.idx=norm(m.n+' '+m.en+' '+m.typ);BYN[m.n]=m});return d;
   });
 }
@@ -64,6 +67,6 @@ var BUDGET=[null,[50,75,100],[100,150,200],[150,225,400],[250,375,500],[500,750,
 var QKEY='dnd_combat_ajout_v1';
 function envoyer(list){try{var q=JSON.parse(localStorage.getItem(QKEY)||'[]');localStorage.setItem(QKEY,JSON.stringify(q.concat(list)));return true}catch(e){return false}}
 function recevoir(){try{var q=JSON.parse(localStorage.getItem(QKEY)||'[]');localStorage.removeItem(QKEY);return Array.isArray(q)?q:[]}catch(e){return []}}
-window.Monstres={load:load,get:function(n){return BYN[n]},all:function(){return DB||[]},block:block,esc:esc,norm:norm,col:col,tbase:tbase,xp:xp,fpl:fpl,pv:pv,rollPV:rollPV,ca:ca,dex:dex,rnd:rnd,
+window.Monstres={load:load,get:function(n){return BYN[n]},all:function(){return DB||[]},block:block,esc:esc,norm:norm,col:col,tbase:tbase,xp:xp,fpl:fpl,pv:pv,rollPV:rollPV,ca:ca,dex:dex,init:init,rnd:rnd,
   joueurs:joueurs,estMJ:estMJ,BUDGET:BUDGET,envoyer:envoyer,recevoir:recevoir};
 })();
