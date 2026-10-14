@@ -55,6 +55,8 @@ footer{color:#b9bfe6;font-size:12px}
 <section class="perso" aria-label="Mon personnage">
  <div class="prow"><span class="pl">Personnage</span><div class="pchips" id="chips" role="group" aria-label="Choisir un personnage"></div></div>
  <div class="prow">
+  <button id="bNew">+ Nouveau personnage</button>
+  <button id="bDel">Supprimer le personnage</button>
   <button class="primary" id="bExp">Exporter le personnage (.json)</button>
   <button id="bImp">Importer un personnage</button>
   <button id="bPrintAll">Imprimer le personnage</button>
@@ -102,7 +104,7 @@ footer{color:#b9bfe6;font-size:12px}
 </nav>
 <div id="printroot" aria-hidden="true"></div>
 <footer>Données de sauvegarde conservées dans ton navigateur et exportables en JSON.</footer>
-<script src="persos.js?v=20261014c"></script>
+<script src="persos.js?v=20261014d"></script>
 <script>
 const $=s=>document.querySelector(s);
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',5000)};
@@ -115,6 +117,8 @@ function chips(){
   });
 }
 chips();
+$('#bNew').onclick=()=>{const p=Persos.create();if(p){chips();msg('Personnage « '+p.nom+' » créé')}};
+$('#bDel').onclick=()=>{const a=Persos.list().find(p=>p.actif);if(!a)return;const p=Persos.remove(a.id);if(p){chips();msg('« '+p.nom+' » supprimé')}};
 $('#bExp').onclick=()=>{
   const o=Persos.exportActive(),nom=(o.nom||'personnage').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
   const a=document.createElement('a');

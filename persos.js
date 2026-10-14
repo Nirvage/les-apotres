@@ -125,10 +125,11 @@ function rename(){
   save(s);render();
   named(n);
 }
+var TOUT='fiche, grimoire, objets magiques, équipement, familiers et cartes tirées';
 function remove(){
   var s=load(),p=s.persos[cur];
   if(!p||s.ordre.length<2)return;
-  if(!confirm('Supprimer « '+p.nom+' » (fiche et grimoire) ? Cette action est définitive : pense à enregistrer des .json avant.'))return;
+  if(!confirm('Supprimer « '+p.nom+' » ('+TOUT+') ? Cette action est définitive : pense à exporter le personnage avant.'))return;
   var i=s.ordre.indexOf(cur);
   s.ordre.splice(i,1);delete s.persos[cur];
   var next=s.ordre[Math.min(i,s.ordre.length-1)];
@@ -348,7 +349,31 @@ function printable(){
   return r;
 }
 
+/* ---------- Création / suppression depuis la page d'accueil (sans sélecteur) ---------- */
+function createNew(){
+  var s=load(),def='Personnage '+(s.ordre.length+1);
+  var n=prompt('Nom du nouveau personnage :',def);
+  if(n===null)return null;
+  n=n.trim()||def;
+  var p={id:uid(),nom:n,fiche:null,grimoire:null};
+  s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
+  return p;
+}
+// Supprime un personnage et toutes ses données ; s'il était le dernier, un personnage vierge le remplace
+function removeId(id){
+  var s=load(),p=s.persos[id];
+  if(!p)return null;
+  if(!confirm('Supprimer « '+p.nom+' » ('+TOUT+') ? Cette action est définitive : pense à exporter le personnage avant.'))return null;
+  var i=s.ordre.indexOf(id);
+  s.ordre.splice(i,1);delete s.persos[id];
+  if(!s.ordre.length){var q={id:uid(),nom:'Personnage 1',fiche:null,grimoire:null};s.persos[q.id]=q;s.ordre.push(q.id)}
+  if(s.actif===id||!s.persos[s.actif])s.actif=s.ordre[Math.min(i,s.ordre.length-1)];
+  save(s);cur=s.actif;
+  return p;
+}
+
 window.Persos={
+  create:createNew,remove:removeId,
   part:function(k){var s=load(),q=s.persos[s.actif];return q&&q[k]||null},
   list:listAll,activate:activate,exportActive:exportActive,importPerso:importPerso,printable:printable,
   init:init,
