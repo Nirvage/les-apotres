@@ -39,7 +39,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .empty-msg{background:#fff;border-radius:9px;padding:18px;text-align:center;color:var(--soft)}
 .srcn{margin-top:6px;font-size:10px;color:var(--soft);font-style:italic}
 .pill{display:inline-block;font:600 10px system-ui;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle;color:#fff;font-style:normal}
-.pill.co{background:#7a4fc4}.pill.ri{background:#12968f}.pill.cu{background:#d8791a}
+.pill.co{background:#7a4fc4}.pill.ri{background:#12968f}.pill.cu{background:#d8791a}.pill.ar{background:#5a6270}
 
 /* Fiche de sort */
 .sp{--c:#2a3170;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--c) 6%,#fff);break-inside:avoid;page-break-inside:avoid}
@@ -202,7 +202,9 @@ async function editCustom(it){
       msg(x?(old?'Objet modifié':'« '+x.n+' » créé et ajouté à tes objets'):'Objet supprimé');
     }});
 }
-const pills=s=>(s.c_?'<span class="pill cu">Création</span>':'')+(s.a?(st.har.has(s.n)?'<span class="pill hz">Harmonisé</span>':'<span class="pill co">Harmonisation</span>'):'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
+// Catégorie d'armure (légère, intermédiaire, lourde, bouclier), précisée dans objets.json (cat)
+const acat=s=>s.cat?s.cat.split(' (')[0].replace(/^Armure /,'').replace(/^./,c=>c.toUpperCase()):'';
+const pills=s=>(s.cat?'<span class="pill ar">'+esc(acat(s))+'</span>':'')+(s.c_?'<span class="pill cu">Création</span>':'')+(s.a?(st.har.has(s.n)?'<span class="pill hz">Harmonisé</span>':'<span class="pill co">Harmonisation</span>'):'')+(s.ed==='2014'?'<span class="pill ri">2014</span>':'');
 // Effets sur la fiche d'un objet créé (voir custom.js)
 const FXN={ca:'CA',sv:'jets de sauvegarde',tests:'tests de caractéristique',init:'initiative',satk:'attaque de sort',sdd:'DD des sorts',arme:'attaque et dégâts'};
 const sgn=n=>(n<0?'':'+')+n;
@@ -221,8 +223,8 @@ function lines(h){
 const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s.n)?' on':''}" data-act="har" data-i="${s.i}" aria-pressed="${st.har.has(s.n)}" title="Seuls les objets harmonisés sont importés dans les objets liés de la fiche (${MAXH} au maximum)">${st.har.has(s.n)?'✓ Harmonisé':'S’harmoniser'}</button>`:'';
 function card(s,remove){
   const col=rcol(s);
-  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
+  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div><div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
   <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
 function filtered(){
@@ -234,7 +236,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire · '+st.har.size+'/'+MAXH+' harmonisé'+(st.har.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.cat?s.cat.split(' (')[0]:s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}</div></div>
     <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}${s.c_?`<div class="racts" style="margin-top:6px">${editBtn(s)}</div>`:''}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
