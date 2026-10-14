@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jeux de cartes merveilleuses</title>
-<link rel="stylesheet" href="style.css?v=20261014b">
+<link rel="stylesheet" href="style.css?v=20261014c">
 <style>
 @page{size:A4;margin:12mm}
 .wrap{max-width:1100px;margin:16px auto;padding:0 12px}
@@ -35,6 +35,25 @@
 .card .tags span{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;background:var(--k);color:#fff}
 .card .tags .t13{background:#eceefb;color:#2a3170}
 .card p{margin:0;font-size:13px;line-height:1.5}
+.track{margin-top:16px;padding:12px 20px 14px}
+.trhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.track h2{margin:0;margin-right:auto;font:italic 700 19px var(--serif);color:#2a3170}
+.track .hint{margin:4px 0 6px;color:var(--soft);font-size:12.5px}
+.b{padding:6px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;cursor:pointer;font-size:13px}
+.b:hover{background:#eceefb}
+#trlist{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+#trlist li{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-left:4px solid var(--k);border-radius:7px;padding:6px 8px 6px 10px;background:#fbfbff}
+#trlist .num{font-weight:700;color:#2a3170}
+#trlist .what b{font-family:var(--serif);font-style:italic;font-size:15px;color:#2a3170}
+#trlist .what small{color:var(--soft);display:block}
+#trlist input{grid-column:2/4;width:100%;min-width:0;padding:5px 8px;border:1px solid var(--line);border-radius:6px}
+#trlist .rm{border:0;background:transparent;color:#c8402f;font-size:18px;line-height:1;cursor:pointer;padding:4px 8px}
+#trlist .none{display:block;border:0;background:none;padding:0;color:var(--soft)}
+.card .act{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.card .draw{padding:5px 10px;border:1px solid var(--k);border-radius:7px;background:#fff;color:var(--ink);cursor:pointer;font-size:12.5px}
+.card .draw:hover{background:#f1f2fb}
+.card .drawn{font-size:12px;font-weight:600;color:#2a3170;background:#fff2c6;border-radius:999px;padding:2px 9px}
+.card.got{background:#fffbea}
 .k-B{--k:#2e9e5b}.k-N{--k:#c8402f}.k-M{--k:#d8791a}
 .empty{padding:10px 20px;color:var(--soft)}
 .note{margin:12px 20px 0;background:#fff6e5;border-left:4px solid #d8791a;border-radius:6px;padding:7px 12px;font-size:13px}
@@ -45,12 +64,15 @@
  .rules,.grid{padding-left:12px;padding-right:12px}
  .grid{grid-template-columns:minmax(0,1fr)}
  .note{margin:12px 12px 0}
+ .track{padding:12px 12px 14px}
+ .card .draw,.b{min-height:36px}
  .cfbar input,.fk{flex:1 1 100%}
  .cfbar .f{flex:1 1 auto;min-height:36px}
  .card p{font-size:14px}
 }
 @media print{
- .tabs,.cfbar,.intro .noprint{display:none!important}
+ .tabs,.cfbar,.intro .noprint,.card .act,#bClearT,.track .hint,#trlist .rm{display:none!important}
+ .track:has(.none){display:none}
  .wrap{max-width:none;margin:0;padding:0}
  .panel{box-shadow:none}
  .deck[hidden]{display:block!important}
@@ -65,8 +87,10 @@
  <div class="bar">
   <a class="home" href="./">← Accueil</a>
   <b>Jeux de cartes merveilleuses</b>
+  <span id="msg" role="status"></span>
   <button id="bPrint">Imprimer / PDF</button>
  </div>
+ <div class="persos" id="persos"></div>
 </div>
 <div class="wrap">
 <section class="panel intro">
@@ -84,8 +108,17 @@
   <span class="cnt" id="cnt" role="status"></span>
  </div>
 </section>
+<section class="panel track" id="track" aria-labelledby="trackh">
+ <div class="trhead">
+  <h2 id="trackh">Cartes tirées par <span id="trnom"></span></h2>
+  <button class="b" id="bClearT">Tout effacer</button>
+ </div>
+ <p class="hint">Touche « J’ai tiré cette carte » sous une carte pour l’ajouter ici. Les tirages sont enregistrés avec le personnage et inclus dans son export.</p>
+ <ol id="trlist"></ol>
+</section>
 <div id="decks"></div>
 </div>
+<script src="persos.js?v=20261014c"></script>
 <script>
 // Chaque carte : [nom, nom anglais, effet (B bénéfique, N néfaste, M mitigé), texte, dans le jeu de 13 cartes]
 const DECKS=[
@@ -212,10 +245,11 @@ $('#decks').innerHTML=DECKS.map(d=>{
   return `<section class="panel deck" id="${d.id}" style="--c:${d.c}">
  <h2>${d.titre} <small style="font:400 13px var(--sans);opacity:.85">— ${d.en}</small></h2>
  <div class="rules">${d.regles}<p style="color:var(--soft);font-size:12.5px">Source : ${d.src}.${has13?' La mention « jeu de 13 » signale les cartes présentes dans le petit jeu ; les autres n’existent que dans le jeu de 22 cartes.':''}</p></div>
- <div class="grid">${d.cartes.map(c=>`<article class="card k-${c[2]}" data-s="${norm(c[0]+' '+c[1]+' '+c[3])}" data-k="${c[2]}">
+ <div class="grid">${d.cartes.map(c=>`<article class="card k-${c[2]}" data-n="${c[0]}" data-s="${norm(c[0]+' '+c[1]+' '+c[3])}" data-k="${c[2]}">
   <h3>${c[0]}<small>${c[1]}</small></h3>
   <div class="tags"><span>${K[c[2]]}</span>${c[4]?'<span class="t13">Jeu de 13</span>':''}</div>
-  <p>${c[3]}</p></article>`).join('')}</div>
+  <p>${c[3]}</p>
+  <div class="act"><button type="button" class="draw" data-d="${d.id}" data-n="${c[0]}">J’ai tiré cette carte</button><span class="drawn" hidden></span></div></article>`).join('')}</div>
  <p class="empty" hidden>Aucune carte ne correspond.</p>
 </section>`}).join('');
 
@@ -236,6 +270,45 @@ $$('.f').forEach(b=>b.onclick=()=>{kind=b.dataset.k;render()});
 $('#q').oninput=render;
 $('#bPrint').onclick=()=>window.print();
 render();
+
+/* ---------- Suivi des cartes tirées (enregistré avec le personnage) ---------- */
+let tirages=[];
+const DK=Object.fromEntries(DECKS.map(d=>[d.id,d]));
+const card=(d,n)=>DK[d]&&DK[d].cartes.find(c=>c[0]===n);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
+function renderTrack(){
+  const cur=Persos.current();$('#trnom').textContent=cur?cur.nom:'';
+  $('#bClearT').hidden=!tirages.length;
+  $('#trlist').innerHTML=tirages.length?tirages.map((t,i)=>{
+    const c=card(t.d,t.n),dk=DK[t.d];
+    const dt=t.t?new Date(t.t).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'';
+    return `<li class="k-${c?c[2]:'M'}"><span class="num">${i+1}.</span>
+<span class="what"><b>${esc(t.n)}</b> <small>${dk?esc(dk.titre):''}${dt?' · '+dt:''}${c?' — '+c[3].replace(/<[^>]+>/g,''):''}</small></span>
+<button type="button" class="rm" data-rm="${i}" aria-label="Retirer ce tirage" title="Retirer ce tirage">×</button>
+<input data-note="${i}" value="${esc(t.note||'')}" placeholder="Note : choix fait, objet reçu, PNJ…" aria-label="Note sur ce tirage"></li>`}).join('')
+    :'<li class="none">Aucune carte tirée pour l’instant.</li>';
+  const cnt={};tirages.forEach(t=>{const k=t.d+'|'+t.n;cnt[k]=(cnt[k]||0)+1});
+  $$('.card').forEach(el=>{
+    const n=cnt[el.closest('.deck').id+'|'+el.dataset.n]||0,b=el.querySelector('.drawn');
+    el.classList.toggle('got',n>0);b.hidden=!n;b.textContent='Tirée'+(n>1?' ×'+n:'');
+  });
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.draw,.rm');if(!b)return;
+  if(b.classList.contains('draw')){tirages.push({d:b.dataset.d,n:b.dataset.n,t:new Date().toISOString(),note:''});msg('« '+b.dataset.n+' » ajoutée aux cartes tirées')}
+  else{const t=tirages.splice(+b.dataset.rm,1)[0];if(t)msg('« '+t.n+' » retirée')}
+  renderTrack();Persos.save();
+});
+$('#trlist').addEventListener('input',e=>{const i=e.target.dataset.note;if(i==null||!tirages[i])return;tirages[i].note=e.target.value;Persos.save()});
+$('#bClearT').onclick=()=>{
+  if(!tirages.length||!confirm('Effacer toutes les cartes tirées de « '+Persos.current().nom+' » ?'))return;
+  tirages=[];renderTrack();Persos.save();msg('Cartes tirées effacées');
+};
+Persos.init({part:'cartes',mount:$('#persos'),msg,
+  collect:()=>({version:1,type:'cartes-dnd-5e',data:{tirages}}),
+  apply:o=>{tirages=o&&o.data&&Array.isArray(o.data.tirages)?o.data.tirages.filter(t=>t&&t.n):[];renderTrack()},
+  onName:renderTrack});
 </script>
 </body>
 </html>

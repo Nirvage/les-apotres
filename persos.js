@@ -257,7 +257,7 @@ function customMerge(o){
 }
 
 /* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
-var PARTS=['fiche','grimoire','objets','equipement','familiers'];
+var PARTS=['fiche','grimoire','objets','equipement','familiers','cartes'];
 function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
 function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
 /* Fiche : clés internes <-> noms lisibles pour le fichier exporté */
@@ -314,6 +314,8 @@ function exportActive(){
   o.equipement=e?{titre:e.titre||'',objets:e.objets||[]}:null;
   var fm=p.familiers&&p.familiers.data;
   o.familiers=fm?{titre:fm.titre||'',familiers:fm.familiers||[]}:null;
+  var ct=p.cartes&&p.cartes.data;
+  o.cartes_tirees=ct&&(ct.tirages||[]).length?ct.tirages:null;
   o.creations_personnelles=customUsed(p);
   return o;
 }
@@ -328,6 +330,7 @@ function importPerso(o){
     p.objets=o.objets_magiques?{version:1,type:'objets-dnd-5e',data:{titre:o.objets_magiques.titre||'',objets:o.objets_magiques.objets||[],harmonises:o.objets_magiques.harmonises||[],filtres:{}}}:null;
     p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
     p.familiers=o.familiers?{version:1,type:'familiers-dnd-5e',data:{titre:o.familiers.titre||'',familiers:o.familiers.familiers||[],filtres:{}}}:null;
+    p.cartes=Array.isArray(o.cartes_tirees)?{version:1,type:'cartes-dnd-5e',data:{tirages:o.cartes_tirees}}:null;
   }else throw new Error('format');
   customMerge(o.creations_personnelles);
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
