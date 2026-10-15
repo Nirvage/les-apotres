@@ -981,7 +981,7 @@ function calc(){
   $('#ca').textContent=ca+nb('b_ca')+F.ca;
   $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
-  DERIV={niv:lvl,tot:{...tot},cl:cl?cl[0]:'',cast:!!cst,ar:[],ca:ca+nb('b_ca')+F.ca,init:mod.dex+nb('b_init')+F.init+F.tst};
+  DERIV={niv:lvl,tot:{...tot},cl:cl?cl[0]:'',cast:!!cst,ar:[],ca:ca+nb('b_ca')+F.ca,init:mod.dex+nb('b_init')+F.init+F.tst,pp:10+mod.sag+bonus(PERC)+F.tst};
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
   $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd')+F.sdd:'—';
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')+F.satk):'—';
