@@ -339,6 +339,22 @@ function importPerso(o){
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
 }
+// Partage par lien : le personnage actif au format interne (accepté par importPerso), allégé
+// des valeurs vides de la fiche et des filtres de recherche pour que le lien reste court
+function shareData(){
+  var s=load(),p=s.persos[s.actif],o={type:'personnage-dnd-5e',nom:p.nom};
+  PARTS.forEach(function(k){
+    var x=p[k];if(!x||!x.data)return;
+    var d=JSON.parse(JSON.stringify(x.data));
+    delete d.filtres;
+    if(k==='fiche')Object.keys(d).forEach(function(f){if(d[f]===false||d[f]===null||d[f]===''&&f!=='niveau'&&f.indexOf('ab_')!==0)delete d[f]});
+    o[k]={version:x.version,type:x.type,data:d};
+  });
+  if(!histoireRemplie(p))delete o.histoire;
+  var c=customUsed(p);
+  if(c.objets.length||c.equipement.length||c.dons.length)o.creations_personnelles=c;
+  return o;
+}
 // Histoire du personnage : au moins une partie écrite
 function histoireRemplie(p){
   var d=p.histoire&&p.histoire.data;
@@ -383,7 +399,7 @@ function removeId(id){
 window.Persos={
   create:createNew,remove:removeId,
   part:function(k){var s=load(),q=s.persos[s.actif];return q&&q[k]||null},
-  list:listAll,activate:activate,exportActive:exportActive,importPerso:importPerso,printable:printable,
+  list:listAll,activate:activate,exportActive:exportActive,shareData:shareData,importPerso:importPerso,printable:printable,
   init:init,
   save:flush,
   setName:setName,
