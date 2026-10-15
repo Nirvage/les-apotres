@@ -184,6 +184,7 @@ fetch('quetes.json').then(r=>r.json()).then(d=>{
   render();
 }).catch(()=>{$('#tiers').innerHTML='<section class="panel empty">Impossible de charger les quêtes.</section>'});
 </script>
+<script src="recherche.js?v=20261015a"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

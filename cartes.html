@@ -349,6 +349,7 @@ Persos.init({part:'cartes',mount:$('#persos'),msg,
   apply:o=>{$$('.res').forEach(r=>r.innerHTML='');tirages=o&&o.data&&Array.isArray(o.data.tirages)?o.data.tirages.filter(t=>t&&t.n):[];renderTrack()},
   onName:renderTrack});
 </script>
+<script src="recherche.js?v=20261015a"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>
