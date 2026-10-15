@@ -107,6 +107,7 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
   </div>
   <div class="btns">
    <button class="b" id="bPJ" style="--c:#2e9e5b">Ajouter les personnages joueurs</button>
+   <button class="b" id="bFam" style="--c:#12968f">Ajouter leurs familiers et montures</button>
    <button class="b" id="bRoll">Relancer l’initiative des monstres</button>
    <button class="b" id="bNew" style="--c:#c8402f">Nouveau combat</button>
   </div>
@@ -156,8 +157,8 @@ function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.is
 const d20=()=>1+M.rnd(20);
 const sorted=()=>S.list.map((c,i)=>[c,i]).sort((a,b)=>((b[0].init??-99)-(a[0].init??-99))||((b[0].ib||0)-(a[0].ib||0))||(a[1]-b[1])).map(x=>x[0]);
 const byId=id=>S.list.find(c=>c.id===id);
-const ko=c=>c.type==='m'&&c.pv<=0;
-const color=c=>c.type==='pj'?'#2e9e5b':c.type==='m'&&M.get(c.m)?M.col(M.get(c.m)):'#5d6b7a';
+const ko=c=>(c.type==='m'||c.type==='fam')&&c.pv<=0;
+const color=c=>c.type==='pj'?'#2e9e5b':c.type==='fam'?'#12968f':c.type==='m'&&M.get(c.m)?M.col(M.get(c.m)):'#5d6b7a';
 
 // Ajout de monstres : numérotés s'il y en a plusieurs du même nom
 function addMonstre(m,q,mode){
@@ -200,10 +201,27 @@ $('#bPJ').onclick=()=>{
   add.forEach(j=>S.list.push({id:uid(),type:'pj',m:'',nom:j.nom,init:null,ib:j.init,ca:j.ca,pv:j.pv||j.pvmax,pvmax:j.pvmax,tmp:0,et:{},conc:false,note:''}));
   save();render();msg(add.length+' personnage'+(add.length>1?'s':'')+' ajouté'+(add.length>1?'s':'')+' : saisis leur jet d’initiative');
 };
+// Familiers, compagnons et montures des personnages joueurs (page des familiers : CA et PV calculés d'après la fiche)
+$('#bFam').onclick=()=>{
+  let s;try{s=JSON.parse(localStorage.getItem('dnd_persos_v1'))}catch(e){}
+  const have=new Set(S.list.filter(c=>c.type==='fam').map(c=>c.nom)),add=[];
+  (s&&Array.isArray(s.ordre)?s.ordre:[]).forEach(id=>{
+    const p=s.persos[id];if(!p||String(p.nom).trim().toLowerCase()==='mj')return;
+    ((p.familiers&&p.familiers.data&&p.familiers.data.familiers)||[]).forEach(f=>{
+      if(!f||typeof f!=='object')return;
+      const nom=(f.surnom||f.n)+' ('+p.nom+')';if(have.has(nom))return;
+      const max=parseInt(f.pvmax,10)||0,pv=parseInt(f.pv,10),ca=parseInt(f.ca,10),ib=parseInt(String(f.init||'').replace('−','-'),10);
+      add.push({id:uid(),type:'fam',m:'',fm:f.n,pj:p.nom,nom,init:null,ib:isNaN(ib)?0:ib,ca:isNaN(ca)?null:ca,pv:isNaN(pv)?max:pv,pvmax:max,tmp:parseInt(f.tmp,10)||0,et:{},conc:false,note:''});
+    });
+  });
+  if(!add.length){msg(have.size?'Les familiers et montures sont déjà dans le combat':'Aucun familier ni monture : les joueurs les choisissent dans la page des familiers');return}
+  S.list.push(...add);save();render();
+  msg(add.length+' créature'+(add.length>1?'s':'')+' ajoutée'+(add.length>1?'s':'')+' : saisis leur initiative (un compagnon ou une monture contrôlée agit au tour de son maître)');
+};
 $('#bRoll').onclick=()=>{S.list.forEach(c=>{if(c.type==='m')c.init=d20()+c.ib});save();render();msg('Initiative des monstres relancée')};
 $('#bNew').onclick=()=>{
-  if(S.list.length&&!confirm('Nouveau combat : les monstres et autres combattants sont retirés, les personnages joueurs restent (initiative à ressaisir). Continuer ?'))return;
-  S.list=S.list.filter(c=>c.type==='pj');S.list.forEach(c=>{c.init=null;c.conc=false});
+  if(S.list.length&&!confirm('Nouveau combat : les monstres et autres combattants sont retirés, les personnages joueurs et leurs familiers restent (initiative à ressaisir). Continuer ?'))return;
+  S.list=S.list.filter(c=>c.type==='pj'||c.type==='fam');S.list.forEach(c=>{c.init=null;c.conc=false});
   S.round=1;S.tour=null;open.clear();pal.clear();save();render();
 };
 // Tour suivant : saute les monstres à 0 PV (les personnages à 0 PV font leurs jets contre la mort)
@@ -228,7 +246,7 @@ $('#bPrev').onclick=()=>step(-1);
 function hpColor(c){const r=c.pvmax?c.pv/c.pvmax:1;return r>.5?'#2e9e5b':r>.25?'#d8791a':'#c8402f'}
 function card(c){
   const m=c.type==='m'?M.get(c.m):null,on=c.id===S.tour;
-  const sub=c.type==='pj'?'Personnage joueur'+(c.init==null?' · initiative à saisir':'')
+  const sub=c.type==='pj'||c.type==='fam'?(c.type==='pj'?'Personnage joueur':(c.fm||'')+' de '+(c.pj||''))+(c.init==null?' · initiative à saisir':'')
     :m?`${m.tail} · ${m.typ} · FP ${m.fp} · ${M.xp(m).toLocaleString('fr-FR')} PX`:'Autre combattant';
   const ets=Object.keys(c.et).map(e=>`<button class="chip" data-a="unet" data-e="${esc(e)}" title="${esc(EINFO[e]||'')} (cliquer pour retirer)">${esc(e)}${e==='Épuisement'?' '+c.et[e]:''} ✕</button>`).join('')
     +(c.conc?'<button class="chip conc" data-a="conc" title="Cliquer pour retirer">Concentration ✕</button>':'');

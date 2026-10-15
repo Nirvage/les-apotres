@@ -1007,6 +1007,7 @@ function calc(){
   const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
   $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd')+F.sdd:'—';
   $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')+F.satk):'—';
+  DERIV.pb=pb;if(c){DERIV.atk=pb+mod[c]+nb('b_atk')+F.satk;DERIV.dd=8+pb+mod[c]+nb('b_dd')+F.sdd}   // pour les familiers et montures
   CUR={mod,pb};
   el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
   renderMagic(mod,pb,lvl,cl,cst);
