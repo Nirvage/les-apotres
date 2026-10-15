@@ -183,6 +183,9 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
  .page{margin:0;box-shadow:none;border-radius:0}
  .page+.page{break-before:page}
  #pg3.empty,#pg4.empty{display:none}
+ /* Les capacités de classe suivent directement la page 3 au lieu de démarrer une nouvelle feuille */
+ #pg3{min-height:0}
+ #pg3:not(.empty)+#pg4{break-before:auto;padding-top:0}
  /* Pages 3 et 4 : un bloc n'est pas coupé entre deux feuilles s'il tient sur une seule,
     et la marge de la feuille est reprise sur chaque feuille de la suite */
  #pg3,#pg4{-webkit-box-decoration-break:clone;box-decoration-break:clone}
@@ -352,8 +355,6 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <div class="xbar noprint"><input type="search" id="malQ" placeholder="Filtrer les malédictions…" aria-label="Filtrer les malédictions" style="flex:1;border:1px solid var(--line);border-radius:5px;padding:3px 6px;font-size:11px"></div>
     <div id="xMal"></div></div></section>
    <section class="card" style="--c:#7a4fc4" id="xSubC"><h2 id="xSubT">Sous-classe</h2><div class="in" id="xSub"></div></section>
-   <section class="card" style="--c:#d6458e" id="xObC" hidden><h2>Objets magiques portés</h2><div class="in" id="xOb"></div></section>
-   <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
   </div>
   <div class="xcol">
    <section class="card" style="--c:#c8402f"><h2>Dons</h2><div class="in">
@@ -361,6 +362,8 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
     <a class="noprint" href="dons.html" style="font-size:11px;color:var(--c)">Tous les dons, filtrés selon les prérequis du personnage →</a>
     <div id="xDons" style="display:flex;flex-direction:column;gap:5px"></div>
    </div></section>
+   <section class="card" style="--c:#d6458e" id="xObC" hidden><h2>Objets magiques portés</h2><div class="in" id="xOb"></div></section>
+   <section class="card" style="--c:#d8791a"><h2>Effets appliqués</h2><div class="in" id="xFx"></div></section>
   </div>
  </div>
 </main>
