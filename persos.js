@@ -383,6 +383,19 @@ function createNew(){
   s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
   return p;
 }
+// Crée un personnage déjà rempli (assistant de création) et le rend actif.
+// parts : { fiche:{…}, equipement:{…}, … }. Si le personnage actif est encore vierge (aucune page remplie), il est réutilisé.
+function addFilled(nom,parts){
+  var s=load(),a=s.persos[s.actif];
+  var vierge=a&&PARTS.every(function(k){return !a[k]});
+  var p=vierge?a:{id:uid(),fiche:null,grimoire:null};
+  p.nom=String(nom||'').trim()||'Personnage '+(s.ordre.length+(vierge?0:1));
+  Object.keys(parts||{}).forEach(function(k){if(PARTS.indexOf(k)>=0)p[k]=parts[k]});
+  if(p.fiche&&p.fiche.data)p.fiche.data.nom=p.nom;
+  if(!vierge){s.persos[p.id]=p;s.ordre.push(p.id)}
+  s.actif=p.id;save(s);cur=p.id;
+  return p;
+}
 // Supprime un personnage et toutes ses données ; s'il était le dernier, un personnage vierge le remplace
 function removeId(id){
   var s=load(),p=s.persos[id];
@@ -397,7 +410,7 @@ function removeId(id){
 }
 
 window.Persos={
-  create:createNew,remove:removeId,
+  create:createNew,remove:removeId,add:addFilled,
   part:function(k){var s=load(),q=s.persos[s.actif];return q&&q[k]||null},
   list:listAll,activate:activate,exportActive:exportActive,shareData:shareData,importPerso:importPerso,printable:printable,
   init:init,
