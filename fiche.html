@@ -181,11 +181,16 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .mrow:not(.on){display:none!important}
  body{font-size:11px}
  .page{margin:0;box-shadow:none;border-radius:0}
+ /* Marges haut/bas portées par la feuille : elles se répètent sur chaque feuille,
+    y compris quand un bloc (ex. Capacités de classe) passe sur la suivante */
+ @page{margin:8mm 0}
+ .page{padding-top:0;padding-bottom:0}
+ .page:not(#pg3):not(#pg4){height:280mm}
  .page+.page{break-before:page}
  #pg3.empty,#pg4.empty{display:none}
  /* Les capacités de classe suivent directement la page 3 au lieu de démarrer une nouvelle feuille */
- #pg3{min-height:0}
- #pg3:not(.empty)+#pg4{break-before:auto;padding-top:0}
+ #pg3,#pg4{min-height:0}
+ #pg3:not(.empty)+#pg4{break-before:auto;margin-top:8px}
  /* Pages 3 et 4 : un bloc n'est pas coupé entre deux feuilles s'il tient sur une seule,
     et la marge de la feuille est reprise sur chaque feuille de la suite */
  #pg3,#pg4{-webkit-box-decoration-break:clone;box-decoration-break:clone}
