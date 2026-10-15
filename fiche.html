@@ -225,7 +225,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
   <label><small>Bonus au DD de sauvegarde</small><input data-k="b_dd" type="number" placeholder="0"></label>
   <label><small>Bonus d'attaque de sort</small><input data-k="b_atk" type="number" placeholder="0"></label>
  </div>
- <p>Les bonus s'ajoutent au score calculé. La CA est calculée toute seule à partir de l’inventaire (page Équipement) et des objets magiques : la meilleure armure et le meilleur bouclier que tu possèdes (10 + modificateur de Dextérité sans armure), plus les objets harmonisés. « Bonus de CA » sert pour le reste.</p>
+ <p>Les bonus s'ajoutent au score calculé. La CA est calculée toute seule à partir de l’inventaire (page Équipement) et des objets magiques : la meilleure armure et le meilleur bouclier que tu possèdes (sans armure : 10 + modificateur de Dextérité, ou la Défense sans armure de ta classe si elle est meilleure), plus les objets harmonisés. « Bonus de CA » sert pour le reste.</p>
 </details>
 
 <!-- PAGE 1 -->
@@ -594,7 +594,7 @@ const FXO={
   "Bracelets de défense":[{t:'ca',n:2,cond:'sans armure ni bouclier',noA:1,noS:1}],
   "Insigne de la Garde":[{t:'ca',n:2,cond:'sans bouclier',noS:1}],
   "Scarabée de protection":[{t:'ca',n:1}],
-  "Robe de l'archimage":[{t:'ca',n:5,cond:'CA de base 15 + Dex, sans armure',noA:1},...SORTN(2)],
+  "Robe de l'archimage":[{t:'cab',b:15,cond:'sans armure'},...SORTN(2)],
   "Robe aux étoiles":[{t:'sv',n:1}],
   "Lame porte-bonheur":[{t:'sv',n:1}],
   "Pierre porte-bonheur":[{t:'sv',n:1},{t:'tests',n:1}],
@@ -628,7 +628,7 @@ const fxCustom=n=>{const o=custom('objets').find(x=>x.n===n);return o&&Array.isA
 const fxObj=n=>{const d=FXO[n];if(!d)return fxCustom(n);if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
 // Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
 function fxCompute(lvl,pb){
-  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,cca:[],svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
+  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,cca:[],cab:[],svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
   const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
   const run=(fx,ch,src,key)=>{
     for(const f of fx){
@@ -653,7 +653,8 @@ function fxCompute(lvl,pb){
       else if(f.t==='init_pb'){F.init+=pb;F.lines.push([src,'initiative '+sg(pb)])}
       else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
       else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
-      else if(f.t==='ca'){if(f.noA||f.noS)F.cca.push(f);else F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
+      else if(f.t==='ca'){if(f.noA||f.noS||f.reqA)F.cca.push(f);else F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
+      else if(f.t==='cab')F.cab.push({src,b:f.b||10,m:f.m||[],noS:f.noS,cond:f.cond});   // CA de base sans armure (Défense sans armure…)
       else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max,repos:f.repos,niv:f.niv});
     }
   };
@@ -970,17 +971,30 @@ function calc(){
   const nb=k=>parseInt(val(k))||0;
   $('#init').textContent=sg(mod.dex+nb('b_init')+F.init+F.tst);
   // CA : armure portée (base + Dex plafonnée selon le type), bouclier, objets harmonisés (certains seulement sans armure / sans bouclier)
-  const {AR,sh}=gear(mod.dex);
-  let ca=AR?acOf(AR.st,mod.dex)+AR.b:10+mod.dex;
-  if(sh)ca+=sh.ca;
-  F.cca.forEach(f=>{if(!(f.noA&&AR)&&!(f.noS&&sh))ca+=f.n});
+  // Sans armure : la meilleure CA de base (10 + Dex, Défense sans armure du barbare ou du moine, Résistance draconique…).
+  // On garde l'armure et le bouclier possédés seulement s'ils donnent une meilleure CA.
+  const G=gear(mod.dex),bare=[{src:'Sans armure',b:10,m:[]}].concat(F.cab);
+  const caOf=(A,S)=>{
+    let t,u=null;
+    if(A)t=acOf(A.st,mod.dex)+A.b;
+    else{const o=bare.filter(x=>!(x.noS&&S)).map(x=>({x,v:x.b+mod.dex+x.m.reduce((n,k)=>n+mod[k],0)})).sort((p,q)=>q.v-p.v)[0];t=o.v;u=o.x}
+    if(S)t+=S.ca;
+    F.cca.forEach(f=>{if(!(f.noA&&A)&&!(f.noS&&S)&&!(f.reqA&&!A))t+=f.n});
+    return {t,u,AR:A,sh:S};
+  };
+  const W=[[G.AR,G.sh],[null,G.sh],[G.AR,null],[null,null]].map(([a,b])=>caOf(a,b)).reduce((p,q)=>q.t>p.t?q:p);
+  const {AR,sh}=W,ca=W.t;
   if(sh)F.lines.unshift([sh.n,'bouclier : CA +'+sh.ca]);
+  else if(G.sh)F.lines.unshift([G.sh.n,'bouclier non utilisé : la CA est meilleure sans']);
   if(AR){
     const st=AR.st;
     F.lines.unshift([AR.n+(AR.base?' ('+AR.base.toLowerCase()+')':''),'armure portée : CA '+st.base+(st.dex===0?'':st.dex==null?' + Dex':' + Dex (max. +'+st.dex+')')+(AR.b?' + '+AR.b:'')]);
     if(st.str&&tot.for<st.str){F.vit-=3;F.lines.push([AR.n,'Force '+st.str+' requise : vitesse −3 m'])}
     if(st.disc)F.lines.push([AR.n,'désavantage aux tests de Discrétion']);
-  }else F.lines.unshift(['Sans armure','CA 10 + Dex']);
+  }else{
+    if(G.AR)F.lines.unshift([G.AR.n,'armure non portée : la CA est meilleure sans']);
+    const u=W.u;F.lines.unshift([u.src,(u.src!=='Sans armure'?'sans armure : ':'')+'CA '+u.b+' + Dex'+u.m.map(k=>' + '+ABN[k]).join('')+(u.noS?' (sans bouclier)':'')]);
+  }
   $('#ca').textContent=ca+nb('b_ca')+F.ca;
   $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
   const cl=findClass(),cst=cl?castOf(cl[1]):null;
