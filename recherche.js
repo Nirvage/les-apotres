@@ -52,7 +52,7 @@ function build(){
   if(loading)return loading;
   var files=['spells.json','objets.json','equipement.json','bestiaire.json','familiers.json','dons.json','especes.json','especes_infos.json',
     'capacites.json','sousclasses.json','historiques.json','quetes.json'];
-  loading=Promise.all(files.map(get).concat([getText('etats.html'),getText('combat.html'),getText('guide.html'),getText('./')])).then(function(r){
+  loading=Promise.all(files.map(get).concat([getText('etats.html'),getText('combat.html'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
     var out=[];
     var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11];
     (sp||[]).forEach(function(s){
@@ -121,7 +121,7 @@ function build(){
         href:lien('quetes.html',x.t),d:function(){return line('Lieu',x.lieu)+'<p>'+esc(x.acc)+'</p><p>'+esc(x.obj)+'</p>'}});
     });
     regles(out,r[12],r[13],r[14]);
-    pages(out,r[15]);
+    pages(out,r[15]);pages(out,r[16]);
     IDX=out;
     return out;
   });
@@ -171,7 +171,7 @@ function regles(out,etats,combat,guide){
   }
 }
 
-// Pages du site : les cartes de l'accueil
+// Pages du site : les cartes de l'accueil et de l'espace du MJ
 function pages(out,html){
   if(!html||!window.DOMParser)return;
   var doc=new DOMParser().parseFromString(html,'text/html');

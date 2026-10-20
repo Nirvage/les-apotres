@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Espace du MJ</title>
+<link rel="stylesheet" href="style.css?v=20261014c">
+<style>
+.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
+.intro{padding:14px 20px 16px;font-size:14px;line-height:1.5}
+.intro h1{margin:0 0 4px;font:italic 700 26px var(--serif);color:#2a3170}
+.intro p{margin:4px 0;color:var(--soft)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:16px;font-size:15px;line-height:1.5}
+.card{--c:#2f6fd0;display:flex;flex-direction:column;gap:8px;background:#fff;border:2px solid var(--c);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:0 6px 28px #0006;transition:transform .15s,box-shadow .15s}
+.card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:0 10px 32px #0008;outline:3px solid var(--gold);outline-offset:2px}
+.card h3{margin:0;padding:10px 16px;background:var(--c);color:#fff;font:italic 700 20px var(--serif)}
+.card p{margin:0;padding:6px 16px 0;color:var(--soft);flex:1}
+.card .go{margin:6px 16px 16px;align-self:flex-start;background:var(--c);color:#fff;font-weight:600;border-radius:7px;padding:7px 14px}
+.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
+.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
+@media screen and (max-width:700px){
+ .wrap{padding:0 8px;margin-top:10px}
+ .intro{padding:12px 14px}
+ .intro h1{font-size:22px}
+ .cards{grid-template-columns:minmax(0,1fr);gap:14px}
+}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+<script src="theme.js?v=20261020a"></script>
+</head>
+<body>
+<div class="top">
+ <div class="bar">
+  <a class="home" href="./">← Accueil</a>
+  <b>Espace du MJ</b>
+  <span id="msg" role="status"></span>
+ </div>
+ <div class="persos" id="persos"></div>
+</div>
+<div class="wrap">
+<section class="panel lock" id="lock" hidden><b>Page réservée</b>Cette page est réservée au maître du jeu.</section>
+<div id="mj" hidden>
+<section class="panel intro">
+ <h1>Outils du MJ</h1>
+ <p>Préparer et mener les parties : tous les outils du maître du jeu au même endroit.</p>
+</section>
+<nav class="cards" aria-label="Outils du MJ">
+  <a class="card" href="suivi-combat.html" style="--c:#8b1e3f">
+   <h3>Suivi de combat</h3>
+   <p>L’ordre d’initiative, les PV des monstres tirés du bestiaire, les dégâts et soins, les états (agrippé, effrayé…) et la concentration, round après round.</p>
+   <span class="go">Ouvrir le suivi de combat</span>
+  </a>
+  <a class="card" href="rencontres.html" style="--c:#7a4fc4">
+   <h3>Calculateur de rencontres</h3>
+   <p>La difficulté d’une rencontre selon le niveau du groupe (règles 2024), avec des rencontres proposées à partir du bestiaire.</p>
+   <span class="go">Ouvrir le calculateur</span>
+  </a>
+  <a class="card" href="butin.html" style="--c:#b8860b">
+   <h3>Tables de butin</h3>
+   <p>Le trésor d’une rencontre tiré au hasard selon le FP : pièces, pierres précieuses, objets d’art et objets magiques du site, avec leur prix et la part de chacun.</p>
+   <span class="go">Ouvrir les tables de butin</span>
+  </a>
+  <a class="card" href="quetes.html" style="--c:#7a5600">
+   <h3>Quêtes du MJ</h3>
+   <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
+   <span class="go">Ouvrir les quêtes</span>
+  </a>
+  <a class="card" href="boutique.html" style="--c:#5c4a1e">
+   <h3>Boutiques du MJ</h3>
+   <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
+   <span class="go">Ouvrir les boutiques</span>
+  </a>
+  <a class="card" href="ecran-mj.html" style="--c:#2a3170">
+   <h3>Écran du MJ</h3>
+   <p>Une page à imprimer à garder sous les yeux : le groupe, les DD, les états, les actions, des rencontres prêtes à lancer, les dégâts improvisés et les prix courants.</p>
+   <span class="go">Ouvrir l’écran du MJ</span>
+  </a>
+  <a class="card" href="calendrier.html" style="--c:#2e6f6a">
+   <h3>Calendrier de campagne</h3>
+   <p>La date du jour en jeu, les jours écoulés depuis le début de la campagne, les fêtes, la lune et les événements à venir (calendrier de Harptos ou le tien).</p>
+   <span class="go">Ouvrir le calendrier</span>
+  </a>
+  <a class="card" href="aide-mj.html" style="--c:#3d5a80">
+   <h3>Aide-mémoire du MJ</h3>
+   <p>Les prix et repères de base : taverne, auberge, train de vie, services, sorts payants, revente, voyages et degrés de difficulté.</p>
+   <span class="go">Ouvrir l’aide-mémoire</span>
+  </a>
+</nav>
+</div>
+</div>
+<script src="persos.js?v=20261015a"></script>
+<script>
+const $=s=>document.querySelector(s);
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
+// La page n'est visible que si le personnage actif s'appelle « mj »
+function render(){
+  const c=Persos.current(),mj=!!c&&c.nom.trim().toLowerCase()==='mj';
+  $('#lock').hidden=mj;$('#mj').hidden=!mj;
+}
+Persos.init({part:'espacemj',mount:$('#persos'),msg,collect:()=>null,apply:render,onName:render});
+</script>
+<script src="recherche.js?v=20261020a"></script>
+<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
+</body>
+</html>

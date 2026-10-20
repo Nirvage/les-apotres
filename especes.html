@@ -189,7 +189,7 @@ Promise.all(['especes.json','especes_infos.json'].map(u=>fetch(u).then(r=>{if(!r
  })
  .catch(()=>{$('#list').innerHTML='<div class="empty-msg">Impossible de charger les espèces (ouvre le site via un serveur web).</div>'});
 </script>
-<script src="recherche.js?v=20261015a"></script>
+<script src="recherche.js?v=20261020a"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

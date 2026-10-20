@@ -170,45 +170,10 @@ footer{color:#b9bfe6;font-size:12px}
 <section class="grp mjonly" aria-labelledby="g3" hidden>
  <div class="ghead"><h2 id="g3">Outils du MJ</h2><p>Préparer et mener les parties.</p></div>
  <nav class="cards" aria-label="Outils du MJ">
-  <a class="card mjonly" href="suivi-combat.html" style="--c:#8b1e3f" hidden>
-   <h3>Suivi de combat</h3>
-   <p>L’ordre d’initiative, les PV des monstres tirés du bestiaire, les dégâts et soins, les états (agrippé, effrayé…) et la concentration, round après round.</p>
-   <span class="go">Ouvrir le suivi de combat</span>
-  </a>
-  <a class="card mjonly" href="rencontres.html" style="--c:#7a4fc4" hidden>
-   <h3>Calculateur de rencontres</h3>
-   <p>La difficulté d’une rencontre selon le niveau du groupe (règles 2024), avec des rencontres proposées à partir du bestiaire.</p>
-   <span class="go">Ouvrir le calculateur</span>
-  </a>
-  <a class="card mjonly" href="butin.html" style="--c:#b8860b" hidden>
-   <h3>Tables de butin</h3>
-   <p>Le trésor d’une rencontre tiré au hasard selon le FP : pièces, pierres précieuses, objets d’art et objets magiques du site, avec leur prix et la part de chacun.</p>
-   <span class="go">Ouvrir les tables de butin</span>
-  </a>
-  <a class="card mjonly" href="quetes.html" style="--c:#7a5600" hidden>
-   <h3>Quêtes du MJ</h3>
-   <p>Des quêtes prêtes à jouer pour un groupe de 5 aventuriers, du niveau 1 au niveau 20, avec les récompenses en PO.</p>
-   <span class="go">Ouvrir les quêtes</span>
-  </a>
-  <a class="card mjonly" href="boutique.html" style="--c:#5c4a1e" hidden>
-   <h3>Boutiques du MJ</h3>
-   <p>Génère au hasard l’inventaire d’une boutique (armurerie, alchimiste, boutique de magie, cordonnier…) avec ses objets magiques par rareté et leurs prix.</p>
-   <span class="go">Ouvrir les boutiques</span>
-  </a>
-  <a class="card mjonly" href="ecran-mj.html" style="--c:#2a3170" hidden>
-   <h3>Écran du MJ</h3>
-   <p>Une page à imprimer à garder sous les yeux : le groupe, les DD, les états, les actions, des rencontres prêtes à lancer, les dégâts improvisés et les prix courants.</p>
-   <span class="go">Ouvrir l’écran du MJ</span>
-  </a>
-  <a class="card mjonly" href="calendrier.html" style="--c:#2e6f6a" hidden>
-   <h3>Calendrier de campagne</h3>
-   <p>La date du jour en jeu, les jours écoulés depuis le début de la campagne, les fêtes, la lune et les événements à venir (calendrier de Harptos ou le tien).</p>
-   <span class="go">Ouvrir le calendrier</span>
-  </a>
-  <a class="card mjonly" href="aide-mj.html" style="--c:#3d5a80" hidden>
-   <h3>Aide-mémoire du MJ</h3>
-   <p>Les prix et repères de base : taverne, auberge, train de vie, services, sorts payants, revente, voyages et degrés de difficulté.</p>
-   <span class="go">Ouvrir l’aide-mémoire</span>
+  <a class="card mjonly" href="mj.html" style="--c:#2a3170" hidden>
+   <h3>Espace du MJ</h3>
+   <p>Tous les outils du maître du jeu réunis sur une page : suivi de combat, rencontres, butin, quêtes, boutiques, écran, calendrier et aide-mémoire.</p>
+   <span class="go">Ouvrir l’espace du MJ</span>
   </a>
  </nav>
 </section>
@@ -226,7 +191,7 @@ function chips(){
     b.setAttribute('aria-pressed',p.actif);b.onclick=()=>{Persos.activate(p.id);chips()};
     $('#chips').appendChild(b);
   });
-  // Pages du MJ (quêtes, boutiques, combat, rencontres) visibles uniquement avec le personnage « mj »
+  // Espace du MJ visible uniquement avec le personnage « mj »
   const a=Persos.list().find(p=>p.actif),mj=!!a&&a.nom.trim().toLowerCase()==='mj';
   document.querySelectorAll('.mjonly').forEach(c=>c.hidden=!mj);
 }
@@ -373,7 +338,7 @@ $('#bPrintAll').onclick=async()=>{
   }catch(e){{console.log(e.stack);msg('Impression impossible : '+e.message)}}
 };
 </script>
-<script src="recherche.js?v=20261015a"></script>
+<script src="recherche.js?v=20261020a"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>
