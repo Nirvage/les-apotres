@@ -117,7 +117,7 @@ tr.det td{padding:4px 0 10px}
 </div>
 </div>
 <script src="persos.js?v=20261015a"></script>
-<script src="monstres.js?v=20261019a"></script>
+<script src="monstres.js?v=20261020a"></script>
 <script>
 const $=s=>document.querySelector(s);
 const M=Monstres,esc=M.esc,fr=n=>n.toLocaleString('fr-FR');
@@ -133,7 +133,7 @@ const budget=()=>[0,1,2].map(k=>S.g.reduce((s,p)=>s+M.BUDGET[p.niv][k],0));
 const avgLvl=()=>S.g.length?S.g.reduce((s,p)=>s+p.niv,0)/S.g.length:1;
 function fromPJ(quiet){
   const J=M.joueurs();
-  if(!J.length){if(!quiet)msg('Aucun personnage joueur : crée-les depuis l’accueil');return false}
+  if(!J.length){if(!quiet)msg('Aucun personnage joueur : saisis le groupe dans le suivi de combat ou crée leurs fiches');return false}
   S.g=J.map(j=>({nom:j.nom,niv:j.niveau}));return true;
 }
 
@@ -174,7 +174,7 @@ function addE(n,q){const x=S.e.find(e=>e.n===n);if(x)x.q=Math.min(30,x.q+q);else
 $('#grp').addEventListener('change',e=>{const i=+e.target.dataset.i,f=e.target.dataset.f;if(!S.g[i])return;S.g[i][f]=f==='niv'?+e.target.value:e.target.value;save();render()});
 $('#grp').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;S.g.splice(+b.dataset.del,1);save();render()});
 $('#bAddPJ').onclick=()=>{const l=S.g.length?S.g[S.g.length-1].niv:1;S.g.push({nom:'Personnage '+(S.g.length+1),niv:l});save();render()};
-$('#bPJ').onclick=()=>{if(fromPJ()){save();render();msg('Groupe repris des personnages joueurs (niveaux de leur fiche)')}};
+$('#bPJ').onclick=()=>{if(fromPJ()){save();render();msg('Groupe repris des personnages joueurs (niveaux saisis dans le suivi de combat ou sur leur fiche)')}};
 $('#allLvl').innerHTML+=lvlOpts(0);
 $('#allLvl').onchange=e=>{const v=+e.target.value;if(!v)return;S.g.forEach(p=>p.niv=v);e.target.value='';save();render()};
 $('#bAdd').onclick=()=>{

@@ -90,7 +90,7 @@
 </div>
 </div>
 <script src="persos.js?v=20261015a"></script>
-<script src="monstres.js?v=20261019a"></script>
+<script src="monstres.js?v=20261020a"></script>
 <script>
 const $=s=>document.querySelector(s);
 const M=Monstres,esc=M.esc;
@@ -98,17 +98,9 @@ const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$
 const fr=n=>n.toLocaleString('fr-FR');
 const pick=l=>l[M.rnd(l.length)];
 const sg=n=>(n>=0?'+':'−')+Math.abs(n);
-// Les personnages du groupe, avec les valeurs calculées par la fiche (CA, initiative, Perception passive)
+// Les personnages du groupe : saisis par le MJ dans le suivi de combat, ou repris des fiches (CA, initiative, Perception passive)
 function groupe(){
-  let s;try{s=JSON.parse(localStorage.getItem('dnd_persos_v1'))}catch(e){}
-  if(!s||!s.persos||!Array.isArray(s.ordre))return [];
-  return s.ordre.map(id=>s.persos[id]).filter(p=>p&&String(p.nom).trim().toLowerCase()!=='mj').map(p=>{
-    const d=p.fiche&&p.fiche.data||{},dv=d.derive||{},n=(k,v)=>{const x=parseInt(d[k],10);return isNaN(x)?v:x};
-    const sag=dv.tot&&dv.tot.sag?Math.floor((dv.tot.sag-10)/2):null;
-    return {nom:p.nom,cl:dv.cl||d.classe||'',niv:Math.min(20,Math.max(1,n('niveau',1))),pv:n('pvmax',0),
-      ca:typeof dv.ca==='number'?dv.ca:null,init:typeof dv.init==='number'?dv.init:null,
-      pp:typeof dv.pp==='number'?dv.pp:sag!=null?10+sag:null};
-  });
+  return M.joueurs().map(p=>({nom:p.nom,cl:p.cl||'',niv:p.niveau,pv:p.pvmax,ca:p.ca,init:p.init,pp:p.pp}));
 }
 // État de la page, enregistré avec le personnage « mj »
 let S={lvl:0,np:0,tir:null};
@@ -185,7 +177,7 @@ function render(){
   $('#sLvl').innerHTML=Array.from({length:20},(_,i)=>`<option value="${i+1}"${i+1===L?' selected':''}>${i+1}</option>`).join('');
   $('#sNp').innerHTML=Array.from({length:8},(_,i)=>`<option value="${i+1}"${i+1===N?' selected':''}>${i+1}</option>`).join('');
   const grp=g.length?tab(['Personnage','Niv','CA','PV','Init','Perc'],g.map(p=>[p.nom+(p.cl?' ('+p.cl+')':''),p.niv,p.ca??'–',p.pv||'–',p.init==null?'–':sg(p.init),p.pp??'–']),[1,2,3,4,5])
-    :'<p class="vide">Aucun personnage joueur enregistré : crée-les depuis l’accueil pour les voir ici.</p>';
+    :'<p class="vide">Aucun personnage joueur : saisis le groupe dans le <a href="suivi-combat.html">suivi de combat</a> (ou crée leurs fiches depuis l’accueil).</p>';
   const renc=S.tir?S.tir.map((r,k)=>`<div class="renc" style="--c:${DIFF[k][1]}"><b class="t">${DIFF[k][0]}</b>${r?esc(r.t)+' : '+r.l.map(x=>{const m=M.get(x.n);
       return (x.q>1?x.q+' × ':'')+'<b>'+esc(x.n)+'</b>'+(m?` <small>(FP ${esc(m.fp)}, CA ${M.ca(m)}, ${M.pv(m).moy} PV)</small>`:'')}).join(' + ')+` <small>· ${fr(r.px)} PX</small>`:'<small>rien trouvé dans ce budget</small>'}</div>`).join('')
     :'<p class="vide">Le bestiaire charge…</p>';

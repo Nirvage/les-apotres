@@ -47,16 +47,36 @@ function load(){
     DB=d;d.forEach(function(m,i){m.i=i;m.idx=norm(m.n+' '+m.en+' '+m.typ);BYN[m.n]=m});return d;
   });
 }
-// Les personnages joueurs (tous sauf « mj ») avec ce que la fiche enregistre : niveau, PV, bonus d'initiative approché
-function joueurs(){
+// Le groupe saisi par le MJ (personnages des joueurs dont il n'a pas la fiche) : partagé par les pages du MJ, sous une clé à part
+var GKEY='dnd_groupe_v1';
+function groupe(){try{var g=JSON.parse(localStorage.getItem(GKEY));return Array.isArray(g)?g.filter(function(x){return x&&typeof x==='object'}):[]}catch(e){return []}}
+function setGroupe(g){try{localStorage.setItem(GKEY,JSON.stringify(g));return true}catch(e){return false}}
+// Les personnages des fiches de ce navigateur (tous sauf « mj ») : niveau, PV, CA, initiative, Perception passive
+function fiches(){
   var s;try{s=JSON.parse(localStorage.getItem('dnd_persos_v1'))}catch(e){}
   if(!s||!s.persos||!Array.isArray(s.ordre))return [];
   return s.ordre.map(function(id){return s.persos[id]}).filter(function(p){return p&&String(p.nom).trim().toLowerCase()!=='mj'}).map(function(p){
     var d=p.fiche&&p.fiche.data||{},n=function(k,v){var x=parseInt(d[k],10);return isNaN(x)?v:x};
     var dv=d.derive||{};   // valeurs calculées par la fiche (CA, initiative) quand elle a été ouverte
-    return {nom:p.nom,niveau:Math.min(20,Math.max(1,n('niveau',1))),pvmax:n('pvmax',0),pv:n('pv',n('pvmax',0)),
-      init:typeof dv.init==='number'?dv.init:Math.floor((n('ab_dex',10)-10)/2)+n('b_init',0),ca:typeof dv.ca==='number'?dv.ca:null};
+    var sag=dv.tot&&dv.tot.sag?Math.floor((dv.tot.sag-10)/2):null;
+    return {nom:p.nom,cl:dv.cl||d.classe||'',niveau:Math.min(20,Math.max(1,n('niveau',1))),pvmax:n('pvmax',0),pv:n('pv',n('pvmax',0)),
+      init:typeof dv.init==='number'?dv.init:Math.floor((n('ab_dex',10)-10)/2)+n('b_init',0),ca:typeof dv.ca==='number'?dv.ca:null,
+      pp:typeof dv.pp==='number'?dv.pp:sag!=null?10+sag:null};
   });
+}
+// Les personnages joueurs : ceux du groupe saisi par le MJ (ses valeurs priment), complétés par les fiches de ce navigateur
+function joueurs(){
+  var F=fiches(),out=[];
+  function num(v){return typeof v==='number'&&!isNaN(v)?v:null}
+  groupe().forEach(function(g){
+    var nom=String(g.nom||'').trim();if(!nom)return;
+    var i=-1;F.forEach(function(f,k){if(i<0&&norm(f.nom)===norm(nom))i=k});
+    var f=i>=0?F.splice(i,1)[0]:{};
+    var pvmax=num(g.pvmax)!=null?g.pvmax:f.pvmax||0;
+    out.push({nom:nom,cl:g.cl||f.cl||'',niveau:Math.min(20,Math.max(1,num(g.niveau)||f.niveau||1)),pvmax:pvmax,pv:num(g.pvmax)!=null||f.pv==null?pvmax:f.pv,
+      init:num(g.init)!=null?g.init:num(f.init)!=null?f.init:0,ca:num(g.ca)!=null?g.ca:num(f.ca),pp:num(g.pp)!=null?g.pp:num(f.pp),mj:true});
+  });
+  return out.concat(F);
 }
 // Le personnage actif est-il le MJ ?
 function estMJ(){var c=window.Persos&&Persos.current();return !!c&&String(c.nom).trim().toLowerCase()==='mj'}
@@ -68,5 +88,5 @@ var QKEY='dnd_combat_ajout_v1';
 function envoyer(list){try{var q=JSON.parse(localStorage.getItem(QKEY)||'[]');localStorage.setItem(QKEY,JSON.stringify(q.concat(list)));return true}catch(e){return false}}
 function recevoir(){try{var q=JSON.parse(localStorage.getItem(QKEY)||'[]');localStorage.removeItem(QKEY);return Array.isArray(q)?q:[]}catch(e){return []}}
 window.Monstres={load:load,get:function(n){return BYN[n]},all:function(){return DB||[]},block:block,esc:esc,norm:norm,col:col,tbase:tbase,xp:xp,fpl:fpl,pv:pv,rollPV:rollPV,ca:ca,dex:dex,init:init,rnd:rnd,
-  joueurs:joueurs,estMJ:estMJ,BUDGET:BUDGET,envoyer:envoyer,recevoir:recevoir};
+  joueurs:joueurs,fiches:fiches,groupe:groupe,setGroupe:setGroupe,estMJ:estMJ,BUDGET:BUDGET,envoyer:envoyer,recevoir:recevoir};
 })();

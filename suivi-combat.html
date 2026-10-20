@@ -41,7 +41,7 @@ small.l{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 .hp{height:5px;border-radius:3px;background:#e4e6f2;margin-top:6px;overflow:hidden}
 .hp i{display:block;height:100%;background:var(--hc,#2e9e5b)}
 .l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px}
-.l2 .amt{width:64px;border:1px solid var(--line);border-radius:5px;padding:5px 6px;text-align:center}
+.l2 .amt{width:78px;border:1px solid var(--line);border-radius:5px;padding:5px 6px;text-align:center}
 .l2 .sp1{flex:1}
 .ets{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .ets:empty{display:none}
@@ -62,6 +62,17 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 .ref dl{margin:8px 0 0;font-size:13px;line-height:1.45}
 .ref dt{font-weight:700;color:#8b1e3f;margin-top:6px}
 .ref dd{margin:0}
+.grp summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a3170}
+.grp summary small{font:12px system-ui;color:var(--soft);margin-left:6px}
+.grp p.i{margin:6px 0 8px;font-size:12.5px;color:var(--soft)}
+.gr{display:grid;grid-template-columns:minmax(0,3fr) repeat(5,minmax(0,62px)) 34px;gap:6px;align-items:end;margin-top:6px}
+.gr input{width:100%;border:1px solid var(--line);border-radius:5px;padding:6px 6px;background:#fff;min-width:0}
+.gr input[type=number]{text-align:center}
+.gr label small{display:none}
+.gr .x{border:0;background:none;color:#5d6b7a;font-size:16px;cursor:pointer;padding:6px 0}
+.gr.h{font:700 10.5px system-ui;color:var(--soft);text-align:center}.gr.h span:first-child{text-align:left}
+.fb{font-size:12px;color:#8b1e3f;font-weight:600;margin-top:5px}
+.fb:empty{display:none}
 .lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
 .lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
 @media screen and (max-width:700px){
@@ -72,9 +83,11 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
  .nm{flex:1 1 150px}
  .st{width:100%;justify-content:flex-end}
  .b{min-height:36px}
- .l2 .amt{min-height:36px;width:70px}
+ .l2 .amt{min-height:36px;width:84px}
+ .gr{grid-template-columns:repeat(5,minmax(0,1fr)) 30px}.gr>:first-child{grid-column:1/-1}.gr.h{display:none}
+ .gr{padding-bottom:8px;border-bottom:1px dashed var(--line)}.gr label small{display:block;font-size:10px;color:var(--soft);text-align:center}
 }
-@media print{.panel,.round,.l2,.foot,details.ref{display:none!important}.cb{box-shadow:none;border:1px solid #ccc;break-inside:avoid}}
+@media print{.grp,.panel,.round,.l2,.foot,details.ref{display:none!important}.cb{box-shadow:none;border:1px solid #ccc;break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -90,6 +103,13 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 <div class="wrap">
 <section class="panel lock" id="lock" hidden><b>Page réservée</b>Cette page est réservée au maître du jeu.</section>
 <div id="mj" hidden>
+ <details class="panel grp" id="grp">
+  <summary>Le groupe <small id="grpN"></small></summary>
+  <p class="i">Saisis ici les personnages de tes joueurs, même sans leur fiche : le suivi de combat, le calculateur de rencontres et l’écran du MJ s’en servent. Une valeur laissée vide est reprise de la fiche du personnage si elle existe dans ce navigateur.</p>
+  <div class="gr h"><span>Nom</span><span>Niveau</span><span>CA</span><span>PV max</span><span>Init.</span><span>Perc. passive</span><span></span></div>
+  <div id="grpL"></div>
+  <div class="btns"><button class="b" id="bGAdd" style="--c:#2e9e5b">+ Personnage</button><button class="b" id="bGFi" hidden>Reprendre les fiches de ce navigateur</button></div>
+ </details>
  <section class="panel">
   <h2>Ajouter des combattants</h2>
   <div class="add">
@@ -124,7 +144,7 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 </div>
 </div>
 <script src="persos.js?v=20261015a"></script>
-<script src="monstres.js?v=20261019a"></script>
+<script src="monstres.js?v=20261020a"></script>
 <script>
 const $=s=>document.querySelector(s);
 const M=Monstres,esc=M.esc;
@@ -150,7 +170,7 @@ const ETATS=[
 const EINFO=Object.fromEntries(ETATS);
 const KEY='dnd_combat_v1';
 let S={round:1,tour:null,list:[]};
-const open=new Set(),pal=new Set();
+const open=new Set(),pal=new Set(),fb={};   // fb : dernier changement de PV affiché sur la carte
 const uid=()=>'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.list))S=s}catch(e){}}
@@ -196,9 +216,9 @@ $('#bAddO').onclick=()=>{
 $('#bPJ').onclick=()=>{
   const J=M.joueurs(),have=new Set(S.list.filter(c=>c.type==='pj').map(c=>c.nom));
   const add=J.filter(j=>!have.has(j.nom));
-  if(!J.length){msg('Aucun personnage joueur : crée-les depuis l’accueil');return}
+  if(!J.length){$('#grp').open=true;msg('Aucun personnage joueur : saisis le groupe en haut de la page');return}
   if(!add.length){msg('Les personnages joueurs sont déjà dans le combat');return}
-  add.forEach(j=>S.list.push({id:uid(),type:'pj',m:'',nom:j.nom,init:null,ib:j.init,ca:j.ca,pv:j.pv||j.pvmax,pvmax:j.pvmax,tmp:0,et:{},conc:false,note:''}));
+  add.forEach(j=>S.list.push({id:uid(),type:'pj',m:'',nom:j.nom,init:null,ib:j.init,ca:j.ca,pp:j.pp,pv:j.pv||j.pvmax,pvmax:j.pvmax,tmp:0,et:{},conc:false,note:''}));
   save();render();msg(add.length+' personnage'+(add.length>1?'s':'')+' ajouté'+(add.length>1?'s':'')+' : saisis leur jet d’initiative');
 };
 // Familiers, compagnons et montures des personnages joueurs (page des familiers : CA et PV calculés d'après la fiche)
@@ -222,7 +242,7 @@ $('#bRoll').onclick=()=>{S.list.forEach(c=>{if(c.type==='m')c.init=d20()+c.ib});
 $('#bNew').onclick=()=>{
   if(S.list.length&&!confirm('Nouveau combat : les monstres et autres combattants sont retirés, les personnages joueurs et leurs familiers restent (initiative à ressaisir). Continuer ?'))return;
   S.list=S.list.filter(c=>c.type==='pj'||c.type==='fam');S.list.forEach(c=>{c.init=null;c.conc=false});
-  S.round=1;S.tour=null;open.clear();pal.clear();save();render();
+  S.round=1;S.tour=null;open.clear();pal.clear();for(const k in fb)delete fb[k];save();render();
 };
 // Tour suivant : saute les monstres à 0 PV (les personnages à 0 PV font leurs jets contre la mort)
 function step(dir){
@@ -246,7 +266,7 @@ $('#bPrev').onclick=()=>step(-1);
 function hpColor(c){const r=c.pvmax?c.pv/c.pvmax:1;return r>.5?'#2e9e5b':r>.25?'#d8791a':'#c8402f'}
 function card(c){
   const m=c.type==='m'?M.get(c.m):null,on=c.id===S.tour;
-  const sub=c.type==='pj'||c.type==='fam'?(c.type==='pj'?'Personnage joueur':(c.fm||'')+' de '+(c.pj||''))+(c.init==null?' · initiative à saisir':'')
+  const sub=c.type==='pj'||c.type==='fam'?(c.type==='pj'?'Personnage joueur'+(c.pp!=null?' · Perception passive '+c.pp:''):(c.fm||'')+' de '+(c.pj||''))+(c.init==null?' · initiative à saisir':'')
     :m?`${m.tail} · ${m.typ} · FP ${m.fp} · ${M.xp(m).toLocaleString('fr-FR')} PX`:'Autre combattant';
   const ets=Object.keys(c.et).map(e=>`<button class="chip" data-a="unet" data-e="${esc(e)}" title="${esc(EINFO[e]||'')} (cliquer pour retirer)">${esc(e)}${e==='Épuisement'?' '+c.et[e]:''} ✕</button>`).join('')
     +(c.conc?'<button class="chip conc" data-a="conc" title="Cliquer pour retirer">Concentration ✕</button>':'');
@@ -256,10 +276,11 @@ function card(c){
    <div class="nm"><input data-f="nom" value="${esc(c.nom)}" aria-label="Nom"><small>${esc(sub)}${ko(c)?' · <b>hors de combat</b>':''}</small></div>
    <div class="st">${num('ca',c.ca,'CA')}${num('pv',c.pv,'PV')}<span class="sl">/</span>${num('pvmax',c.pvmax,'MAX')}${num('tmp',c.tmp||'','TEMP','tmp')}</div></div>
   ${c.pvmax?`<div class="hp" style="--hc:${hpColor(c)}"><i style="width:${Math.max(0,Math.min(100,c.pv/c.pvmax*100))}%"></i></div>`:''}
-  <div class="l2"><input class="amt" type="number" inputmode="numeric" min="0" placeholder="PV" aria-label="Montant de PV">
+  <div class="l2"><input class="amt" type="number" inputmode="numeric" min="0" placeholder="Montant" aria-label="Nombre de PV (dégâts, soins ou PV temporaires)" title="Nombre de PV, puis Dégâts, Soins ou PV temp.">
    <button class="b" data-a="deg" style="--c:#c8402f">Dégâts</button><button class="b" data-a="soin" style="--c:#2e9e5b">Soins</button><button class="b" data-a="ptmp" style="--c:#12968f">PV temp.</button>
    <span class="sp1"></span>
    <button class="b" data-a="pal" style="--c:#8b1e3f">États</button>${m?`<button class="b" data-a="det">${open.has(c.id)?'Masquer le profil':'Profil'}</button>`:''}<button class="b" data-a="del" style="--c:#5d6b7a" title="Retirer du combat" aria-label="Retirer du combat">✕</button></div>
+  <div class="fb">${esc(fb[c.id]||'')}</div>
   <div class="ets">${ets}</div>
   ${pal.has(c.id)?`<div class="pal">${ETATS.map(([e,d])=>`<button data-a="et" data-e="${esc(e)}" class="${c.et[e]?'on':''}" title="${esc(d)}">${esc(e)}${e==='Épuisement'?' (niv. '+(c.et[e]||0)+')':''}<small>${esc(d.split('. ')[0])}</small></button>`).join('')}<button data-a="conc" class="${c.conc?'on':''}">Concentration<small>JS de Con à chaque dégât</small></button></div><input class="note" data-f="note" value="${esc(c.note||'')}" placeholder="Note (durée d’un sort, source de la peur…)">`:c.note?`<div class="ets"><small>${esc(c.note)}</small></div>`:''}
   ${m&&open.has(c.id)?`<div class="det">${M.block(m)}</div>`:''}
@@ -290,14 +311,25 @@ function degats(c,n){
     else{c.conc=false;out.push(c.nom+' est hors de combat')}
   }else if(c.type==='pj'&&was===0&&n>0)out.push(c.nom+' subit des dégâts à 0 PV : un échec au jet contre la mort (deux sur un coup critique)');
   if(out.length)msg(out.join(' · '));
+  return out.join(' · ');
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;
   const el=b.closest('.cb'),c=el&&byId(el.dataset.id);if(!c)return;
-  const a=b.dataset.a,n=Math.max(0,parseInt(el.querySelector('.amt').value,10)||0);
-  if(a==='deg'){if(!n)return msg('Saisis un nombre de PV');degats(c,n)}
-  else if(a==='soin'){if(!n)return msg('Saisis un nombre de PV');const was=c.pv;c.pv=c.pvmax?Math.min(c.pvmax,c.pv+n):c.pv+n;if(was<=0&&c.pv>0&&c.type==='pj')delete c.et['Inconscient']}
-  else if(a==='ptmp'){if(!n)return msg('Saisis un nombre de PV');c.tmp=Math.max(c.tmp||0,n);msg('Les PV temporaires ne se cumulent pas : on garde le plus élevé')}
+  const a=b.dataset.a;
+  let n=0;
+  if(a==='deg'||a==='soin'||a==='ptmp'){
+    // Montant pris dans le champ de la carte ; s'il est vide, on le demande
+    n=parseInt(el.querySelector('.amt').value,10);
+    if(!(n>0)){
+      const q={deg:'Combien de dégâts subit ',soin:'Combien de PV rend-on à ',ptmp:'Combien de PV temporaires reçoit '}[a]+c.nom+' ?';
+      n=parseInt(prompt(q)||'',10);
+      if(!(n>0))return;
+    }
+  }
+  if(a==='deg'){const t=c.tmp||0,o=degats(c,n);fb[c.id]='−'+n+' PV'+(t?' (dont '+Math.min(t,n)+' temporaires)':'')+' → '+c.pv+(c.pvmax?' / '+c.pvmax:'')+(o?' · '+o:'')}
+  else if(a==='soin'){const was=c.pv;c.pv=c.pvmax?Math.min(c.pvmax,c.pv+n):c.pv+n;if(was<=0&&c.pv>0&&c.type==='pj')delete c.et['Inconscient'];fb[c.id]='+'+(c.pv-was)+' PV soignés → '+c.pv+(c.pvmax?' / '+c.pvmax:'')}
+  else if(a==='ptmp'){const was=c.tmp||0;c.tmp=Math.max(was,n);fb[c.id]=was>=n?'PV temporaires inchangés ('+was+') : ils ne se cumulent pas, on garde le plus élevé':c.tmp+' PV temporaires'}
   else if(a==='pal'){pal.has(c.id)?pal.delete(c.id):pal.add(c.id)}
   else if(a==='det'){open.has(c.id)?open.delete(c.id):open.add(c.id)}
   else if(a==='del'){if(!confirm('Retirer '+c.nom+' du combat ?'))return;if(S.tour===c.id){step(1);if(S.tour===c.id)S.tour=null}S.list=S.list.filter(x=>x!==c)}
@@ -315,11 +347,62 @@ document.addEventListener('change',e=>{
   if(f==='nom'||f==='note')c[f]=e.target.value;
   else{const x=parseInt(e.target.value,10);c[f]=isNaN(x)?(f==='init'||f==='ca'?null:0):x}
   if(f==='pv'&&c.type==='pj'&&c.pv>0)delete c.et['Inconscient'];
+  if(f==='pv'||f==='pvmax'||f==='tmp')delete fb[c.id];
   save();render();
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.classList.contains('amt')){const b=e.target.parentNode.querySelector('[data-a=deg]');if(b)b.click()}
 });
+// Le groupe saisi par le MJ : nom, niveau, CA, PV max, bonus d'initiative, Perception passive
+const GF=[['niveau','Niveau'],['ca','CA'],['pvmax','PV max'],['init','Init.'],['pp','Perc. passive']];
+function renderGroupe(){
+  const G=M.groupe(),F=M.fiches(),have=new Set(G.map(g=>M.norm(g.nom||'')));
+  $('#grpL').innerHTML=G.map((g,i)=>{
+    const f=F.find(x=>M.norm(x.nom)===M.norm(g.nom||''))||{};
+    return `<div class="gr" data-g="${i}"><label><input data-gf="nom" value="${esc(g.nom||'')}" placeholder="Nom du personnage" aria-label="Nom"></label>`
+      +GF.map(([k,l])=>`<label><small>${l}</small><input type="number" inputmode="numeric" data-gf="${k}" value="${g[k]??''}" placeholder="${f[k]??''}" aria-label="${l}"></label>`).join('')
+      +`<button class="x" data-gx="${i}" title="Retirer du groupe" aria-label="Retirer ${esc(g.nom||'')} du groupe">✕</button></div>`;
+  }).join('');
+  const n=M.joueurs().length;
+  $('#grpN').textContent=n?n+' personnage'+(n>1?'s':''):'à saisir';
+  $('#bGFi').hidden=!F.some(f=>!have.has(M.norm(f.nom)));
+}
+// Une modification du groupe met à jour les personnages déjà dans le combat
+function syncPJ(){
+  const J=M.joueurs();
+  S.list.forEach(c=>{
+    if(c.type!=='pj')return;
+    const j=J.find(x=>M.norm(x.nom)===M.norm(c.nom));if(!j)return;
+    if(j.pvmax>0){if(c.pv===c.pvmax||c.pv>j.pvmax)c.pv=j.pvmax;c.pvmax=j.pvmax}
+    c.ca=j.ca;c.ib=j.init;c.pp=j.pp;
+  });
+  save();
+}
+function setG(G){M.setGroupe(G);syncPJ();renderGroupe();render()}
+$('#bGAdd').onclick=()=>{const G=M.groupe();G.push({nom:''});setG(G);const l=document.querySelectorAll('#grpL [data-gf=nom]');if(l.length)l[l.length-1].focus()};
+$('#bGFi').onclick=()=>{
+  const G=M.groupe(),have=new Set(G.map(g=>M.norm(g.nom||''))),add=M.fiches().filter(f=>!have.has(M.norm(f.nom)));
+  add.forEach(f=>G.push({nom:f.nom,niveau:f.niveau,ca:f.ca,pvmax:f.pvmax||null,init:f.init,pp:f.pp}));
+  setG(G);msg(add.length+' personnage'+(add.length>1?'s':'')+' repris des fiches');
+};
+$('#grpL').addEventListener('change',e=>{
+  const k=e.target.dataset.gf,r=e.target.closest('[data-g]');if(!k||!r)return;
+  const G=M.groupe(),g=G[+r.dataset.g];if(!g)return;
+  const old=g.nom;
+  if(k==='nom'){
+    g.nom=e.target.value.trim();
+    // Renommer un personnage déjà dans le combat
+    S.list.forEach(c=>{if(c.type==='pj'&&old&&M.norm(c.nom)===M.norm(old))c.nom=g.nom||c.nom});
+  }else{const x=parseInt(e.target.value,10);g[k]=isNaN(x)?null:k==='niveau'?Math.min(20,Math.max(1,x)):x}
+  setG(G);
+});
+$('#grpL').addEventListener('click',e=>{
+  const b=e.target.closest('[data-gx]');if(!b)return;
+  const G=M.groupe(),g=G[+b.dataset.gx];if(!g)return;
+  if(g.nom&&!confirm('Retirer '+g.nom+' du groupe ?'))return;
+  G.splice(+b.dataset.gx,1);setG(G);
+});
+addEventListener('storage',e=>{if(e.key==='dnd_groupe_v1'&&M.estMJ()){renderGroupe();}});
 $('#ref').innerHTML=ETATS.map(([e,d])=>`<dt>${esc(e)}</dt><dd>${esc(d)}</dd>`).join('')+'<dt>Concentration</dt><dd>Quand une créature qui se concentre subit des dégâts : jet de sauvegarde de Constitution, DD 10 ou la moitié des dégâts si c’est plus (maximum 30). Rompue aussi si elle est neutralisée ou meurt.</dd>';
 
 load();
@@ -328,6 +411,7 @@ function boot(){
   render();
   if(ready||!M.estMJ())return;
   ready=true;
+  renderGroupe();$('#grp').open=!M.joueurs().length;
   M.load().then(db=>{
     $('#dlM').innerHTML=db.map(m=>`<option value="${esc(m.n)}">FP ${esc(m.fp)} · ${esc(m.typ)}</option>`).join('');
     // Rencontre envoyée depuis le calculateur
