@@ -65,12 +65,16 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 .grp summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a3170}
 .grp summary small{font:12px system-ui;color:var(--soft);margin-left:6px}
 .grp p.i{margin:6px 0 8px;font-size:12.5px;color:var(--soft)}
-.gr{display:grid;grid-template-columns:minmax(0,3fr) repeat(5,minmax(0,62px)) 34px;gap:6px;align-items:end;margin-top:6px}
-.gr input{width:100%;border:1px solid var(--line);border-radius:5px;padding:6px 6px;background:#fff;min-width:0}
-.gr input[type=number]{text-align:center}
-.gr label small{display:none}
-.gr .x{border:0;background:none;color:#5d6b7a;font-size:16px;cursor:pointer;padding:6px 0}
-.gr.h{font:700 10.5px system-ui;color:var(--soft);text-align:center}.gr.h span:first-child{text-align:left}
+.gw{padding:8px 0;border-bottom:1px dashed var(--line)}
+.g1,.g2{display:grid;gap:6px;align-items:end}
+.g1{grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,64px)) 30px}
+.g2{grid-template-columns:repeat(8,minmax(0,1fr));margin-top:6px}
+.gw input{width:100%;border:1px solid var(--line);border-radius:5px;padding:6px 6px;background:#fff;min-width:0}
+.gw input[type=number]{text-align:center}
+.gw label small{display:block;font:700 10px system-ui;color:var(--soft);text-align:center;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g1>label:first-child small{text-align:left}
+.gw .x{border:0;background:none;color:#5d6b7a;font-size:16px;cursor:pointer;padding:6px 0}
+.gs{font-size:12px;color:var(--soft);margin-top:5px}.gs b{color:#2a3170}
 .fb{font-size:12px;color:#8b1e3f;font-weight:600;margin-top:5px}
 .fb:empty{display:none}
 .lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
@@ -84,8 +88,8 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
  .st{width:100%;justify-content:flex-end}
  .b{min-height:36px}
  .l2 .amt{min-height:36px;width:84px}
- .gr{grid-template-columns:repeat(5,minmax(0,1fr)) 30px}.gr>:first-child{grid-column:1/-1}.gr.h{display:none}
- .gr{padding-bottom:8px;border-bottom:1px dashed var(--line)}.gr label small{display:block;font-size:10px;color:var(--soft);text-align:center}
+ .g1{grid-template-columns:repeat(3,minmax(0,1fr)) 30px}.g1>:first-child{grid-column:1/-1}
+ .g2{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media print{.grp,.panel,.round,.l2,.foot,details.ref{display:none!important}.cb{box-shadow:none;border:1px solid #ccc;break-inside:avoid}}
 </style>
@@ -106,8 +110,7 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 <div id="mj" hidden>
  <details class="panel grp" id="grp">
   <summary>Le groupe <small id="grpN"></small></summary>
-  <p class="i">Saisis ici les personnages de tes joueurs, même sans leur fiche : le suivi de combat, le calculateur de rencontres et l’écran du MJ s’en servent. Une valeur laissée vide est reprise de la fiche du personnage si elle existe dans ce navigateur.</p>
-  <div class="gr h"><span>Nom</span><span>Niveau</span><span>CA</span><span>PV max</span><span>Init.</span><span>Perc. passive</span><span></span></div>
+  <p class="i">Saisis ici les personnages de tes joueurs, même sans leur fiche. L’initiative vaut le modificateur de Dextérité plus un éventuel bonus en plus (don Vigilant…), la Perception passive 10 + le modificateur de Sagesse si tu ne la saisis pas. Le suivi de combat, le calculateur de rencontres et l’écran du MJ s’en servent. Une valeur laissée vide est reprise de la fiche du personnage si elle existe dans ce navigateur.</p>
   <div id="grpL"></div>
   <div class="btns"><button class="b" id="bGAdd" style="--c:#2e9e5b">+ Personnage</button><button class="b" id="bGFi" hidden>Reprendre les fiches de ce navigateur</button></div>
  </details>
@@ -130,6 +133,7 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
    <button class="b" id="bPJ" style="--c:#2e9e5b">Ajouter les personnages joueurs</button>
    <button class="b" id="bFam" style="--c:#12968f">Ajouter leurs familiers et montures</button>
    <button class="b" id="bRoll">Relancer l’initiative des monstres</button>
+   <button class="b" id="bRollPJ" style="--c:#2e9e5b" title="d20 + bonus d’initiative, pour les personnages et familiers dont l’initiative n’est pas saisie">Lancer l’initiative des personnages</button>
    <button class="b" id="bNew" style="--c:#c8402f">Nouveau combat</button>
   </div>
  </section>
@@ -145,11 +149,12 @@ details.ref summary{cursor:pointer;font:italic 700 16px var(--serif);color:#2a31
 </div>
 </div>
 <script src="persos.js?v=20261015a"></script>
-<script src="monstres.js?v=20261020a"></script>
+<script src="monstres.js?v=20261020b"></script>
 <script>
 const $=s=>document.querySelector(s);
 const M=Monstres,esc=M.esc;
 const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',6000)};
+const sg=n=>(n>=0?'+':'−')+Math.abs(n);
 // États (règles 2024), avec un résumé de leurs effets
 const ETATS=[
  ['À terre','Ne se déplace qu’en rampant ou en se relevant (moitié de sa vitesse). Désavantage à ses attaques. Les attaques contre lui ont l’avantage à 1,5 m ou moins, le désavantage au-delà.'],
@@ -239,6 +244,11 @@ $('#bFam').onclick=()=>{
   S.list.push(...add);save();render();
   msg(add.length+' créature'+(add.length>1?'s':'')+' ajoutée'+(add.length>1?'s':'')+' : saisis leur initiative (un compagnon ou une monture contrôlée agit au tour de son maître)');
 };
+$('#bRollPJ').onclick=()=>{
+  const l=S.list.filter(c=>(c.type==='pj'||c.type==='fam')&&c.init==null);
+  if(!l.length){msg(S.list.some(c=>c.type==='pj')?'Toutes les initiatives des personnages sont déjà saisies':'Ajoute d’abord les personnages joueurs');return}
+  l.forEach(c=>c.init=d20()+(c.ib||0));save();render();msg('Initiative lancée pour '+l.map(c=>c.nom).join(', '));
+};
 $('#bRoll').onclick=()=>{S.list.forEach(c=>{if(c.type==='m')c.init=d20()+c.ib});save();render();msg('Initiative des monstres relancée')};
 $('#bNew').onclick=()=>{
   if(S.list.length&&!confirm('Nouveau combat : les monstres et autres combattants sont retirés, les personnages joueurs et leurs familiers restent (initiative à ressaisir). Continuer ?'))return;
@@ -267,7 +277,7 @@ $('#bPrev').onclick=()=>step(-1);
 function hpColor(c){const r=c.pvmax?c.pv/c.pvmax:1;return r>.5?'#2e9e5b':r>.25?'#d8791a':'#c8402f'}
 function card(c){
   const m=c.type==='m'?M.get(c.m):null,on=c.id===S.tour;
-  const sub=c.type==='pj'||c.type==='fam'?(c.type==='pj'?'Personnage joueur'+(c.pp!=null?' · Perception passive '+c.pp:''):(c.fm||'')+' de '+(c.pj||''))+(c.init==null?' · initiative à saisir':'')
+  const sub=c.type==='pj'||c.type==='fam'?(c.type==='pj'?'Personnage joueur · init. '+sg(c.ib||0)+(c.pp!=null?' · Perception passive '+c.pp:''):(c.fm||'')+' de '+(c.pj||''))+(c.init==null?' · initiative à saisir':'')
     :m?`${m.tail} · ${m.typ} · FP ${m.fp} · ${M.xp(m).toLocaleString('fr-FR')} PX`:'Autre combattant';
   const ets=Object.keys(c.et).map(e=>`<button class="chip" data-a="unet" data-e="${esc(e)}" title="${esc(EINFO[e]||'')} (cliquer pour retirer)">${esc(e)}${e==='Épuisement'?' '+c.et[e]:''} ✕</button>`).join('')
     +(c.conc?'<button class="chip conc" data-a="conc" title="Cliquer pour retirer">Concentration ✕</button>':'');
@@ -354,18 +364,22 @@ document.addEventListener('change',e=>{
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.classList.contains('amt')){const b=e.target.parentNode.querySelector('[data-a=deg]');if(b)b.click()}
 });
-// Le groupe saisi par le MJ : nom, niveau, CA, PV max, bonus d'initiative, Perception passive
-const GF=[['niveau','Niveau'],['ca','CA'],['pvmax','PV max'],['init','Init.'],['pp','Perc. passive']];
+// Le groupe saisi par le MJ : nom, niveau, CA, PV max, caractéristiques, bonus d'initiative en plus, Perception passive
+const GF=[['niveau','Niveau'],['ca','CA'],['pvmax','PV max']];
+const CARN={for:'FOR',dex:'DEX',con:'CON',int:'INT',sag:'SAG',cha:'CHA'};
 function renderGroupe(){
-  const G=M.groupe(),F=M.fiches(),have=new Set(G.map(g=>M.norm(g.nom||'')));
+  const G=M.groupe(),F=M.fiches(),J=M.joueurs(),have=new Set(G.map(g=>M.norm(g.nom||'')));
+  const inp=(k,l,v,ph)=>`<label><small>${l}</small><input type="number" inputmode="numeric" data-gf="${k}" value="${v??''}" placeholder="${ph??''}" aria-label="${l}"></label>`;
   $('#grpL').innerHTML=G.map((g,i)=>{
-    const f=F.find(x=>M.norm(x.nom)===M.norm(g.nom||''))||{};
-    return `<div class="gr" data-g="${i}"><label><input data-gf="nom" value="${esc(g.nom||'')}" placeholder="Nom du personnage" aria-label="Nom"></label>`
-      +GF.map(([k,l])=>`<label><small>${l}</small><input type="number" inputmode="numeric" data-gf="${k}" value="${g[k]??''}" placeholder="${f[k]??''}" aria-label="${l}"></label>`).join('')
-      +`<button class="x" data-gx="${i}" title="Retirer du groupe" aria-label="Retirer ${esc(g.nom||'')} du groupe">✕</button></div>`;
+    const key=M.norm(g.nom||''),f=F.find(x=>M.norm(x.nom)===key)||{},j=J.find(x=>M.norm(x.nom)===key),car=j?j.car:{};
+    return `<div class="gw" data-g="${i}"><div class="g1"><label><small>Nom</small><input data-gf="nom" value="${esc(g.nom||'')}" placeholder="Nom du personnage" aria-label="Nom"></label>`
+      +GF.map(([k,l])=>inp(k,l,g[k],f[k])).join('')
+      +`<button class="x" data-gx="${i}" title="Retirer du groupe" aria-label="Retirer ${esc(g.nom||'')} du groupe">✕</button></div>`
+      +`<div class="g2">${M.CAR.map(k=>inp(k,CARN[k]+(car[k]?' '+sg(M.cmod(car[k])):''),g[k],f.car&&f.car[k])).join('')}`
+      +inp('binit','Init. en plus',g.binit,'0')+inp('pp','Perc. passive',g.pp,j&&j.pp!=null?j.pp:'')+`</div>`
+      +(j?`<div class="gs">Initiative <b>${sg(j.init)}</b>${j.pp!=null?' · Perception passive <b>'+j.pp+'</b>':''}</div>`:'')+`</div>`;
   }).join('');
-  const n=M.joueurs().length;
-  $('#grpN').textContent=n?n+' personnage'+(n>1?'s':''):'à saisir';
+  $('#grpN').textContent=J.length?J.length+' personnage'+(J.length>1?'s':''):'à saisir';
   $('#bGFi').hidden=!F.some(f=>!have.has(M.norm(f.nom)));
 }
 // Une modification du groupe met à jour les personnages déjà dans le combat
@@ -383,7 +397,12 @@ function setG(G){M.setGroupe(G);syncPJ();renderGroupe();render()}
 $('#bGAdd').onclick=()=>{const G=M.groupe();G.push({nom:''});setG(G);const l=document.querySelectorAll('#grpL [data-gf=nom]');if(l.length)l[l.length-1].focus()};
 $('#bGFi').onclick=()=>{
   const G=M.groupe(),have=new Set(G.map(g=>M.norm(g.nom||''))),add=M.fiches().filter(f=>!have.has(M.norm(f.nom)));
-  add.forEach(f=>G.push({nom:f.nom,niveau:f.niveau,ca:f.ca,pvmax:f.pvmax||null,init:f.init,pp:f.pp}));
+  add.forEach(f=>{
+    const g={nom:f.nom,niveau:f.niveau,ca:f.ca,pvmax:f.pvmax||null,pp:f.pp};
+    M.CAR.forEach(k=>{if(f.car[k])g[k]=f.car[k]});
+    g.binit=f.init-(g.dex?M.cmod(g.dex):0)||null;
+    G.push(g);
+  });
   setG(G);msg(add.length+' personnage'+(add.length>1?'s':'')+' repris des fiches');
 };
 $('#grpL').addEventListener('change',e=>{
@@ -394,7 +413,7 @@ $('#grpL').addEventListener('change',e=>{
     g.nom=e.target.value.trim();
     // Renommer un personnage déjà dans le combat
     S.list.forEach(c=>{if(c.type==='pj'&&old&&M.norm(c.nom)===M.norm(old))c.nom=g.nom||c.nom});
-  }else{const x=parseInt(e.target.value,10);g[k]=isNaN(x)?null:k==='niveau'?Math.min(20,Math.max(1,x)):x}
+  }else{const x=parseInt(e.target.value,10);g[k]=isNaN(x)?null:k==='niveau'?Math.min(20,Math.max(1,x)):M.CAR.includes(k)?Math.min(30,Math.max(1,x)):x}
   setG(G);
 });
 $('#grpL').addEventListener('click',e=>{
