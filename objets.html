@@ -96,6 +96,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body data-mode="choose">
 <div class="top">
@@ -317,7 +318,7 @@ function lines(h){
 const harBtn=s=>s.a&&st.sel.has(s.n)?`<button class="b har noprint${st.har.has(s.n)?' on':''}" data-act="har" data-i="${s.i}" aria-pressed="${st.har.has(s.n)}" title="Seuls les objets harmonisés sont importés dans les objets liés de la fiche (${MAXH} au maximum)">${st.har.has(s.n)?'✓ Harmonisé':'S’harmoniser'}</button>`:'';
 function card(s,remove){
   const col=rcol(s);
-  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
+  return `<article class="sp${s.h.length>1800?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.n)}${pills(s)}${s.c_?'':VO.btn('objets',s.n,s.n)}</h3><div class="sub">${esc(s.cat||s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${s.en?' · '+esc(s.en):''}</div></div><span class="lvb" title="${esc(s.q)}">${rabbr(s)}</span></header>
   <div class="body"><dl class="meta"><div><dt>Type</dt><dd>${esc(s.cat||s.t)}</dd></div><div><dt>Rareté</dt><dd>${esc(s.q)}</dd></div>${prix(s)?`<div><dt>Prix d’achat indicatif</dt><dd>${esc(prix(s))}</dd></div>`:''}<div><dt>Harmonisation</dt><dd>${esc(s.a||'Non requise')}</dd></div>${s.roles&&s.roles.size?`<div><dt>Rôle</dt><dd>${[...s.roles].join(', ')}</dd></div>`:''}${s.rec&&s.rec.size?`<div><dt>Conseillé pour</dt><dd>${s.rec.size>=CLASSES.length-1?'toutes les classes':[...s.rec].sort((x,y)=>x.localeCompare(y,'fr')).join(', ')}</dd></div>`:''}${s.en?`<div><dt>Nom anglais</dt><dd>${esc(s.en)}</dd></div>`:''}${fxText(s)?`<div><dt>Effets</dt><dd>${esc(fxText(s))}</dd></div>`:''}</dl>
   <div class="desc">${lines(s.h)}</div>${srcNote(s)}${remove?`<div class="racts" style="margin-top:6px">${harBtn(s)}${editBtn(s)}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer de mes objets</button></div>`:''}</div></article>`;
 }
@@ -330,7 +331,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' objet'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans mon inventaire · '+st.har.size+'/'+MAXH+' harmonisé'+(st.har.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=rcol(s);
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}</div><div class="rs">${esc(s.cat?s.cat.split(' (')[0]:s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${prix(s)?' · '+esc(prix(s).split(' (')[0].split(' ;')[0]):''}</div></div>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${pills(s)}${s.c_?'':VO.btn('objets',s.n,s.n)}</div><div class="rs">${esc(s.cat?s.cat.split(' (')[0]:s.t)} · ${esc(s.q)}${s.a?' · '+esc(s.a):''}${prix(s)?' · '+esc(prix(s).split(' (')[0].split(' ;')[0]):''}</div></div>
     <div class="racts">${harBtn(s)}<button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}${s.c_?`<div class="racts" style="margin-top:6px">${editBtn(s)}</div>`:''}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
@@ -467,7 +468,7 @@ async function boot(){
 }
 boot();
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

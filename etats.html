@@ -62,6 +62,7 @@
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body>
 <div class="top">
@@ -188,7 +189,7 @@ const X=[
 ];
 $('#tags').innerHTML=Object.entries(T).map(([k,v])=>`<button type="button" data-t="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
 $('#mat').innerHTML=C.map(c=>`<tr data-id="${slug(c.n)}"><td><a href="#${slug(c.n)}">${esc(c.n)}</a></td>${c.m.map(x=>`<td class="${/^(0|aucune|échec|rate)/.test(x)?'o':''}">${esc(x||'–')}</td>`).join('')}</tr>`).join('');
-$('#grid').innerHTML=C.map(c=>`<section class="panel box" id="${slug(c.n)}" style="--k:${c.k}"><h2>${esc(c.n)}</h2>
+$('#grid').innerHTML=C.map(c=>`<section class="panel box" id="${slug(c.n)}" style="--k:${c.k}"><h2>${esc(c.n)}${VO.btn('etats',c.n,c.n)}</h2>
 <p class="sum">${esc(c.s)}</p><ul>${c.e.map(x=>'<li>'+x+'</li>').join('')}</ul><p class="fin">${c.f}</p>
 ${c.t.length?'<div class="tg">'+c.t.map(k=>'<span>'+esc(T[k])+'</span>').join('')+'</div>':''}</section>`).join('')
  +`<section class="panel box" id="autres" style="--k:#2a3170"><h2>Situations proches</h2>${X.map(r=>`<div class="r"><b>${esc(r[0])}</b><div>${r[1]}</div></div>`).join('')}</section>`
@@ -212,7 +213,7 @@ $('#bPrint').onclick=()=>window.print();
 // Contenu généré après le chargement : on rejoint l'ancre demandée (#a-terre…)
 if(location.hash){const t=document.getElementById(decodeURIComponent(location.hash.slice(1)));if(t)t.scrollIntoView()}
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

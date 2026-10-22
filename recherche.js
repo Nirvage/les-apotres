@@ -58,27 +58,27 @@ function build(){
     var clsLien=function(cl,n){return 'classes.html#'+encodeURIComponent(cl)+(n?'/'+encodeURIComponent(n):'')};
     Object.keys(ci.classes||{}).forEach(function(cl){
       var k=ci.classes[cl];
-      add(out,{t:'classe',n:cl,s:'Classe · d'+k.dv+' · '+k.prim,body:[k.pitch,k.jeu].concat(k.role||[]).join(' '),href:clsLien(cl),
+      add(out,{t:'classe',n:cl,vo:['classes','classes§'+cl],s:'Classe · d'+k.dv+' · '+k.prim,body:[k.pitch,k.jeu].concat(k.role||[]).join(' '),href:clsLien(cl),
         d:function(){return '<p>'+esc(k.pitch)+'</p>'+line('Rôles',(k.role||[]).join(', '))+'<h4>Conseils de jeu</h4>'+(k.conseils||[]).slice(0,3).map(function(x){return '<p>'+esc(x)+'</p>'}).join('')}});
     });
     (sp||[]).forEach(function(s){
       var p=String(s.n).split('|');
       var lv=+s.l?'Niveau '+s.l:'Sort mineur';
-      add(out,{t:'sort',n:p[0],alt:p.slice(1).join(' '),s:lv+' · '+(s.e||'')+((s.c||[]).length?' · '+s.c.join(', '):''),
+      add(out,{t:'sort',n:p[0],vo:['sorts',s.n],alt:p.slice(1).join(' '),s:lv+' · '+(s.e||'')+((s.c||[]).length?' · '+s.c.join(', '):''),
         body:txt(s.h),href:lien('grimoire.html',p[0]),
         d:function(){return line('Incantation',s.t)+line('Portée',s.r)+line('Composantes',s.k)+line('Durée',s.d)+(p[1]?line('Aussi appelé',p.slice(1).join(', ')):'')+'<div>'+s.h+'</div>'}});
     });
     (ob||[]).forEach(function(o){
-      add(out,{t:'objet',n:o.n,alt:o.en,s:[o.t,o.q,o.a].filter(Boolean).join(' · '),body:txt(o.h),href:lien('objets.html',o.n),
+      add(out,{t:'objet',n:o.n,vo:['objets',o.n],alt:o.en,s:[o.t,o.q,o.a].filter(Boolean).join(' · '),body:txt(o.h),href:lien('objets.html',o.n),
         d:function(){return '<div>'+o.h+'</div>'+line('Source',o.src)}});
     });
     (eq||[]).forEach(function(o){
-      add(out,{t:'equip',n:o.n,alt:o.en,s:[o.c||o.t,o.p].filter(Boolean).join(' · '),body:txt(o.h),href:lien('equipement.html',o.n),
+      add(out,{t:'equip',n:o.n,vo:['equipement',o.n],alt:o.en,s:[o.c||o.t,o.p].filter(Boolean).join(' · '),body:txt(o.h),href:lien('equipement.html',o.n),
         d:function(){return line('Prix',o.p)+line('Poids',o.kg!=null?String(o.kg).replace('.',',')+' kg':'')+'<div>'+(o.h||'')+'</div>'}});
     });
     var creature=function(t,page){return function(m){
       var body=[m.typ].concat((m.traits||[]).map(function(x){return x.n}),(m.actions||[]).map(function(x){return x.n})).join(' ');
-      add(out,{t:t,n:m.n,alt:m.en,s:[m.tail,m.typ,m.fp!=null?'FP '+m.fp:'',m.o].filter(Boolean).join(' · '),body:body,href:lien(page,m.n),
+      add(out,{t:t,n:m.n,vo:[t==='monstre'?'monstres':'familiers',m.n],alt:m.en,s:[m.tail,m.typ,m.fp!=null?'FP '+m.fp:'',m.o].filter(Boolean).join(' · '),body:body,href:lien(page,m.n),
         d:function(){
           var C=['For','Dex','Con','Int','Sag','Cha'];
           var car=(m.car||[]).map(function(v,i){var b=Math.floor((v-10)/2);return C[i]+' '+v+' ('+(b>=0?'+':'−')+Math.abs(b)+')'}).join(' · ');
@@ -90,13 +90,13 @@ function build(){
     (be||[]).forEach(creature('monstre','bestiaire.html'));
     (fa||[]).forEach(creature('familier','familiers.html'));
     (dn||[]).forEach(function(x){
-      add(out,{t:'don',n:x.nom,s:[x.cat,x.pre?'Prérequis : '+x.pre:''].filter(Boolean).join(' · '),body:x.desc,href:'dons.html#'+encodeURIComponent(x.id),
+      add(out,{t:'don',n:x.nom,vo:['dons',x.id],s:[x.cat,x.pre?'Prérequis : '+x.pre:''].filter(Boolean).join(' · '),body:x.desc,href:'dons.html#'+encodeURIComponent(x.id),
         d:function(){return '<p>'+br(x.desc)+'</p>'+line('Source',x.src)}});
     });
     var infos=(ei&&ei.infos)||{},extra=(ei&&ei.extra)||{};
     var espece=function(n,e){
       var i=infos[n]||{};
-      add(out,{t:'espece',n:n,s:[e.type||i.type,e.taille,e.vit?'Vitesse '+e.vit+' m':''].filter(Boolean).join(' · '),
+      add(out,{t:'espece',n:n,vo:['especes',n],s:[e.type||i.type,e.taille,e.vit?'Vitesse '+e.vit+' m':''].filter(Boolean).join(' · '),
         body:(e.traits||[]).map(function(x){return x.nom+' '+x.desc}).join(' '),href:'especes.html#'+encodeURIComponent(n),
         d:function(){return (e.app||i.app?'<p>'+esc(e.app||i.app)+'</p>':'')+liste(e.traits)}});
     };
@@ -104,22 +104,22 @@ function build(){
     Object.keys(extra).forEach(function(n){if(!(es&&es[n]))espece(n,extra[n])});
     Object.keys(ca||{}).forEach(function(cl){
       (ca[cl]||[]).forEach(function(x){
-        add(out,{t:'classe',n:x.nom,alt:cl,s:cl+' · niv. '+x.niv,body:x.desc,href:clsLien(cl),d:function(){return '<p>'+br(x.desc)+'</p>'}});
+        add(out,{t:'classe',n:x.nom,alt:cl,vo:['classes','capacites§'+cl+'|'+x.niv+'|'+x.nom],s:cl+' · niv. '+x.niv,body:x.desc,href:clsLien(cl),d:function(){return '<p>'+br(x.desc)+'</p>'}});
       });
     });
     Object.keys(sc||{}).forEach(function(cl){
       Object.keys(sc[cl]||{}).forEach(function(n){
         var f=sc[cl][n].feats||[],tip=((ci.sous||{})[cl]||{})[n];
-        add(out,{t:'classe',n:n,alt:cl,s:'Sous-classe · '+cl,body:f.map(function(x){return x.nom}).join(' ')+(tip?' '+tip.t:''),href:clsLien(cl,n),
+        add(out,{t:'classe',n:n,alt:cl,vo:['classes','sous§'+cl+'|'+n],s:'Sous-classe · '+cl,body:f.map(function(x){return x.nom}).join(' ')+(tip?' '+tip.t:''),href:clsLien(cl,n),
           d:function(){return (tip?'<p><i>'+esc(tip.t)+'</i></p>':'')+f.map(function(x){return '<p><b>Niv. '+x.niv+' · '+esc(x.nom)+'.</b> '+br(x.desc)+'</p>'}).join('')}});
         f.forEach(function(x){
-          add(out,{t:'classe',n:x.nom,alt:n+' '+cl,s:n+' ('+cl+') · niv. '+x.niv,body:x.desc,href:clsLien(cl,n),d:function(){return '<p>'+br(x.desc)+'</p>'}});
+          add(out,{t:'classe',n:x.nom,alt:n+' '+cl,vo:['classes','sous§'+cl+'|'+n],s:n+' ('+cl+') · niv. '+x.niv,body:x.desc,href:clsLien(cl,n),d:function(){return '<p>'+br(x.desc)+'</p>'}});
         });
       });
     });
     Object.keys(hi||{}).forEach(function(n){
       var h=hi[n];
-      add(out,{t:'histo',n:n,s:(h.comp||[]).join(', '),body:h.desc,
+      add(out,{t:'histo',n:n,vo:['historiques',n],s:(h.comp||[]).join(', '),body:h.desc,
         d:function(){return '<p>'+br(h.desc)+'</p>'+line('Compétences',(h.comp||[]).join(', '))+line('Outil',h.outil)}});
     });
     (qu||[]).forEach(function(x){
@@ -140,7 +140,7 @@ function regles(out,etats,combat,guide){
   var str="'((?:[^'\\\\]|\\\\.)*)'";
   var re=new RegExp("\\{n:"+str+",a:"+str+"[^]*?s:"+str,'g'),m;
   while((m=re.exec(etats))){
-    (function(n,a,s){add(out,{t:'regle',n:n,alt:a,s:'État',body:s,href:'etats.html#'+slug(n),d:function(){return '<p>'+esc(s)+'</p>'}})})(m[1],m[2],m[3]);
+    (function(n,a,s){add(out,{t:'regle',n:n,alt:a,vo:['etats',n],s:'État',body:s,href:'etats.html#'+slug(n),d:function(){return '<p>'+esc(s)+'</p>'}})})(m[1],m[2],m[3]);
   }
   var x=etats.split('const X=[')[1];
   if(x){
@@ -232,6 +232,7 @@ var CSS='\
 #rg .rg-d table{border-collapse:collapse;font-size:12px}#rg .rg-d td,#rg .rg-d th{border:1px solid #dde;padding:2px 5px}\
 #rg .rg-go{display:inline-block;margin-top:6px;font-weight:600;color:#2f6fd0}\
 #rg .rg-m{padding:14px;color:#5f6580}\
+#rg .rg-vo{display:flex;align-items:center;gap:2px;font-size:12px;color:#5f6580}#rg .rg-vo .vo-btn{margin-left:0}\
 #rg mark{background:#ffe9a8;color:inherit;border-radius:2px}\
 @media screen and (max-width:700px){.rg-home kbd{display:none}#rg{width:100vw;max-width:100vw;height:100%;max-height:100%;margin:0;border-radius:0}}\
 @media print{.rg-btn,.rg-home{display:none!important}}';
@@ -272,7 +273,7 @@ function ui(){
     var o=shown[+li.dataset.i];if(!o)return;
     d=document.createElement('div');d.className='rg-d';
     var here=o.href&&o.href.split(/[?#]/)[0]===location.pathname.split('/').pop();
-    d.innerHTML=(o.d()||'')+(o.href?'<a class="rg-go" href="'+esc(o.href)+'">Ouvrir dans '+esc(TYPES[o.t][2])+' →</a>':'');
+    d.innerHTML=(o.d()||'')+(o.vo&&window.VO?'<p class="rg-vo">'+window.VO.btn(o.vo[0],o.vo[1],o.n)+' <span>Version originale en anglais</span></p>':'')+(o.href?'<a class="rg-go" href="'+esc(o.href)+'">Ouvrir dans '+esc(TYPES[o.t][2])+' →</a>':'');
     if(here){var a=d.querySelector('.rg-go');a.addEventListener('click',function(){dlg.close();setTimeout(function(){applyQ(true)},0)})}
     li.appendChild(d);b.setAttribute('aria-expanded','true');
   });

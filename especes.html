@@ -53,6 +53,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body>
 <div class="top">
@@ -167,7 +168,7 @@ function render(){
  $('#list').innerHTML=r.length?r.map(o=>{
   const op=st.open.has(o.n),c=ED[o.ed].c;
   const sub=[o.tail,m(o.s.vit)+(o.mv.length?' ('+o.mv.join(', ')+')':''),o.typ,o.src].join(' · ');
-  return `<div class="item" id="${esc(encodeURIComponent(o.n))}" style="--c:${c}"><div class="row"><div class="rmain"><div class="rt">${esc(o.n)}${o.ed==='2014'?'<span class="pill">2014</span>':''}</div><div class="rs">${esc(sub)}</div>${o.feats.length?`<div class="tags">${o.feats.map(f=>`<span class="tag">${esc(f)}</span>`).join('')}</div>`:''}</div>
+  return `<div class="item" id="${esc(encodeURIComponent(o.n))}" style="--c:${c}"><div class="row"><div class="rmain"><div class="rt">${esc(o.n)}${o.ed==='2014'?'<span class="pill">2014</span>':''}${VO.btn('especes',o.n,o.n)}</div><div class="rs">${esc(sub)}</div>${o.feats.length?`<div class="tags">${o.feats.map(f=>`<span class="tag">${esc(f)}</span>`).join('')}</div>`:''}</div>
   <div class="racts"><button class="b" data-n="${esc(o.n)}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button></div></div>${op?`<div class="det">${fullBlock(o)}</div>`:''}</div>`;
  }).join(''):'<div class="empty-msg">Aucune espèce ne correspond à ces filtres.</div>';
 }
@@ -190,7 +191,7 @@ Promise.all(['especes.json','especes_infos.json'].map(u=>fetch(u).then(r=>{if(!r
  })
  .catch(()=>{$('#list').innerHTML='<div class="empty-msg">Impossible de charger les espèces (ouvre le site via un serveur web).</div>'});
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

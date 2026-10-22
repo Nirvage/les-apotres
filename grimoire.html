@@ -116,6 +116,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body data-mode="choose">
 <div class="top">
@@ -203,7 +204,7 @@ const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · desc
 const pills=s=>(isAuto(s)?'<span class="pill al">Toujours préparé</span>':st.prep.has(s.n)?'<span class="pill pr">Préparé</span>':'')+(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
 function card(s,remove){
   const col=SC[s.e]||'#2a3170';
-  return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
+  return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
   <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
   <div class="desc">${s.h}</div>${srcNote(s)}${remove?`${s.l>0&&!isAuto(s)?`<button class="b pp noprint${st.prep.has(s.n)?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)}">${st.prep.has(s.n)?'★ Préparé':'☆ Préparer'}</button> `:''}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
 }
@@ -332,7 +333,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' sort'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans le grimoire · '+prepCount()+(max!=null?' / '+max:'')+' préparé'+(prepCount()>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=st.sel.has(s.n),op=st.open.has(s.n),col=SC[s.e]||'#2a3170';
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
     <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${s.l>0&&!isAuto(s)?`<button class="b pp${st.prep.has(s.n)&&on?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)&&on}" title="${on?'':'Ajoute aussi le sort au grimoire'}">${st.prep.has(s.n)&&on?'★ Préparé':'☆ Préparer'}</button>`:''}<button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
 }
@@ -464,7 +465,7 @@ async function boot(){
 }
 boot();
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

@@ -79,6 +79,7 @@ details.feat p{font-size:12.5px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body>
 <div class="top">
@@ -218,7 +219,7 @@ function classView(cl){
  $('#cnt').textContent=subs.length+' sous-classe'+(subs.length>1?'s':'')+' affichée'+(subs.length>1?'s':'')+' sur '+all;
  const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join('');
  let h=`<div class="nav"><a class="b" href="#">← Toutes les classes</a>${CL.map(x=>x===cl?'':`<a class="b" style="--c:${(INFO.classes[x]||{}).c||'#2a3170'}" href="#${encodeURIComponent(x)}">${esc(x)}</a>`).join('')}</div>
- <article class="cls" style="--c:${c}"><header class="chead"><h2>${esc(cl)}</h2>${k.pitch?`<p>${esc(k.pitch)}</p>`:''}</header><div class="cbody">`;
+ <article class="cls" style="--c:${c}"><header class="chead"><h2>${esc(cl)}${VO.btn('classes','classes§'+cl,cl)}</h2>${k.pitch?`<p>${esc(k.pitch)}</p>`:''}</header><div class="cbody">`;
  if(k.dv)h+=`<dl class="meta"><div><dt>Dé de vie</dt><dd>d${k.dv}</dd></div><div><dt>Caractéristique principale</dt><dd>${esc(k.prim)}</dd></div><div><dt>Jets de sauvegarde</dt><dd>${esc(k.sv)}</dd></div><div><dt>Difficulté</dt><dd><span class="dots">${dots(k.cplx)}</span> ${CPLX[k.cplx]}</dd></div><div><dt>Armures</dt><dd>${esc(k.arm)}</dd></div><div><dt>Armes</dt><dd>${esc(k.armes)}</dd></div><div><dt>Magie</dt><dd>${esc(k.inc)}</dd></div><div><dt>Rôles</dt><dd>${esc((k.role||[]).join(', '))}</dd></div></dl>`;
  if(k.tiers)h+=`<p class="srcn" style="font-style:normal">Classe tiers : ${esc((INFO.sources[k.tiers]||[''])[0])}. Demande l’accord du MJ.</p>`;
  if(k.jeu)h+=`<h3>Le style de jeu</h3><p>${esc(k.jeu)}</p>`;
@@ -228,7 +229,7 @@ function classView(cl){
  if(k.groupe)h+=`<h3>Dans le groupe</h3><p>${esc(k.groupe)}</p>`;
  h+=`<div class="nav"><a class="b" href="creation.html">Créer un personnage</a><a class="b" href="grimoire.html">Voir les sorts</a><a class="b" href="dons.html">Voir les dons</a></div>`;
  h+=`<h3>Progression</h3>${progression(cl,k)}`;
- if((CAP[cl]||[]).length)h+=`<h3>Capacités de classe</h3>`+CAP[cl].filter(f=>f.nom!=='Sous-classe').map(f=>`<details class="feat"><summary>${esc(f.nom)} <span>· niv. ${f.niv}</span></summary><p>${br(lvlLines(f.desc))}</p></details>`).join('');
+ if((CAP[cl]||[]).length)h+=`<h3>Capacités de classe</h3>`+CAP[cl].filter(f=>f.nom!=='Sous-classe').map(f=>`<details class="feat"><summary>${esc(f.nom)} <span>· niv. ${f.niv}</span>${VO.btn('classes','capacites§'+cl+'|'+f.niv+'|'+f.nom,f.nom)}</summary><p>${br(lvlLines(f.desc))}</p></details>`).join('');
  h+=`</div></article><h2 class="sec">Sous-classes de ${esc(cl)} (${all})</h2>`+subList(subs,false);
  $('#view').innerHTML=h;
 }
@@ -237,7 +238,7 @@ function subList(subs,withClass){
  return '<div class="list">'+subs.map(o=>{
   const key=o.cl+'/'+o.n,op=st.open.has(key),c=(INFO.classes[o.cl]||{}).c||'#2a3170';
   const sub=[withClass?o.cl:'',o.src.l,o.c?CPLX[o.c]:''].filter(Boolean).join(' · ');
-  return `<div class="item" id="${esc(encodeURIComponent(key))}" style="--c:${c}"><div class="row"><div class="rmain"><div class="rt">${esc(o.n)}${o.src.g&&o.src.g!=='2024'?`<span class="pill" style="--pc:${GC[o.src.g]}">${o.src.g==='tiers'?'tiers':o.src.g==='ps'?'Plane Shift':'2014'}</span>`:''}</div><div class="rs">${esc(sub)}</div>${o.r.length?`<div class="tags">${o.r.map(r=>`<span class="tag">${esc(r)}</span>`).join('')}</div>`:''}${o.i.t?`<div class="tip">${esc(o.i.t)}</div>`:''}</div>
+  return `<div class="item" id="${esc(encodeURIComponent(key))}" style="--c:${c}"><div class="row"><div class="rmain"><div class="rt">${esc(o.n)}${VO.btn('classes','sous§'+o.cl+'|'+o.n,o.n)}${o.src.g&&o.src.g!=='2024'?`<span class="pill" style="--pc:${GC[o.src.g]}">${o.src.g==='tiers'?'tiers':o.src.g==='ps'?'Plane Shift':'2014'}</span>`:''}</div><div class="rs">${esc(sub)}</div>${o.r.length?`<div class="tags">${o.r.map(r=>`<span class="tag">${esc(r)}</span>`).join('')}</div>`:''}${o.i.t?`<div class="tip">${esc(o.i.t)}</div>`:''}</div>
   <div class="racts"><button class="b" data-k="${esc(key)}" aria-expanded="${op}">${op?'Masquer':'Capacités'}</button></div></div>${op?`<div class="det">${o.feats.map(f=>`<p><b>Niv. ${f.niv} · ${esc(f.nom)}.</b> ${br(lvlLines(f.desc))}</p>`).join('')}<div class="srcn">${o.src.l?'Source : '+esc(o.src.l)+' · ':''}reformulé : le livre fait foi · <a href="fiche.html">utilisable dans la fiche</a></div></div>`:''}</div>`;
  }).join('')+'</div>';
 }
@@ -275,7 +276,7 @@ Promise.all(['classes_infos.json','sousclasses.json','capacites.json','classes.j
  })
  .catch(()=>{$('#view').innerHTML='<div class="empty-msg">Impossible de charger les classes (ouvre le site via un serveur web).</div>'});
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

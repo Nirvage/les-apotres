@@ -59,6 +59,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body>
 <div class="top">
@@ -213,7 +214,7 @@ function render(){
   const sub=[x.mine?'Création personnelle · '+x.cat:x.cat,x.pre?'Prérequis : '+x.pre:'Aucun prérequis'].join(' · ');
   const add=n&&!rep?`<button class="b" disabled title="Déjà sur la fiche de ${who}">Sur la fiche</button>`
    :`<button class="b" data-add="${esc(x.id)}" title="Ajoute ce don à la fiche de ${who}">Ajouter${n?' encore':''}</button>`;
-  return `<div class="item" id="${esc(x.id)}" style="--c:${x.c}"><div class="row"><div class="rmain"><div class="rt">${esc(x.nom)}${x.mine?'<span class="pill">Création</span>':''}${rep?'<span class="pill" style="background:#5f6580">Répétable</span>':''}${x.ed?`<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${esc(x.ed)}</span>`:''}</div><div class="rs">${esc(sub)}</div>${stat}${n?` <span class="mb has">Sur la fiche${n>1?' ×'+n:''}</span>`:''}</div>
+  return `<div class="item" id="${esc(x.id)}" style="--c:${x.c}"><div class="row"><div class="rmain"><div class="rt">${esc(x.nom)}${x.mine?'<span class="pill">Création</span>':''}${rep?'<span class="pill" style="background:#5f6580">Répétable</span>':''}${x.ed?`<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${esc(x.ed)}</span>`:''}${x.mine?'':VO.btn('dons',x.id,x.nom)}</div><div class="rs">${esc(sub)}</div>${stat}${n?` <span class="mb has">Sur la fiche${n>1?' ×'+n:''}</span>`:''}</div>
   <div class="racts">${x.mine?`<button class="b" data-edit="${esc(x.id)}">Modifier</button>`:''}${add}<button class="b" data-n="${esc(x.id)}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button></div></div>${op?`<div class="det"><div class="desc">${descHTML(x)}</div>${x.en?`<div class="srcn">Nom anglais : ${esc(x.en)}</div>`:''}<div class="srcn">${x.mine?'Création personnelle':'Source : '+esc(x.src||'Manuel des joueurs 2024')+(x.r_?' · reconstitué à partir d’un résumé : à vérifier dans le livre':' · reformulé : le livre fait foi')}${x.choix&&x.choix.length?' · les choix du don se font dans la fiche':''}</div></div>`:''}</div>`;
  }).join(''):'<div class="empty-msg">Aucun don ne correspond à ces filtres.</div>';
 }
@@ -317,7 +318,7 @@ Promise.all([fetch('dons.json').then(r=>{if(!r.ok)throw new Error('dons');return
  })
  .catch(()=>{$('#list').innerHTML='<div class="empty-msg">Impossible de charger les dons (ouvre le site via un serveur web).</div>'});
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

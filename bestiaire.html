@@ -74,6 +74,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body>
 <div class="top">
@@ -166,7 +167,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' monstre'+(r.length>1?'s':'')+' sur '+DB.length;
   $('#list').innerHTML=r.length?r.map(m=>{
     const op=st.open.has(m.i);
-    return `<div class="item" style="--c:${col(m)}"><div class="row" data-act="det" data-i="${m.i}" role="button" tabindex="0" aria-expanded="${op}"><div class="rmain"><div class="rt">${esc(m.n)}<span class="en">${esc(m.en)}</span>${m.v==='2014'?'<span class="pill" title="Pas de version 2024 dans le SRD">2014</span>':''}${m.leg?'<span class="pill leg">légendaire</span>':''}</div><div class="rs">${esc(m.tail)} · ${esc(m.typ)} · CA ${esc(m.ca)} · PV ${esc(m.pv.split(' ')[0])}</div></div>
+    return `<div class="item" style="--c:${col(m)}"><div class="row" data-act="det" data-i="${m.i}" role="button" tabindex="0" aria-expanded="${op}"><div class="rmain"><div class="rt">${esc(m.n)}<span class="en">${esc(m.en)}</span>${m.v==='2014'?'<span class="pill" title="Pas de version 2024 dans le SRD">2014</span>':''}${m.leg?'<span class="pill leg">légendaire</span>':''}${VO.btn('monstres',m.n,m.n)}</div><div class="rs">${esc(m.tail)} · ${esc(m.typ)} · CA ${esc(m.ca)} · PV ${esc(m.pv.split(' ')[0])}</div></div>
     <div class="fpb">FP ${esc(m.fp)}<small>${esc(m.px.split(',')[0])} PX</small></div></div>${op?`<div class="det">${block(m)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucun monstre ne correspond à ces filtres.</div>';
 }
@@ -204,7 +205,7 @@ async function boot(){
 }
 boot();
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

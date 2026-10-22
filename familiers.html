@@ -115,6 +115,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
 }
 </style>
 <script src="theme.js?v=20261020a"></script>
+<script src="vo.js?v=20261022a"></script>
 </head>
 <body data-mode="choose">
 <div class="top">
@@ -271,7 +272,7 @@ function block(s,full){
   const col=TC[s.o]||'#2a3170',e=st.sel.get(s.n)||{},t=stats(s,e),X=v=>subst(v,s,t.P,t.nv);
   const L=(n,v)=>v?`<div><b>${n}</b> ${esc(X(v))}</div>`:'';
   const V=(v,n)=>t.d&&n!=null?`${n} <small>(${esc(v)})</small>`:esc(v);
-  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(full&&e.s?e.s+' — ':'')}${esc(s.n)}</h3><div class="sub">${esc(s.tail)} · ${esc(s.typ)} · ${esc(s.en)}</div></div><span class="lvb" title="Origine">${esc(TSHORT[s.o]||'')}</span></header>
+  return `<article class="sp" style="--c:${col}"><header><div class="ti"><h3>${esc(full&&e.s?e.s+' — ':'')}${esc(s.n)}${VO.btn('familiers',s.n,s.n)}</h3><div class="sub">${esc(s.tail)} · ${esc(s.typ)} · ${esc(s.en)}</div></div><span class="lvb" title="Origine">${esc(TSHORT[s.o]||'')}</span></header>
   <div class="body stat">${full?tracker(s,e,t):''}<div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div><dt>Classe d’armure</dt><dd>${V(s.ca,t.ca)}</dd></div><div><dt>Points de vie</dt><dd>${V(s.pv,t.max)}</dd></div><div><dt>Vitesse</dt><dd>${esc(s.vit)}</dd></div>${s.init?`<div><dt>Initiative</dt><dd>${esc(s.init)}</dd></div>`:''}</div>
   ${t.d?`<div class="calc">${esc(calcLine(s,t))}</div>`:''}
   <div class="ab6">${s.car.map((v,i)=>`<div><b>${AN[i]}</b><span>${v} (${mod(v)})</span></div>`).join('')}</div>
@@ -290,7 +291,7 @@ function renderList(){
   $('#cnt').textContent=r.length+' créature'+(r.length>1?'s':'')+' affichée'+(r.length>1?'s':'')+' · '+st.sel.size+' choisie'+(st.sel.size>1?'s':'');
   $('#list').innerHTML=r.length?r.map(s=>{
     const on=has(s),op=st.open.has(s.n),col=TC[s.o]||'#2a3170';
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}</div><div class="rs">${esc(s.tail)} · ${esc(s.typ)} · CA ${esc(s.ca)} · PV ${esc(s.pv)} · ${esc(TSHORT[s.o]||'')}</div></div>
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.n)}${VO.btn('familiers',s.n,s.n)}</div><div class="rs">${esc(s.tail)} · ${esc(s.typ)} · CA ${esc(s.ca)} · PV ${esc(s.pv)} · ${esc(TSHORT[s.o]||'')}</div></div>
     <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button><button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'Choisi ✓':'Choisir'}</button></div></div>${op?`<div class="det">${block(s,false)}</div>`:''}</div>`;
   }).join(''):'<div class="empty-msg">Aucune créature ne correspond à ces filtres.</div>';
 }
@@ -434,7 +435,7 @@ async function boot(){
 }
 boot();
 </script>
-<script src="recherche.js?v=20261022c"></script>
+<script src="recherche.js?v=20261022d"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>
