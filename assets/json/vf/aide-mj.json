@@ -1,0 +1,183 @@
+[
+ {
+  "id":"monnaie",
+  "t":"Monnaie",
+  "k":"#7a5600",
+  "note":"Une pièce pèse environ 10 g (50 pièces = 500 g).",
+  "cols":["Pièce","Vaut"],
+  "rows":[
+   {"n":"Pièce de cuivre (pc)","p":"1 pc","d":"Une miche de pain, une chandelle"},
+   {"n":"Pièce d’argent (pa)","p":"10 pc","d":"Une journée de travail non qualifié"},
+   {"n":"Pièce d’électrum (pe)","p":"5 pa = 50 pc","d":"Rare, souvent tirée de vieux trésors"},
+   {"n":"Pièce d’or (po)","p":"10 pa = 100 pc","d":"Une journée de travail qualifié (2 po)"},
+   {"n":"Pièce de platine (pp)","p":"10 po = 1 000 pc","d":"Grosses transactions, nobles et banquiers"}
+  ]
+ },
+ {
+  "id":"taverne",
+  "t":"Taverne : boire et manger",
+  "k":"#c8402f",
+  "cols":["Article","Prix"],
+  "rows":[
+   {"n":"Bière (chope)","p":"4 pc"},
+   {"n":"Bière (pichet, 4 chopes)","p":"2 pa"},
+   {"n":"Cidre ou hydromel (chope)","p":"5 pc","d":"Prix indicatif"},
+   {"n":"Vin ordinaire (pichet)","p":"2 pa"},
+   {"n":"Vin fin (bouteille)","p":"10 po"},
+   {"n":"Eau-de-vie (verre)","p":"1 pa","d":"Prix indicatif"},
+   {"n":"Pain (miche)","p":"2 pc"},
+   {"n":"Fromage (gros morceau)","p":"1 pa"},
+   {"n":"Viande (gros morceau)","p":"3 pa"},
+   {"n":"Banquet (par personne)","p":"10 po"},
+   {"n":"Repas sordide","p":"3 pc","d":"Gruau, pain rassis"},
+   {"n":"Repas pauvre","p":"6 pc","d":"Soupe et pain"},
+   {"n":"Repas modeste","p":"3 pa","d":"Ragoût, pain, fromage"},
+   {"n":"Repas confortable","p":"5 pa","d":"Viande, légumes, dessert"},
+   {"n":"Repas aisé","p":"8 pa","d":"Plats cuisinés, bon vin"},
+   {"n":"Repas aristocratique","p":"2 po","d":"Mets raffinés, plusieurs services"}
+  ]
+ },
+ {
+  "id":"auberge",
+  "t":"Auberge : dormir",
+  "k":"#d8791a",
+  "note":"Prix par nuit et par personne.",
+  "cols":["Chambre","Prix"],
+  "rows":[
+   {"n":"Sordide","p":"7 pc","d":"Paillasse dans la salle commune"},
+   {"n":"Pauvre","p":"1 pa","d":"Dortoir, couverture"},
+   {"n":"Modeste","p":"5 pa","d":"Lit dans une chambre partagée"},
+   {"n":"Confortable","p":"8 pa","d":"Chambre individuelle"},
+   {"n":"Aisée","p":"2 po","d":"Belle chambre, bain chaud"},
+   {"n":"Aristocratique","p":"4 po","d":"Suite, service personnel"},
+   {"n":"Écurie pour une monture","p":"5 pa","d":"Fourrage compris"}
+  ]
+ },
+ {
+  "id":"vie",
+  "t":"Train de vie (par jour)",
+  "k":"#2e9e5b",
+  "note":"Coût global d’une journée (nourriture, logement, entretien) entre deux aventures.",
+  "cols":["Train de vie","Prix"],
+  "rows":[
+   {"n":"Misérable","p":"gratuit","d":"Sans abri, à la rue"},
+   {"n":"Sordide","p":"1 pa","d":"Taudis, égouts"},
+   {"n":"Pauvre","p":"2 pa","d":"Quartier pauvre, chambre louée"},
+   {"n":"Modeste","p":"1 po","d":"Petite maison ou chambre correcte"},
+   {"n":"Confortable","p":"2 po","d":"Maison dans un bon quartier"},
+   {"n":"Aisé","p":"4 po","d":"Belle maison, quelques domestiques"},
+   {"n":"Aristocratique","p":"10 po et plus","d":"Manoir, serviteurs, vie mondaine"}
+  ]
+ },
+ {
+  "id":"services",
+  "t":"Services et embauche",
+  "k":"#12968f",
+  "cols":["Service","Prix"],
+  "rows":[
+   {"n":"Ouvrier non qualifié (journée)","p":"2 pa","d":"Porteur, manœuvre, domestique"},
+   {"n":"Artisan ou mercenaire qualifié (journée)","p":"2 po","d":"Maçon, scribe, garde, soldat"},
+   {"n":"Messager","p":"2 pc par 1,5 km"},
+   {"n":"Péage (route ou porte de ville)","p":"1 pc"},
+   {"n":"Fiacre en ville","p":"1 pc"},
+   {"n":"Diligence entre deux villes","p":"3 pc par 1,5 km"},
+   {"n":"Passage en bateau","p":"1 pa par 1,5 km"},
+   {"n":"Guide ou éclaireur (journée)","p":"2 po","d":"Qualifié"},
+   {"n":"Copie d’un document (page)","p":"1 pa","d":"Prix indicatif"},
+   {"n":"Bain public","p":"1 pc","d":"Prix indicatif"}
+  ]
+ },
+ {
+  "id":"sorts",
+  "t":"Sorts lancés contre paiement",
+  "k":"#7a4fc4",
+  "note":"Prix pour un lanceur de sorts dans une ville (temple, mage). Les composantes coûteuses s’ajoutent au prix. Au-delà du niveau 5, il faut trouver le bon lanceur et souvent lui rendre un service.",
+  "cols":["Niveau du sort","Prix"],
+  "rows":[
+   {"n":"Tour de magie","p":"30 po"},
+   {"n":"Niveau 1","p":"50 po","d":"Soins, Bénédiction, Identification…"},
+   {"n":"Niveau 2","p":"200 po","d":"Restauration partielle…"},
+   {"n":"Niveau 3","p":"300 po","d":"Délivrance des malédictions, Retour à la vie (+ 300 po de diamant)"},
+   {"n":"Niveaux 4 et 5","p":"2 000 po","d":"Rappel à la vie (+ 500 po de diamant)…"},
+   {"n":"Niveaux 6 à 8","p":"20 000 po","d":"Rare"},
+   {"n":"Niveau 9","p":"100 000 po","d":"Exceptionnel"}
+  ]
+ },
+ {
+  "id":"commerce",
+  "t":"Acheter et revendre",
+  "k":"#2f6fd0",
+  "cols":["Situation","Prix"],
+  "rows":[
+   {"n":"Revendre un objet ordinaire en bon état","p":"moitié prix"},
+   {"n":"Revendre un objet abîmé","p":"au plus un quart"},
+   {"n":"Pierres précieuses, bijoux, œuvres d’art","p":"plein prix","d":"Se revendent comme de la monnaie"},
+   {"n":"Objet magique peu courant","p":"400 po","d":"Achat ; revente à un acheteur trouvé : environ moitié prix"},
+   {"n":"Objet magique rare","p":"4 000 po"},
+   {"n":"Objet magique très rare","p":"40 000 po"},
+   {"n":"Objet magique légendaire","p":"200 000 po"},
+   {"n":"Potion ou parchemin (consommable)","p":"moitié du prix de sa rareté"},
+   {"n":"Marchandises : blé (500 g)","p":"1 pc"},
+   {"n":"Farine (500 g)","p":"2 pc"},
+   {"n":"Poulet","p":"2 pc"},
+   {"n":"Sel (500 g)","p":"5 pc"},
+   {"n":"Fer (500 g)","p":"1 pa"},
+   {"n":"Toile (1 m²)","p":"1 pa"},
+   {"n":"Cuivre (500 g)","p":"5 pa"},
+   {"n":"Coton (1 m²)","p":"5 pa"},
+   {"n":"Gingembre, cannelle (500 g)","p":"1 po"},
+   {"n":"Chèvre","p":"1 po"},
+   {"n":"Mouton","p":"2 po"},
+   {"n":"Cochon","p":"3 po"},
+   {"n":"Vache","p":"10 po"},
+   {"n":"Bœuf","p":"15 po"},
+   {"n":"Argent (500 g)","p":"5 po"},
+   {"n":"Soie (1 m²)","p":"10 po"},
+   {"n":"Or (500 g)","p":"50 po"},
+   {"n":"Platine (500 g)","p":"500 po"}
+  ]
+ },
+ {
+  "id":"voyage",
+  "t":"Voyager",
+  "k":"#9c3d8f",
+  "note":"Une journée de voyage = 8 heures de marche. Au-delà, jet de sauvegarde de Constitution (DD 10 + 1 par heure en plus) ou un niveau d’épuisement.",
+  "cols":["Allure","Distance"],
+  "rows":[
+   {"n":"Rapide","p":"6 km/h ; 48 km/jour","d":"−5 en Perception passive"},
+   {"n":"Normale","p":"4,5 km/h ; 36 km/jour"},
+   {"n":"Lente","p":"3 km/h ; 24 km/jour","d":"Permet la Discrétion"},
+   {"n":"Terrain difficile","p":"moitié de la distance","d":"Forêt dense, marais, montagne"},
+   {"n":"Cheval au galop","p":"jusqu’à 2 fois l’allure rapide pendant 1 h"},
+   {"n":"Bateau à voile","p":"3 km/h ; 72 km/jour","d":"Navigue jour et nuit"},
+   {"n":"Barque à rames","p":"2,5 km/h ; 20 km/jour"}
+  ]
+ },
+ {
+  "id":"dd",
+  "t":"Degrés de difficulté",
+  "k":"#2a3170",
+  "note":"Pour fixer le DD d’un test de caractéristique.",
+  "cols":["Difficulté","DD"],
+  "rows":[
+   {"n":"Très facile","p":"5"},
+   {"n":"Facile","p":"10"},
+   {"n":"Moyenne","p":"15"},
+   {"n":"Difficile","p":"20"},
+   {"n":"Très difficile","p":"25"},
+   {"n":"Presque impossible","p":"30"}
+  ]
+ },
+ {
+  "id":"survie",
+  "t":"Nourriture, eau et repos",
+  "k":"#5c4a1e",
+  "cols":["Besoin","Règle"],
+  "rows":[
+   {"n":"Nourriture","p":"500 g par jour","d":"Sans nourriture : 3 + modificateur de Con jours, puis épuisement"},
+   {"n":"Eau","p":"4 litres par jour","d":"8 litres par temps chaud ; moitié : sauvegarde de Con DD 15 ou épuisement"},
+   {"n":"Repos court","p":"1 heure","d":"Dépenser des dés de vie"},
+   {"n":"Repos long","p":"8 heures","d":"6 h de sommeil ; un seul par 24 h"}
+  ]
+ }
+]

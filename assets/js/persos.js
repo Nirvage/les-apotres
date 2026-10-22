@@ -1,424 +1,629 @@
-/* Gestion des personnages, partagée par la fiche et le grimoire.
-
-   Les pages chargent persos.js, custom.js et style.css avec « ?v=… » : changer ce numéro dans
-   toutes les pages à chaque modification, sinon le navigateur peut garder l'ancienne version en cache.
-
-   Un personnage = { id, nom, fiche, grimoire, … } (une entrée par page : objets, equipement, familiers, cartes, histoire). Chaque page ne lit et n'écrit que sa
-   propre part ("fiche" ou "grimoire"). Tout est conservé dans le navigateur (localStorage)
-   sous une seule clé ; le personnage actif est retrouvé d'une page à l'autre.
-
-   Usage côté page :
-     Persos.init({
-       part:'fiche',                 // part du personnage gérée par cette page
-       mount:document.querySelector('#persos'),
-       collect:()=>({...}),          // renvoie les données à enregistrer
-       apply:(obj,perso)=>{...},     // charge les données (obj vaut null pour un personnage vierge)
-       onName:nom=>{...},            // optionnel : le nom a changé via le sélecteur
-       title:input,                  // optionnel : champ qui affiche le nom du personnage et permet de le modifier
-       msg:texte=>{...}              // optionnel : message de confirmation
-     });
-     Persos.save();                  // à appeler après chaque modification
-     Persos.setName(nom);            // optionnel : la page modifie le nom du personnage
-*/
-(function(){
+(function () {
 'use strict';
 
-var KEY='dnd_persos_v1';
-// Anciennes clés (un seul personnage) : reprises à la première ouverture
-var LEGACY={fiche:['fiche_dnd_v2','fiche_dnd_v1'],grimoire:['grimoire_dnd_v1']};
+const STORAGE_KEY = 'dnd_persos_v1';
+const LEGACY_STORAGE_KEYS_BY_PART = { fiche: ['fiche_dnd_v2', 'fiche_dnd_v1'], grimoire: ['grimoire_dnd_v1'] };
+const CUSTOM_CREATIONS_KEY = 'dnd_perso_custom_v1';
+const CUSTOM_CREATION_KINDS = ['objets', 'equipement', 'dons'];
+const CHARACTER_PARTS = ['fiche', 'grimoire', 'objets', 'equipement', 'familiers', 'cartes', 'histoire'];
+const EVERYTHING_DELETED_LABEL = 'fiche, grimoire, objets magiques, équipement, familiers, cartes tirées et histoire';
 
-var cfg=null,cur=null,box=null,mem=null;
+let pageConfig = null;
+let currentCharacterId = null;
+let selectorContainer = null;
+let storeKeptInMemory = null;
+let customCreationsKeptInMemory = null;
 
-function uid(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
-function parse(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
-function h(tag,attrs,text){
-  var e=document.createElement(tag);
-  for(var k in attrs)e.setAttribute(k,attrs[k]);
-  if(text!=null)e.textContent=text;
-  return e;
+function newCharacterId() {
+  return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
-function say(t){if(cfg&&cfg.msg)cfg.msg(t)}
 
-/* ---------- Stockage ---------- */
-function fresh(){
-  var p={id:uid(),nom:'',fiche:null,grimoire:null};
-  Object.keys(LEGACY).forEach(function(part){
-    for(var i=0;i<LEGACY[part].length;i++){
-      var o=parse(LEGACY[part][i]);
-      if(o&&o.data&&typeof o.data==='object'){p[part]=o;break}
+function readJsonFromStorage(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch (error) { return null; }
+}
+
+function createElement(tag, attributes, text) {
+  const element = document.createElement(tag);
+  for (const name in attributes) element.setAttribute(name, attributes[name]);
+  if (text != null) element.textContent = text;
+  return element;
+}
+
+function showPageMessage(text) {
+  if (pageConfig && pageConfig.msg) pageConfig.msg(text);
+}
+
+function blankCharacter(name) {
+  return { id: newCharacterId(), nom: name, fiche: null, grimoire: null };
+}
+
+function legacyPartSave(part) {
+  for (const key of LEGACY_STORAGE_KEYS_BY_PART[part]) {
+    const saved = readJsonFromStorage(key);
+    if (saved && saved.data && typeof saved.data === 'object') return saved;
+  }
+  return null;
+}
+
+function characterFromLegacySaves() {
+  const character = blankCharacter('');
+  Object.keys(LEGACY_STORAGE_KEYS_BY_PART).forEach(part => {
+    const saved = legacyPartSave(part);
+    if (saved) character[part] = saved;
+  });
+  character.nom = String(character.fiche && character.fiche.data.nom || '').trim()
+    || String(character.grimoire && character.grimoire.data.titre || '').trim()
+    || 'Personnage 1';
+  return character;
+}
+
+function newStoreWith(character) {
+  const store = { version: 1, actif: character.id, ordre: [character.id], persos: {} };
+  store.persos[character.id] = character;
+  return store;
+}
+
+function readStoreFromStorage() {
+  const store = readJsonFromStorage(STORAGE_KEY);
+  return store && store.persos && Array.isArray(store.ordre) && store.ordre.length ? store : null;
+}
+
+function loadStore() {
+  return readStoreFromStorage() || storeKeptInMemory || (storeKeptInMemory = newStoreWith(characterFromLegacySaves()));
+}
+
+function saveStore(store) {
+  storeKeptInMemory = store;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); } catch (error) {}
+}
+
+function addCharacterAndActivate(store, character, position) {
+  store.persos[character.id] = character;
+  if (position == null) store.ordre.push(character.id);
+  else store.ordre.splice(position, 0, character.id);
+  activateInStore(store, character.id);
+}
+
+function activateInStore(store, characterId) {
+  store.actif = characterId;
+  saveStore(store);
+  currentCharacterId = characterId;
+}
+
+function setNameWrittenOnSheet(character, name) {
+  if (character.fiche && character.fiche.data) character.fiche.data.nom = name;
+}
+
+function savePageDataOfCurrentCharacter() {
+  if (!pageConfig || !currentCharacterId) return;
+  const store = loadStore();
+  const character = store.persos[currentCharacterId];
+  if (!character) return;
+  character[pageConfig.part] = pageConfig.collect();
+  saveStore(store);
+}
+
+function displayCharacterOnPage(character) {
+  try { pageConfig.apply(character[pageConfig.part], character); } catch (error) { pageConfig.apply(null, character); }
+  if (pageConfig.title) pageConfig.title.value = character.nom;
+}
+
+function followNameChange(name) {
+  const titleIsBeingEdited = document.activeElement === pageConfig.title && document.hasFocus();
+  if (pageConfig.title && !titleIsBeingEdited) pageConfig.title.value = name;
+  if (pageConfig.onName) pageConfig.onName(name);
+}
+
+function refreshSelectorAndDisplay(character) {
+  renderCharacterSelector();
+  displayCharacterOnPage(character);
+}
+
+function selectCharacter(characterId) {
+  if (characterId === currentCharacterId) return;
+  savePageDataOfCurrentCharacter();
+  const store = loadStore();
+  if (!store.persos[characterId]) return;
+  activateInStore(store, characterId);
+  refreshSelectorAndDisplay(store.persos[characterId]);
+}
+
+function askNewCharacterName(store) {
+  const defaultName = 'Personnage ' + (store.ordre.length + 1);
+  const answer = prompt('Nom du nouveau personnage :', defaultName);
+  if (answer === null) return null;
+  return answer.trim() || defaultName;
+}
+
+function createCharacterFromSelector() {
+  const name = askNewCharacterName(loadStore());
+  if (name === null) return;
+  savePageDataOfCurrentCharacter();
+  const store = loadStore();
+  const character = blankCharacter(name);
+  addCharacterAndActivate(store, character);
+  refreshSelectorAndDisplay(character);
+  showPageMessage('Personnage « ' + name + ' » créé');
+}
+
+function duplicateCurrentCharacter() {
+  savePageDataOfCurrentCharacter();
+  const store = loadStore();
+  const original = store.persos[currentCharacterId];
+  if (!original) return;
+  const copy = JSON.parse(JSON.stringify(original));
+  copy.id = newCharacterId();
+  copy.nom = original.nom + ' (copie)';
+  setNameWrittenOnSheet(copy, copy.nom);
+  addCharacterAndActivate(store, copy, store.ordre.indexOf(currentCharacterId) + 1);
+  refreshSelectorAndDisplay(copy);
+  showPageMessage('« ' + original.nom + ' » dupliqué (fiche et grimoire)');
+}
+
+function renameCurrentCharacter() {
+  const store = loadStore();
+  const character = store.persos[currentCharacterId];
+  if (!character) return;
+  const answer = prompt('Nouveau nom du personnage :', character.nom);
+  if (answer === null) return;
+  const name = answer.trim();
+  if (!name) return;
+  character.nom = name;
+  setNameWrittenOnSheet(character, name);
+  saveStore(store);
+  renderCharacterSelector();
+  followNameChange(name);
+}
+
+function confirmCharacterDeletion(character) {
+  return confirm('Supprimer « ' + character.nom + ' » (' + EVERYTHING_DELETED_LABEL + ') ? Cette action est définitive : pense à exporter le personnage avant.');
+}
+
+function removeCharacterFromStore(store, characterId) {
+  const position = store.ordre.indexOf(characterId);
+  store.ordre.splice(position, 1);
+  delete store.persos[characterId];
+  return position;
+}
+
+function deleteCurrentCharacter() {
+  const store = loadStore();
+  const character = store.persos[currentCharacterId];
+  if (!character || store.ordre.length < 2) return;
+  if (!confirmCharacterDeletion(character)) return;
+  const position = removeCharacterFromStore(store, currentCharacterId);
+  const nextCharacterId = store.ordre[Math.min(position, store.ordre.length - 1)];
+  activateInStore(store, nextCharacterId);
+  refreshSelectorAndDisplay(store.persos[nextCharacterId]);
+  showPageMessage('« ' + character.nom + ' » supprimé');
+}
+
+function setCurrentCharacterName(newName) {
+  const name = String(newName || '').trim();
+  if (!name || !currentCharacterId) return;
+  const store = loadStore();
+  const character = store.persos[currentCharacterId];
+  if (!character || character.nom === name) return;
+  character.nom = name;
+  if (pageConfig.part !== 'fiche') setNameWrittenOnSheet(character, name);
+  saveStore(store);
+  renderCharacterSelector();
+}
+
+function characterChip(character) {
+  const chip = createElement('button', {
+    type: 'button', 'class': 'pc', 'aria-pressed': String(character.id === currentCharacterId), title: character.nom
+  }, character.nom);
+  chip.onclick = () => selectCharacter(character.id);
+  return chip;
+}
+
+function characterChips(store) {
+  const group = createElement('div', { 'class': 'pchips', role: 'group', 'aria-label': 'Choisir un personnage' });
+  store.ordre.forEach(characterId => group.appendChild(characterChip(store.persos[characterId])));
+  const newCharacterButton = createElement('button', { type: 'button', 'class': 'pc pnew' }, '+ Nouveau');
+  newCharacterButton.onclick = createCharacterFromSelector;
+  group.appendChild(newCharacterButton);
+  return group;
+}
+
+function characterActions(store) {
+  const actions = createElement('div', { 'class': 'pacts' });
+  [['Renommer', renameCurrentCharacter], ['Dupliquer', duplicateCurrentCharacter], ['Supprimer', deleteCurrentCharacter]].forEach(([label, action]) => {
+    const button = createElement('button', { type: 'button' }, label);
+    button.onclick = action;
+    if (label === 'Supprimer' && store.ordre.length < 2) {
+      button.disabled = true;
+      button.title = 'Il faut garder au moins un personnage';
     }
+    actions.appendChild(button);
   });
-  p.nom=String(p.fiche&&p.fiche.data.nom||'').trim()
-    ||String(p.grimoire&&p.grimoire.data.titre||'').trim()
-    ||'Personnage 1';
-  var s={version:1,actif:p.id,ordre:[p.id],persos:{}};
-  s.persos[p.id]=p;
-  return s;
-}
-function read(){
-  var s=parse(KEY);
-  return s&&s.persos&&Array.isArray(s.ordre)&&s.ordre.length?s:null;
-}
-// Si le navigateur refuse d'écrire (navigation privée…), on garde l'état en mémoire pour la session
-function load(){return read()||mem||(mem=fresh())}
-function save(s){mem=s;try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
-
-/* ---------- Actions ---------- */
-function flush(){
-  if(!cfg||!cur)return;
-  var s=load(),p=s.persos[cur];
-  if(!p)return;
-  p[cfg.part]=cfg.collect();
-  save(s);
-}
-function show(p){
-  try{cfg.apply(p[cfg.part],p)}catch(e){cfg.apply(null,p)}
-  if(cfg.title)cfg.title.value=p.nom;
-}
-// Le nom a changé (ici, dans une autre page ou un autre onglet) : la page suit
-function named(n){
-  if(cfg.title&&!(document.activeElement===cfg.title&&document.hasFocus()))cfg.title.value=n;
-  if(cfg.onName)cfg.onName(n);
-}
-function select(id){
-  if(id===cur)return;
-  flush();
-  var s=load();
-  if(!s.persos[id])return;
-  s.actif=id;save(s);cur=id;
-  render();show(s.persos[id]);
-}
-function create(){
-  var s=load(),def='Personnage '+(s.ordre.length+1);
-  var n=prompt('Nom du nouveau personnage :',def);
-  if(n===null)return;
-  n=n.trim()||def;
-  flush();
-  s=load();
-  var p={id:uid(),nom:n,fiche:null,grimoire:null};
-  s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
-  render();show(p);
-  say('Personnage « '+n+' » créé');
-}
-function duplicate(){
-  flush();
-  var s=load(),src=s.persos[cur];
-  if(!src)return;
-  var p=JSON.parse(JSON.stringify(src));
-  p.id=uid();p.nom=src.nom+' (copie)';
-  if(p.fiche&&p.fiche.data)p.fiche.data.nom=p.nom;
-  s.persos[p.id]=p;
-  s.ordre.splice(s.ordre.indexOf(cur)+1,0,p.id);
-  s.actif=p.id;save(s);cur=p.id;
-  render();show(p);
-  say('« '+src.nom+' » dupliqué (fiche et grimoire)');
-}
-function rename(){
-  var s=load(),p=s.persos[cur];
-  if(!p)return;
-  var n=prompt('Nouveau nom du personnage :',p.nom);
-  if(n===null)return;
-  n=n.trim();
-  if(!n)return;
-  p.nom=n;
-  if(p.fiche&&p.fiche.data)p.fiche.data.nom=n;   // le nom écrit sur la fiche suit
-  save(s);render();
-  named(n);
-}
-var TOUT='fiche, grimoire, objets magiques, équipement, familiers, cartes tirées et histoire';
-function remove(){
-  var s=load(),p=s.persos[cur];
-  if(!p||s.ordre.length<2)return;
-  if(!confirm('Supprimer « '+p.nom+' » ('+TOUT+') ? Cette action est définitive : pense à exporter le personnage avant.'))return;
-  var i=s.ordre.indexOf(cur);
-  s.ordre.splice(i,1);delete s.persos[cur];
-  var next=s.ordre[Math.min(i,s.ordre.length-1)];
-  s.actif=next;save(s);cur=next;
-  render();show(s.persos[next]);
-  say('« '+p.nom+' » supprimé');
-}
-// Appelé par la page quand l'utilisateur change le nom directement (ex. champ « Nom » de la fiche)
-function setName(n){
-  n=String(n||'').trim();
-  if(!n||!cur)return;
-  var s=load(),p=s.persos[cur];
-  if(!p||p.nom===n)return;
-  p.nom=n;
-  if(cfg.part!=='fiche'&&p.fiche&&p.fiche.data)p.fiche.data.nom=n;   // le nom écrit sur la fiche suit
-  save(s);render();
+  return actions;
 }
 
-/* ---------- Interface ---------- */
-function render(){
-  var s=load();
-  box.textContent='';
-  box.appendChild(h('span',{'class':'pl'},'Personnage'));
-  var g=h('div',{'class':'pchips',role:'group','aria-label':'Choisir un personnage'});
-  s.ordre.forEach(function(id){
-    var p=s.persos[id];
-    var b=h('button',{type:'button','class':'pc','aria-pressed':String(id===cur),title:p.nom},p.nom);
-    b.onclick=function(){select(id)};
-    g.appendChild(b);
-  });
-  var nb=h('button',{type:'button','class':'pc pnew'},'+ Nouveau');
-  nb.onclick=create;g.appendChild(nb);
-  box.appendChild(g);
-  var a=h('div',{'class':'pacts'});
-  [['Renommer',rename],['Dupliquer',duplicate],['Supprimer',remove]].forEach(function(x){
-    var b=h('button',{type:'button'},x[0]);
-    b.onclick=x[1];
-    if(x[0]==='Supprimer'&&s.ordre.length<2){b.disabled=true;b.title='Il faut garder au moins un personnage'}
-    a.appendChild(b);
-  });
-  box.appendChild(a);
+function renderCharacterSelector() {
+  const store = loadStore();
+  selectorContainer.textContent = '';
+  selectorContainer.appendChild(createElement('span', { 'class': 'pl' }, 'Personnage'));
+  selectorContainer.appendChild(characterChips(store));
+  selectorContainer.appendChild(characterActions(store));
 }
 
-function init(c){
-  cfg=c;box=c.mount;
-  if(c.title){   // champ du nom en haut de la page : le modifier renomme le personnage
-    c.title.addEventListener('input',function(){setName(c.title.value)});
-    c.title.addEventListener('blur',function(){var p=load().persos[cur];if(p&&!c.title.value.trim())c.title.value=p.nom});
+function bindTitleInputToCharacterName(titleInput) {
+  titleInput.addEventListener('input', () => setCurrentCharacterName(titleInput.value));
+  titleInput.addEventListener('blur', () => {
+    const character = loadStore().persos[currentCharacterId];
+    if (character && !titleInput.value.trim()) titleInput.value = character.nom;
+  });
+}
+
+function initPage(config) {
+  pageConfig = config;
+  selectorContainer = config.mount;
+  if (config.title) bindTitleInputToCharacterName(config.title);
+  const store = loadStore();
+  activateInStore(store, store.persos[store.actif] ? store.actif : store.ordre[0]);
+  refreshSelectorAndDisplay(store.persos[currentCharacterId]);
+}
+
+function previousNameOf(oldStoreJson, characterId) {
+  let oldStore = null;
+  try { oldStore = JSON.parse(oldStoreJson); } catch (error) {}
+  return oldStore && oldStore.persos && oldStore.persos[characterId] && oldStore.persos[characterId].nom;
+}
+
+function followChangesFromOtherTab(event) {
+  if (event.key !== STORAGE_KEY || !pageConfig) return;
+  const store = readStoreFromStorage();
+  if (!store) return;
+  if (!store.persos[currentCharacterId]) {
+    currentCharacterId = store.persos[store.actif] ? store.actif : store.ordre[0];
+    refreshSelectorAndDisplay(store.persos[currentCharacterId]);
+    return;
   }
-  var s=load();
-  cur=s.persos[s.actif]?s.actif:s.ordre[0];
-  s.actif=cur;save(s);
-  render();show(s.persos[cur]);
+  renderCharacterSelector();
+  const name = store.persos[currentCharacterId].nom;
+  if (previousNameOf(event.oldValue, currentCharacterId) !== name) followNameChange(name);
 }
 
-// Modification faite dans un autre onglet : on rafraîchit la liste, et on recharge si notre personnage a disparu
-addEventListener('storage',function(e){
-  if(e.key!==KEY||!cfg)return;
-  var s=read();
-  if(!s)return;
-  if(!s.persos[cur]){
-    cur=s.persos[s.actif]?s.actif:s.ordre[0];
-    render();show(s.persos[cur]);
-  }else{
-    render();
-    var o=null;try{o=JSON.parse(e.oldValue)}catch(x){}
-    var n=s.persos[cur].nom;
-    if(!(o&&o.persos&&o.persos[cur]&&o.persos[cur].nom===n))named(n);
-  }
-});
+addEventListener('storage', followChangesFromOtherTab);
 
-/* ---------- Créations personnelles (objets magiques, équipement, dons) ----------
-   Partagées par tous les personnages du navigateur, sous une clé à part.
-   Chaque liste a la même forme que objets.json / equipement.json / dons.json, avec c_:1 en plus. */
-var CKEY='dnd_perso_custom_v1',CKINDS=['objets','equipement','dons'],cmem=null;
-function customAll(){
-  var c=parse(CKEY)||cmem||{};
-  CKINDS.forEach(function(k){if(!Array.isArray(c[k]))c[k]=[]});
-  return c;
+function allCustomCreations() {
+  const creations = readJsonFromStorage(CUSTOM_CREATIONS_KEY) || customCreationsKeptInMemory || {};
+  CUSTOM_CREATION_KINDS.forEach(kind => { if (!Array.isArray(creations[kind])) creations[kind] = []; });
+  return creations;
 }
-function customSet(kind,list){
-  var c=customAll();c[kind]=list;cmem=c;
-  try{localStorage.setItem(CKEY,JSON.stringify(c))}catch(e){}
+
+function setCustomCreations(kind, list) {
+  const creations = allCustomCreations();
+  creations[kind] = list;
+  customCreationsKeptInMemory = creations;
+  try { localStorage.setItem(CUSTOM_CREATIONS_KEY, JSON.stringify(creations)); } catch (error) {}
 }
-// Une création renommée : ses occurrences dans tous les personnages suivent
-function customRename(kind,oldN,newN){
-  if(oldN===newN)return;
-  var s=load(),p,d,i;
-  for(var id in s.persos){
-    p=s.persos[id];d=p[kind]&&p[kind].data;
-    if(!d)continue;
-    ['objets','harmonises'].forEach(function(k){
-      if(!Array.isArray(d[k]))return;
-      d[k]=d[k].map(function(x){
-        if(x===oldN)return newN;
-        if(x&&typeof x==='object'&&x.n===oldN){x.n=newN}
-        return x;
-      });
+
+function renamedEntry(entry, oldName, newName) {
+  if (entry === oldName) return newName;
+  if (entry && typeof entry === 'object' && entry.n === oldName) entry.n = newName;
+  return entry;
+}
+
+function renameCustomCreationEverywhere(kind, oldName, newName) {
+  if (oldName === newName) return;
+  const store = loadStore();
+  Object.values(store.persos).forEach(character => {
+    const pageData = character[kind] && character[kind].data;
+    if (!pageData) return;
+    ['objets', 'harmonises'].forEach(listName => {
+      if (Array.isArray(pageData[listName])) pageData[listName] = pageData[listName].map(entry => renamedEntry(entry, oldName, newName));
     });
-  }
-  save(s);
+  });
+  saveStore(store);
 }
-// Créations utilisées par un personnage (pour l'export)
-function customUsed(p){
-  var c=customAll(),o={},n;
-  function names(k,f){var d=p[k]&&p[k].data;return (d&&d[f]||[]).map(function(x){return typeof x==='string'?x:x&&x.n})}
-  n=names('objets','objets');o.objets=c.objets.filter(function(x){return n.indexOf(x.n)>=0});
-  n=names('equipement','objets');o.equipement=c.equipement.filter(function(x){return n.indexOf(x.n)>=0});
-  var ex=p.fiche&&p.fiche.data&&p.fiche.data.extras,ids=(ex&&ex.dons||[]).map(function(g){return g.id});
-  o.dons=c.dons.filter(function(x){return ids.indexOf(x.id)>=0});
-  return o;
+
+function pageData(character, part) {
+  return character[part] && character[part].data;
 }
-// Import : on ajoute les créations absentes (même nom, ou même identifiant pour un don : on garde l'existante)
-function customMerge(o){
-  if(!o||typeof o!=='object')return;
-  var c=customAll();
-  CKINDS.forEach(function(k){
-    if(!Array.isArray(o[k]))return;
-    o[k].forEach(function(x){
-      if(!x||typeof x!=='object'||!x.n&&!x.nom)return;
-      var dup=c[k].some(function(y){return k==='dons'?y.id===x.id||y.nom===x.nom:y.n===x.n});
-      if(!dup){x.c_=1;c[k].push(x)}
+
+function entryNamesOf(character, part, listName) {
+  const data = pageData(character, part);
+  return (data && data[listName] || []).map(entry => typeof entry === 'string' ? entry : entry && entry.n);
+}
+
+function customCreationsUsedBy(character) {
+  const creations = allCustomCreations();
+  const magicItemNames = entryNamesOf(character, 'objets', 'objets');
+  const equipmentNames = entryNamesOf(character, 'equipement', 'objets');
+  const sheetExtras = character.fiche && character.fiche.data && character.fiche.data.extras;
+  const featIds = (sheetExtras && sheetExtras.dons || []).map(feat => feat.id);
+  return {
+    objets: creations.objets.filter(item => magicItemNames.indexOf(item.n) >= 0),
+    equipement: creations.equipement.filter(item => equipmentNames.indexOf(item.n) >= 0),
+    dons: creations.dons.filter(feat => featIds.indexOf(feat.id) >= 0)
+  };
+}
+
+function isSameCreation(kind, existing, imported) {
+  return kind === 'dons' ? existing.id === imported.id || existing.nom === imported.nom : existing.n === imported.n;
+}
+
+function mergeImportedCustomCreations(imported) {
+  if (!imported || typeof imported !== 'object') return;
+  const creations = allCustomCreations();
+  CUSTOM_CREATION_KINDS.forEach(kind => {
+    if (!Array.isArray(imported[kind])) return;
+    imported[kind].forEach(creation => {
+      if (!creation || typeof creation !== 'object' || !creation.n && !creation.nom) return;
+      const alreadyKnown = creations[kind].some(existing => isSameCreation(kind, existing, creation));
+      if (!alreadyKnown) {
+        creation.c_ = 1;
+        creations[kind].push(creation);
+      }
     });
-    customSet(k,c[k]);
+    setCustomCreations(kind, creations[kind]);
   });
 }
 
-/* ---------- Export / import du personnage complet (utilisé par la page d'accueil) ---------- */
-var PARTS=['fiche','grimoire','objets','equipement','familiers','cartes','histoire'];
-function listAll(){var s=load();return s.ordre.map(function(id){return {id:id,nom:s.persos[id].nom,actif:id===s.actif}})}
-function activate(id){var s=load();if(!s.persos[id])return;s.actif=id;save(s);cur=id}
-/* Fiche : clés internes <-> noms lisibles pour le fichier exporté */
-var SKN=['Acrobaties','Arcanes','Athlétisme','Discrétion','Dressage','Escamotage','Histoire','Intimidation','Intuition','Investigation','Médecine','Nature','Perception','Persuasion','Religion','Représentation','Supercherie','Survie'];
-var ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
-function fmap(){
-  var m=[],i;
-  function add(k,sec,lab){m.push([k,sec,lab])}
-  [['nom','identité','nom'],['classe','identité','classe'],['sousclasse','identité','sous-classe'],['espece','identité','espèce'],['historique','identité','historique'],['alignement','identité','alignement'],['niveau','identité','niveau'],
-   ['clsel','choix_dans_les_paramètres','classe'],['race','choix_dans_les_paramètres','espèce'],['sespece','choix_dans_les_paramètres','sous-espèce'],['sclasse','choix_dans_les_paramètres','sous-classe'],['bgsel','choix_dans_les_paramètres','historique'],
-   ['b_init','bonus_divers','initiative'],['b_ca','bonus_divers','classe_d_armure'],['b_dd','bonus_divers','DD_de_sauvegarde'],['b_atk','bonus_divers','attaque_de_sort'],
-   ['dvtot','combat','dés_de_vie_total'],['dvrest','combat','dés_de_vie_restants'],['vitesse','combat','vitesse'],['inspi','combat','inspiration'],['pvmax','combat','pv_max'],['pv','combat','pv_actuels'],['pvtemp','combat','pv_temporaires'],
-   ['ds1','jets_contre_la_mort','réussite_1'],['ds2','jets_contre_la_mort','réussite_2'],['ds3','jets_contre_la_mort','réussite_3'],['df1','jets_contre_la_mort','échec_1'],['df2','jets_contre_la_mort','échec_2'],['df3','jets_contre_la_mort','échec_3'],
-   ['pc','pièces','cuivre'],['pa','pièces','argent'],['pe','pièces','électrum'],['po','pièces','or'],['pp_','pièces','platine'],
-   ['equip','textes','équipement'],['capacites','textes','capacités_et_traits'],['religion','textes','religion_et_pactes'],['langues','textes','langues_et_maîtrises'],['notes','textes','notes'],
-   ['cast','sorts','caractéristique_d_incantation'],['sclance','sorts','case_spéciale_cochée'],['sorts','sorts','texte_sorts']].forEach(function(x){add(x[0],x[1],x[2])});
-  Object.keys(ABN).forEach(function(k){add('ab_'+k,'caractéristiques',ABN[k]+'_valeur');add('sv_'+k,'caractéristiques',ABN[k]+'_sauvegarde_maîtrisée')});
-  for(i=0;i<SKN.length;i++){add('sk_'+i,'compétences',SKN[i]+'_maîtrise');add('ske_'+i,'compétences',SKN[i]+'_expertise')}
-  for(i=0;i<5;i++){add('a'+i+'_n','attaques','attaque_'+(i+1)+'_nom');add('a'+i+'_b','attaques','attaque_'+(i+1)+'_bonus');add('a'+i+'_d','attaques','attaque_'+(i+1)+'_dégâts');add('obj'+i,'objets_liés','objet_'+(i+1))}
-  for(i=1;i<=9;i++){add('sl'+i+'_u','emplacements_de_sorts','niveau_'+i+'_utilisés');add('sl'+i+'_t','emplacements_de_sorts','niveau_'+i+'_total')}
-  return m;
-}
-function ficheLisible(f){
-  if(!f||!f.data)return null;
-  var d=f.data,o={},m=fmap(),used={};
-  m.forEach(function(x){
-    if(!(x[0] in d))return;
-    used[x[0]]=1;
-    (o[x[1]]=o[x[1]]||{})[x[2]]=d[x[0]];
-  });
-  var other={};Object.keys(d).forEach(function(k){if(!used[k]&&k!=='ress'&&k!=='extras')other[k]=d[k]});
-  if(Object.keys(other).length)o.autres=other;
-  o.ressources_suivies=d.ress||{};
-  o.choix_dons_espèce_sous_classe=d.extras||{};
-  return {format:'fiche-dnd-5e',version:f.version,contenu:o};
-}
-function ficheInterne(l){
-  if(!l||!l.contenu)return null;
-  var c=l.contenu,d={};
-  fmap().forEach(function(x){if(c[x[1]]&&x[2] in c[x[1]])d[x[0]]=c[x[1]][x[2]]});
-  Object.assign(d,c.autres||{});
-  d.ress=c.ressources_suivies||{};d.extras=c.choix_dons_espèce_sous_classe||{};
-  return {version:l.version||5,type:'fiche-dnd-5e',data:d};
-}
-function exportActive(){
-  var s=load(),p=s.persos[s.actif];
-  var o={format:'personnage-dnd-5e',version:2,nom:p.nom};
-  o.fiche=ficheLisible(p.fiche);
-  var g=p.grimoire&&p.grimoire.data;
-  o.grimoire=g?{titre:g.titre||'',sorts:g.sorts||[],sorts_prepares:g.prepares||[],terrain:g.terrain||'',sorts_de_dons:g.dons||{}}:null;
-  var m=p.objets&&p.objets.data;
-  o.objets_magiques=m?{titre:m.titre||'',objets:m.objets||[],harmonises:m.harmonises||[]}:null;
-  var e=p.equipement&&p.equipement.data;
-  o.equipement=e?{titre:e.titre||'',objets:e.objets||[]}:null;
-  var fm=p.familiers&&p.familiers.data;
-  o.familiers=fm?{titre:fm.titre||'',familiers:fm.familiers||[]}:null;
-  var ct=p.cartes&&p.cartes.data;
-  o.cartes_tirees=ct&&(ct.tirages||[]).length?ct.tirages:null;
-  o.histoire=histoireRemplie(p)?p.histoire.data:null;
-  o.creations_personnelles=customUsed(p);
-  return o;
-}
-function importPerso(o){
-  if(!o)throw new Error('format');
-  var s=load(),p={id:uid(),nom:String(o.nom||'Personnage importé')};
-  if(o.type==='personnage-dnd-5e'){   // ancien format (v1) : parties internes telles quelles
-    PARTS.forEach(function(k){p[k]=o[k]&&o[k].data?o[k]:null});
-  }else if(o.format==='personnage-dnd-5e'){
-    p.fiche=ficheInterne(o.fiche);
-    p.grimoire=o.grimoire?{version:1,type:'grimoire-dnd-5e',data:{titre:o.grimoire.titre||'',sorts:o.grimoire.sorts||[],prepares:o.grimoire.sorts_prepares||[],terrain:o.grimoire.terrain||'',dons:o.grimoire.sorts_de_dons||{},filtres:{}}}:null;
-    p.objets=o.objets_magiques?{version:1,type:'objets-dnd-5e',data:{titre:o.objets_magiques.titre||'',objets:o.objets_magiques.objets||[],harmonises:o.objets_magiques.harmonises||[],filtres:{}}}:null;
-    p.equipement=o.equipement?{version:1,type:'equipement-dnd-5e',data:{titre:o.equipement.titre||'',objets:o.equipement.objets||[],filtres:{}}}:null;
-    p.familiers=o.familiers?{version:1,type:'familiers-dnd-5e',data:{titre:o.familiers.titre||'',familiers:o.familiers.familiers||[],filtres:{}}}:null;
-    p.cartes=Array.isArray(o.cartes_tirees)?{version:1,type:'cartes-dnd-5e',data:{tirages:o.cartes_tirees}}:null;
-    p.histoire=o.histoire&&typeof o.histoire==='object'?{version:1,type:'histoire-dnd-5e',data:o.histoire}:null;
-  }else throw new Error('format');
-  customMerge(o.creations_personnelles);
-  s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
-  return p;
-}
-// Partage par lien : le personnage actif au format interne (accepté par importPerso), allégé
-// des valeurs vides de la fiche et des filtres de recherche pour que le lien reste court
-function shareData(){
-  var s=load(),p=s.persos[s.actif],o={type:'personnage-dnd-5e',nom:p.nom};
-  PARTS.forEach(function(k){
-    var x=p[k];if(!x||!x.data)return;
-    var d=JSON.parse(JSON.stringify(x.data));
-    delete d.filtres;
-    if(k==='fiche')Object.keys(d).forEach(function(f){if(d[f]===false||d[f]===null||d[f]===''&&f!=='niveau'&&f.indexOf('ab_')!==0)delete d[f]});
-    o[k]={version:x.version,type:x.type,data:d};
-  });
-  if(!histoireRemplie(p))delete o.histoire;
-  var c=customUsed(p);
-  if(c.objets.length||c.equipement.length||c.dons.length)o.creations_personnelles=c;
-  return o;
-}
-// Histoire du personnage : au moins une partie écrite
-function histoireRemplie(p){
-  var d=p.histoire&&p.histoire.data;
-  return !!d&&Object.keys(d).some(function(k){return typeof d[k]==='string'&&d[k].trim()});
-}
-// Parties qui contiennent quelque chose à imprimer pour le personnage actif
-function printable(){
-  var s=load(),p=s.persos[s.actif],r=[];
-  function d(k){return p[k]&&p[k].data}
-  if(d('fiche'))r.push('fiche');
-  if(d('grimoire')&&(d('grimoire').sorts||[]).length)r.push('grimoire');
-  if(d('objets')&&(d('objets').objets||[]).length)r.push('objets');
-  if(d('equipement')&&(d('equipement').objets||[]).length)r.push('equipement');
-  if(d('familiers')&&(d('familiers').familiers||[]).length)r.push('familiers');
-  if(histoireRemplie(p))r.push('histoire');
-  return r;
+function charactersSummary() {
+  const store = loadStore();
+  return store.ordre.map(characterId => ({ id: characterId, nom: store.persos[characterId].nom, actif: characterId === store.actif }));
 }
 
-/* ---------- Création / suppression depuis la page d'accueil (sans sélecteur) ---------- */
-function createNew(){
-  var s=load(),def='Personnage '+(s.ordre.length+1);
-  var n=prompt('Nom du nouveau personnage :',def);
-  if(n===null)return null;
-  n=n.trim()||def;
-  var p={id:uid(),nom:n,fiche:null,grimoire:null};
-  s.persos[p.id]=p;s.ordre.push(p.id);s.actif=p.id;save(s);cur=p.id;
-  return p;
-}
-// Crée un personnage déjà rempli (assistant de création) et le rend actif.
-// parts : { fiche:{…}, equipement:{…}, … }. Si le personnage actif est encore vierge (aucune page remplie), il est réutilisé.
-function addFilled(nom,parts){
-  var s=load(),a=s.persos[s.actif];
-  var vierge=a&&PARTS.every(function(k){return !a[k]});
-  var p=vierge?a:{id:uid(),fiche:null,grimoire:null};
-  p.nom=String(nom||'').trim()||'Personnage '+(s.ordre.length+(vierge?0:1));
-  Object.keys(parts||{}).forEach(function(k){if(PARTS.indexOf(k)>=0)p[k]=parts[k]});
-  if(p.fiche&&p.fiche.data)p.fiche.data.nom=p.nom;
-  if(!vierge){s.persos[p.id]=p;s.ordre.push(p.id)}
-  s.actif=p.id;save(s);cur=p.id;
-  return p;
-}
-// Supprime un personnage et toutes ses données ; s'il était le dernier, un personnage vierge le remplace
-function removeId(id){
-  var s=load(),p=s.persos[id];
-  if(!p)return null;
-  if(!confirm('Supprimer « '+p.nom+' » ('+TOUT+') ? Cette action est définitive : pense à exporter le personnage avant.'))return null;
-  var i=s.ordre.indexOf(id);
-  s.ordre.splice(i,1);delete s.persos[id];
-  if(!s.ordre.length){var q={id:uid(),nom:'Personnage 1',fiche:null,grimoire:null};s.persos[q.id]=q;s.ordre.push(q.id)}
-  if(s.actif===id||!s.persos[s.actif])s.actif=s.ordre[Math.min(i,s.ordre.length-1)];
-  save(s);cur=s.actif;
-  return p;
+function activateCharacter(characterId) {
+  const store = loadStore();
+  if (store.persos[characterId]) activateInStore(store, characterId);
 }
 
-window.Persos={
-  create:createNew,remove:removeId,add:addFilled,
-  part:function(k){var s=load(),q=s.persos[s.actif];return q&&q[k]||null},
-  list:listAll,activate:activate,exportActive:exportActive,shareData:shareData,importPerso:importPerso,printable:printable,
-  init:init,
-  save:flush,
-  setName:setName,
-  custom:customAll,setCustom:customSet,renameCustom:customRename,
-  current:function(){return load().persos[cur]},
-  // Modifie le personnage actif depuis une page qui ne le gère pas (ex. ajouter un don depuis la page des dons)
-  edit:function(fn){var s=load(),q=s.persos[s.actif];if(!q)return false;fn(q);save(s);return true}
+const SKILL_NAMES = ['Acrobaties', 'Arcanes', 'Athlétisme', 'Discrétion', 'Dressage', 'Escamotage', 'Histoire', 'Intimidation', 'Intuition', 'Investigation', 'Médecine', 'Nature', 'Perception', 'Persuasion', 'Religion', 'Représentation', 'Supercherie', 'Survie'];
+const ABILITY_NAMES = { for: 'Force', dex: 'Dextérité', con: 'Constitution', int: 'Intelligence', sag: 'Sagesse', cha: 'Charisme' };
+const NAMED_SHEET_FIELDS = [
+  ['nom', 'identité', 'nom'], ['classe', 'identité', 'classe'], ['sousclasse', 'identité', 'sous-classe'], ['espece', 'identité', 'espèce'], ['historique', 'identité', 'historique'], ['alignement', 'identité', 'alignement'], ['niveau', 'identité', 'niveau'],
+  ['clsel', 'choix_dans_les_paramètres', 'classe'], ['race', 'choix_dans_les_paramètres', 'espèce'], ['sespece', 'choix_dans_les_paramètres', 'sous-espèce'], ['sclasse', 'choix_dans_les_paramètres', 'sous-classe'], ['bgsel', 'choix_dans_les_paramètres', 'historique'],
+  ['b_init', 'bonus_divers', 'initiative'], ['b_ca', 'bonus_divers', 'classe_d_armure'], ['b_dd', 'bonus_divers', 'DD_de_sauvegarde'], ['b_atk', 'bonus_divers', 'attaque_de_sort'],
+  ['dvtot', 'combat', 'dés_de_vie_total'], ['dvrest', 'combat', 'dés_de_vie_restants'], ['vitesse', 'combat', 'vitesse'], ['inspi', 'combat', 'inspiration'], ['pvmax', 'combat', 'pv_max'], ['pv', 'combat', 'pv_actuels'], ['pvtemp', 'combat', 'pv_temporaires'],
+  ['ds1', 'jets_contre_la_mort', 'réussite_1'], ['ds2', 'jets_contre_la_mort', 'réussite_2'], ['ds3', 'jets_contre_la_mort', 'réussite_3'], ['df1', 'jets_contre_la_mort', 'échec_1'], ['df2', 'jets_contre_la_mort', 'échec_2'], ['df3', 'jets_contre_la_mort', 'échec_3'],
+  ['pc', 'pièces', 'cuivre'], ['pa', 'pièces', 'argent'], ['pe', 'pièces', 'électrum'], ['po', 'pièces', 'or'], ['pp_', 'pièces', 'platine'],
+  ['equip', 'textes', 'équipement'], ['capacites', 'textes', 'capacités_et_traits'], ['religion', 'textes', 'religion_et_pactes'], ['langues', 'textes', 'langues_et_maîtrises'], ['notes', 'textes', 'notes'],
+  ['cast', 'sorts', 'caractéristique_d_incantation'], ['sclance', 'sorts', 'case_spéciale_cochée'], ['sorts', 'sorts', 'texte_sorts']
+];
+
+function sheetFieldReadableNames() {
+  const fields = NAMED_SHEET_FIELDS.slice();
+  Object.keys(ABILITY_NAMES).forEach(ability => {
+    fields.push(['ab_' + ability, 'caractéristiques', ABILITY_NAMES[ability] + '_valeur']);
+    fields.push(['sv_' + ability, 'caractéristiques', ABILITY_NAMES[ability] + '_sauvegarde_maîtrisée']);
+  });
+  SKILL_NAMES.forEach((skill, index) => {
+    fields.push(['sk_' + index, 'compétences', skill + '_maîtrise']);
+    fields.push(['ske_' + index, 'compétences', skill + '_expertise']);
+  });
+  for (let index = 0; index < 5; index++) {
+    const number = index + 1;
+    fields.push(['a' + index + '_n', 'attaques', 'attaque_' + number + '_nom']);
+    fields.push(['a' + index + '_b', 'attaques', 'attaque_' + number + '_bonus']);
+    fields.push(['a' + index + '_d', 'attaques', 'attaque_' + number + '_dégâts']);
+    fields.push(['obj' + index, 'objets_liés', 'objet_' + number]);
+  }
+  for (let level = 1; level <= 9; level++) {
+    fields.push(['sl' + level + '_u', 'emplacements_de_sorts', 'niveau_' + level + '_utilisés']);
+    fields.push(['sl' + level + '_t', 'emplacements_de_sorts', 'niveau_' + level + '_total']);
+  }
+  return fields;
+}
+
+function readableSheet(sheet) {
+  if (!sheet || !sheet.data) return null;
+  const data = sheet.data;
+  const content = {};
+  const namedKeys = {};
+  sheetFieldReadableNames().forEach(([key, section, label]) => {
+    if (!(key in data)) return;
+    namedKeys[key] = 1;
+    (content[section] = content[section] || {})[label] = data[key];
+  });
+  const otherFields = {};
+  Object.keys(data).forEach(key => { if (!namedKeys[key] && key !== 'ress' && key !== 'extras') otherFields[key] = data[key]; });
+  if (Object.keys(otherFields).length) content.autres = otherFields;
+  content.ressources_suivies = data.ress || {};
+  content.choix_dons_espèce_sous_classe = data.extras || {};
+  return { format: 'fiche-dnd-5e', version: sheet.version, contenu: content };
+}
+
+function internalSheet(readable) {
+  if (!readable || !readable.contenu) return null;
+  const content = readable.contenu;
+  const data = {};
+  sheetFieldReadableNames().forEach(([key, section, label]) => {
+    if (content[section] && label in content[section]) data[key] = content[section][label];
+  });
+  Object.assign(data, content.autres || {});
+  data.ress = content.ressources_suivies || {};
+  data.extras = content.choix_dons_espèce_sous_classe || {};
+  return { version: readable.version || 5, type: 'fiche-dnd-5e', data: data };
+}
+
+function exportActiveCharacter() {
+  const store = loadStore();
+  const character = store.persos[store.actif];
+  const grimoire = pageData(character, 'grimoire');
+  const magicItems = pageData(character, 'objets');
+  const equipment = pageData(character, 'equipement');
+  const familiars = pageData(character, 'familiers');
+  const cards = pageData(character, 'cartes');
+  return {
+    format: 'personnage-dnd-5e', version: 2, nom: character.nom,
+    fiche: readableSheet(character.fiche),
+    grimoire: grimoire ? { titre: grimoire.titre || '', sorts: grimoire.sorts || [], sorts_prepares: grimoire.prepares || [], terrain: grimoire.terrain || '', sorts_de_dons: grimoire.dons || {} } : null,
+    objets_magiques: magicItems ? { titre: magicItems.titre || '', objets: magicItems.objets || [], harmonises: magicItems.harmonises || [] } : null,
+    equipement: equipment ? { titre: equipment.titre || '', objets: equipment.objets || [] } : null,
+    familiers: familiars ? { titre: familiars.titre || '', familiers: familiars.familiers || [] } : null,
+    cartes_tirees: cards && (cards.tirages || []).length ? cards.tirages : null,
+    histoire: hasWrittenStory(character) ? character.histoire.data : null,
+    creations_personnelles: customCreationsUsedBy(character)
+  };
+}
+
+function pageSave(type, data) {
+  return { version: 1, type: type, data: data };
+}
+
+function partsFromReadableExport(exported) {
+  const grimoire = exported.grimoire;
+  const magicItems = exported.objets_magiques;
+  const equipment = exported.equipement;
+  const familiars = exported.familiers;
+  return {
+    fiche: internalSheet(exported.fiche),
+    grimoire: grimoire ? pageSave('grimoire-dnd-5e', { titre: grimoire.titre || '', sorts: grimoire.sorts || [], prepares: grimoire.sorts_prepares || [], terrain: grimoire.terrain || '', dons: grimoire.sorts_de_dons || {}, filtres: {} }) : null,
+    objets: magicItems ? pageSave('objets-dnd-5e', { titre: magicItems.titre || '', objets: magicItems.objets || [], harmonises: magicItems.harmonises || [], filtres: {} }) : null,
+    equipement: equipment ? pageSave('equipement-dnd-5e', { titre: equipment.titre || '', objets: equipment.objets || [], filtres: {} }) : null,
+    familiers: familiars ? pageSave('familiers-dnd-5e', { titre: familiars.titre || '', familiers: familiars.familiers || [], filtres: {} }) : null,
+    cartes: Array.isArray(exported.cartes_tirees) ? pageSave('cartes-dnd-5e', { tirages: exported.cartes_tirees }) : null,
+    histoire: exported.histoire && typeof exported.histoire === 'object' ? pageSave('histoire-dnd-5e', exported.histoire) : null
+  };
+}
+
+function partsFromInternalExport(exported) {
+  const parts = {};
+  CHARACTER_PARTS.forEach(part => { parts[part] = exported[part] && exported[part].data ? exported[part] : null; });
+  return parts;
+}
+
+function importCharacter(exported) {
+  if (!exported) throw new Error('format');
+  let parts;
+  if (exported.type === 'personnage-dnd-5e') parts = partsFromInternalExport(exported);
+  else if (exported.format === 'personnage-dnd-5e') parts = partsFromReadableExport(exported);
+  else throw new Error('format');
+  const character = Object.assign({ id: newCharacterId(), nom: String(exported.nom || 'Personnage importé') }, parts);
+  mergeImportedCustomCreations(exported.creations_personnelles);
+  addCharacterAndActivate(loadStore(), character);
+  return character;
+}
+
+function isEmptySheetValue(field, value) {
+  return value === false || value === null || value === '' && field !== 'niveau' && field.indexOf('ab_') !== 0;
+}
+
+function withoutEmptySheetValues(sheetData) {
+  Object.keys(sheetData).forEach(field => { if (isEmptySheetValue(field, sheetData[field])) delete sheetData[field]; });
+}
+
+function shareableActiveCharacter() {
+  const store = loadStore();
+  const character = store.persos[store.actif];
+  const shared = { type: 'personnage-dnd-5e', nom: character.nom };
+  CHARACTER_PARTS.forEach(part => {
+    const saved = character[part];
+    if (!saved || !saved.data) return;
+    const data = JSON.parse(JSON.stringify(saved.data));
+    delete data.filtres;
+    if (part === 'fiche') withoutEmptySheetValues(data);
+    shared[part] = { version: saved.version, type: saved.type, data: data };
+  });
+  if (!hasWrittenStory(character)) delete shared.histoire;
+  const creations = customCreationsUsedBy(character);
+  if (creations.objets.length || creations.equipement.length || creations.dons.length) shared.creations_personnelles = creations;
+  return shared;
+}
+
+function hasWrittenStory(character) {
+  const story = pageData(character, 'histoire');
+  return !!story && Object.keys(story).some(section => typeof story[section] === 'string' && story[section].trim());
+}
+
+function hasListEntries(character, part, listName) {
+  const data = pageData(character, part);
+  return data && (data[listName] || []).length;
+}
+
+function printablePartsOfActiveCharacter() {
+  const store = loadStore();
+  const character = store.persos[store.actif];
+  const parts = [];
+  if (pageData(character, 'fiche')) parts.push('fiche');
+  if (hasListEntries(character, 'grimoire', 'sorts')) parts.push('grimoire');
+  if (hasListEntries(character, 'objets', 'objets')) parts.push('objets');
+  if (hasListEntries(character, 'equipement', 'objets')) parts.push('equipement');
+  if (hasListEntries(character, 'familiers', 'familiers')) parts.push('familiers');
+  if (hasWrittenStory(character)) parts.push('histoire');
+  return parts;
+}
+
+function createCharacterFromHomePage() {
+  const store = loadStore();
+  const name = askNewCharacterName(store);
+  if (name === null) return null;
+  const character = blankCharacter(name);
+  addCharacterAndActivate(store, character);
+  return character;
+}
+
+function isBlankCharacter(character) {
+  return character && CHARACTER_PARTS.every(part => !character[part]);
+}
+
+function addFilledCharacter(name, parts) {
+  const store = loadStore();
+  const activeCharacter = store.persos[store.actif];
+  const reuseActiveCharacter = isBlankCharacter(activeCharacter);
+  const character = reuseActiveCharacter ? activeCharacter : { id: newCharacterId(), fiche: null, grimoire: null };
+  character.nom = String(name || '').trim() || 'Personnage ' + (store.ordre.length + (reuseActiveCharacter ? 0 : 1));
+  Object.keys(parts || {}).forEach(part => { if (CHARACTER_PARTS.indexOf(part) >= 0) character[part] = parts[part]; });
+  setNameWrittenOnSheet(character, character.nom);
+  if (reuseActiveCharacter) activateInStore(store, character.id);
+  else addCharacterAndActivate(store, character);
+  return character;
+}
+
+function deleteCharacterById(characterId) {
+  const store = loadStore();
+  const character = store.persos[characterId];
+  if (!character) return null;
+  if (!confirmCharacterDeletion(character)) return null;
+  const position = removeCharacterFromStore(store, characterId);
+  if (!store.ordre.length) {
+    const replacement = blankCharacter('Personnage 1');
+    store.persos[replacement.id] = replacement;
+    store.ordre.push(replacement.id);
+  }
+  const nextActiveId = store.actif === characterId || !store.persos[store.actif] ? store.ordre[Math.min(position, store.ordre.length - 1)] : store.actif;
+  activateInStore(store, nextActiveId);
+  return character;
+}
+
+function activeCharacterPart(part) {
+  const store = loadStore();
+  const character = store.persos[store.actif];
+  return character && character[part] || null;
+}
+
+function editActiveCharacter(modify) {
+  const store = loadStore();
+  const character = store.persos[store.actif];
+  if (!character) return false;
+  modify(character);
+  saveStore(store);
+  return true;
+}
+
+window.Persos = {
+  create: createCharacterFromHomePage,
+  remove: deleteCharacterById,
+  add: addFilledCharacter,
+  part: activeCharacterPart,
+  list: charactersSummary,
+  activate: activateCharacter,
+  exportActive: exportActiveCharacter,
+  shareData: shareableActiveCharacter,
+  importPerso: importCharacter,
+  printable: printablePartsOfActiveCharacter,
+  init: initPage,
+  save: savePageDataOfCurrentCharacter,
+  setName: setCurrentCharacterName,
+  custom: allCustomCreations,
+  setCustom: setCustomCreations,
+  renameCustom: renameCustomCreationEverywhere,
+  current: () => loadStore().persos[currentCharacterId],
+  edit: editActiveCharacter
 };
 })();

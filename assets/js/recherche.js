@@ -1,212 +1,365 @@
-/* Recherche globale : un bouton « Rechercher » dans la barre du haut de chaque page (et sur l'accueil)
-   ouvre une fenêtre qui trouve un sort, un objet, un équipement, un monstre, un familier, un don,
-   une espèce, un historique, une classe, une capacité de classe, une sous-classe, une règle, une quête ou une page.
-
-   Les données sont lues à la première ouverture dans les fichiers JSON du site et dans les pages de
-   règles (états, combat, guide) : rien à tenir à jour quand une donnée est ajoutée. Le mode hors ligne
-   (sw.js) enregistre ces fichiers, la recherche marche donc aussi sans réseau.
-
-   Chaque résultat se déplie pour lire sa description sans quitter la page, avec un lien vers la page
-   qui le présente. Les liens « page.html?q=nom » remplissent le champ de recherche de la page d'arrivée.
-   Raccourcis clavier : « / » ou Ctrl+K. */
-(function(){
+(function () {
 'use strict';
 
-var norm=function(s){return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`]/g,"'")};
-var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
-var txt=function(html){return String(html==null?'':html).replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim()};
-var br=function(s){return esc(s).replace(/\n/g,'<br>')};
-var lien=function(page,q){return page+'?q='+encodeURIComponent(q)};
-var line=function(label,v){return v?'<div><b>'+esc(label)+'</b> : '+esc(v)+'</div>':''};
-var liste=function(a){return (a||[]).map(function(x){return '<p><b>'+esc(x.n||x.nom)+'.</b> '+(x.d!=null?x.d:esc(x.desc))+'</p>'}).join('')};
+const normalize = text => String(text == null ? '' : text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'");
+const escapeHtml = text => String(text == null ? '' : text).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]);
+const plainText = html => String(html == null ? '' : html).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const withLineBreaks = text => escapeHtml(text).replace(/\n/g, '<br>');
+const searchLink = (page, query) => page + '?q=' + encodeURIComponent(query);
+const labeledLine = (label, value) => value ? '<div><b>' + escapeHtml(label) + '</b> : ' + escapeHtml(value) + '</div>' : '';
+const namedParagraphs = entries => (entries || []).map(entry => '<p><b>' + escapeHtml(entry.n || entry.nom) + '.</b> ' + (entry.d != null ? entry.d : escapeHtml(entry.desc)) + '</p>').join('');
+const paragraph = text => '<p>' + escapeHtml(text) + '</p>';
+const joinPresent = (values, separator) => values.filter(Boolean).join(separator);
 
-// Types de résultats : libellé, couleur, nom de la page d'arrivée, nom du filtre
-var TYPES={
-  sort:['Sort','#7a4fc4','le grimoire','Sorts'],
-  objet:['Objet magique','#d8791a','les objets magiques','Objets magiques'],
-  equip:['Équipement','#6b7a2a','l’équipement','Équipement'],
-  monstre:['Monstre','#a0302a','le bestiaire','Monstres'],
-  familier:['Familier','#2e9e5b','les familiers','Familiers'],
-  don:['Don','#b8860b','les dons','Dons'],
-  espece:['Espèce','#12968f','les espèces','Espèces'],
-  classe:['Classe','#2f6fd0','la page des classes','Classes et sous-classes'],
-  histo:['Historique','#8a5a2b','','Historiques'],
-  regle:['Règle','#2a3170','la page','Règles'],
-  quete:['Quête','#8e3a9d','les quêtes','Quêtes'],
-  page:['Page','#5f6580','la page','Pages du site']
+const RESULT_TYPES = {
+  sort: { label: 'Sort', color: '#7a4fc4', destination: 'le grimoire', filterLabel: 'Sorts' },
+  objet: { label: 'Objet magique', color: '#d8791a', destination: 'les objets magiques', filterLabel: 'Objets magiques' },
+  equip: { label: 'Équipement', color: '#6b7a2a', destination: 'l’équipement', filterLabel: 'Équipement' },
+  monstre: { label: 'Monstre', color: '#a0302a', destination: 'le bestiaire', filterLabel: 'Monstres' },
+  familier: { label: 'Familier', color: '#2e9e5b', destination: 'les familiers', filterLabel: 'Familiers' },
+  don: { label: 'Don', color: '#b8860b', destination: 'les dons', filterLabel: 'Dons' },
+  espece: { label: 'Espèce', color: '#12968f', destination: 'les espèces', filterLabel: 'Espèces' },
+  classe: { label: 'Classe', color: '#2f6fd0', destination: 'la page des classes', filterLabel: 'Classes et sous-classes' },
+  histo: { label: 'Historique', color: '#8a5a2b', destination: '', filterLabel: 'Historiques' },
+  regle: { label: 'Règle', color: '#2a3170', destination: 'la page', filterLabel: 'Règles' },
+  quete: { label: 'Quête', color: '#8e3a9d', destination: 'les quêtes', filterLabel: 'Quêtes' },
+  page: { label: 'Page', color: '#5f6580', destination: 'la page', filterLabel: 'Pages du site' }
 };
+const DATA_FILES = {
+  spells: 'assets/json/vf/spells.json', magicItems: 'assets/json/vf/objets.json', equipment: 'assets/json/vf/equipement.json',
+  monsters: 'assets/json/vf/bestiaire.json', familiars: 'assets/json/vf/familiers.json', feats: 'assets/json/vf/dons.json',
+  species: 'assets/json/vf/especes.json', speciesInfo: 'assets/json/vf/especes_infos.json', classFeatures: 'assets/json/vf/capacites.json',
+  subclasses: 'assets/json/vf/sousclasses.json', backgrounds: 'assets/json/vf/historiques.json', quests: 'assets/json/vf/quetes.json',
+  classInfo: 'assets/json/vf/classes_infos.json', conditions: 'assets/json/vf/etats.json', combatRules: 'assets/json/vf/combat.json'
+};
+const HTML_PAGES = { guide: 'guide.html', home: './', gameMaster: 'mj.html' };
+const ABILITY_SHORT_NAMES = ['For', 'Dex', 'Con', 'Int', 'Sag', 'Cha'];
+const MONSTER_ACTION_GROUPS = [['actions', 'Actions'], ['bonus', 'Actions bonus'], ['reac', 'Réactions'], ['leg', 'Actions légendaires']];
+const MAX_SHOWN_RESULTS = 80;
+const MAX_SUBTITLE_LENGTH = 140;
 
-/* ---------- Construction de l'index ---------- */
-var IDX=null,loading=null;
+let searchIndex = null;
+let searchIndexLoading = null;
 
-function get(u){return fetch(u).then(function(r){if(!r.ok)throw new Error(u);return r.json()}).catch(function(){return null})}
-function getText(u){return fetch(u).then(function(r){if(!r.ok)throw new Error(u);return r.text()}).catch(function(){return ''})}
-
-function add(out,o){
-  // o : {t:type, n:nom, alt:autres noms, s:ligne courte, d:fonction qui renvoie le détail HTML, body:texte cherché, href}
-  o.nn=norm(o.n);o.na=norm(o.alt||'');o.nb=norm(o.body||'');
-  out.push(o);
+function fetchJsonOrNull(url) {
+  return fetch(url).then(response => {
+    if (!response.ok) throw new Error(url);
+    return response.json();
+  }).catch(() => null);
 }
 
-function build(){
-  if(loading)return loading;
-  var files=['assets/json/vf/spells.json','assets/json/vf/objets.json','assets/json/vf/equipement.json','assets/json/vf/bestiaire.json','assets/json/vf/familiers.json','assets/json/vf/dons.json','assets/json/vf/especes.json','assets/json/vf/especes_infos.json',
-    'assets/json/vf/capacites.json','assets/json/vf/sousclasses.json','assets/json/vf/historiques.json','assets/json/vf/quetes.json','assets/json/vf/classes_infos.json'];
-  loading=Promise.all(files.map(get).concat([getText('assets/js/pages/etats.js'),getText('assets/js/pages/combat.js'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
-    var out=[];
-    var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11],ci=r[12]||{};
-    var clsLien=function(cl,n){return 'classes.html#'+encodeURIComponent(cl)+(n?'/'+encodeURIComponent(n):'')};
-    Object.keys(ci.classes||{}).forEach(function(cl){
-      var k=ci.classes[cl];
-      add(out,{t:'classe',n:cl,vo:['classes','classes§'+cl],s:'Classe · d'+k.dv+' · '+k.prim,body:[k.pitch,k.jeu].concat(k.role||[]).join(' '),href:clsLien(cl),
-        d:function(){return '<p>'+esc(k.pitch)+'</p>'+line('Rôles',(k.role||[]).join(', '))+'<h4>Conseils de jeu</h4>'+(k.conseils||[]).slice(0,3).map(function(x){return '<p>'+esc(x)+'</p>'}).join('')}});
-    });
-    (sp||[]).forEach(function(s){
-      var p=String(s.n).split('|');
-      var lv=+s.l?'Niveau '+s.l:'Sort mineur';
-      add(out,{t:'sort',n:p[0],vo:['sorts',s.n],alt:p.slice(1).join(' '),s:lv+' · '+(s.e||'')+((s.c||[]).length?' · '+s.c.join(', '):''),
-        body:txt(s.h),href:lien('grimoire.html',p[0]),
-        d:function(){return line('Incantation',s.t)+line('Portée',s.r)+line('Composantes',s.k)+line('Durée',s.d)+(p[1]?line('Aussi appelé',p.slice(1).join(', ')):'')+'<div>'+s.h+'</div>'}});
-    });
-    (ob||[]).forEach(function(o){
-      add(out,{t:'objet',n:o.n,vo:['objets',o.n],alt:o.en,s:[o.t,o.q,o.a].filter(Boolean).join(' · '),body:txt(o.h),href:lien('objets.html',o.n),
-        d:function(){return '<div>'+o.h+'</div>'+line('Source',o.src)}});
-    });
-    (eq||[]).forEach(function(o){
-      add(out,{t:'equip',n:o.n,vo:['equipement',o.n],alt:o.en,s:[o.c||o.t,o.p].filter(Boolean).join(' · '),body:txt(o.h),href:lien('equipement.html',o.n),
-        d:function(){return line('Prix',o.p)+line('Poids',o.kg!=null?String(o.kg).replace('.',',')+' kg':'')+'<div>'+(o.h||'')+'</div>'}});
-    });
-    var creature=function(t,page){return function(m){
-      var body=[m.typ].concat((m.traits||[]).map(function(x){return x.n}),(m.actions||[]).map(function(x){return x.n})).join(' ');
-      add(out,{t:t,n:m.n,vo:[t==='monstre'?'monstres':'familiers',m.n],alt:m.en,s:[m.tail,m.typ,m.fp!=null?'FP '+m.fp:'',m.o].filter(Boolean).join(' · '),body:body,href:lien(page,m.n),
-        d:function(){
-          var C=['For','Dex','Con','Int','Sag','Cha'];
-          var car=(m.car||[]).map(function(v,i){var b=Math.floor((v-10)/2);return C[i]+' '+v+' ('+(b>=0?'+':'−')+Math.abs(b)+')'}).join(' · ');
-          return line('CA',m.ca)+line('PV',m.pv)+line('Vitesse',m.vit)+(car?'<div>'+esc(car)+'</div>':'')+line('Sens',m.sens)
-            +liste(m.traits)+[['actions','Actions'],['bonus','Actions bonus'],['reac','Réactions'],['leg','Actions légendaires']].map(function(k){
-              return (m[k[0]]||[]).length?'<h4>'+k[1]+'</h4>'+liste(m[k[0]]):''}).join('')+(m.note?'<p><i>'+esc(m.note)+'</i></p>':'');
-        }});
-    }};
-    (be||[]).forEach(creature('monstre','bestiaire.html'));
-    (fa||[]).forEach(creature('familier','familiers.html'));
-    (dn||[]).forEach(function(x){
-      add(out,{t:'don',n:x.nom,vo:['dons',x.id],s:[x.cat,x.pre?'Prérequis : '+x.pre:''].filter(Boolean).join(' · '),body:x.desc,href:'dons.html#'+encodeURIComponent(x.id),
-        d:function(){return '<p>'+br(x.desc)+'</p>'+line('Source',x.src)}});
-    });
-    var infos=(ei&&ei.infos)||{},extra=(ei&&ei.extra)||{};
-    var espece=function(n,e){
-      var i=infos[n]||{};
-      add(out,{t:'espece',n:n,vo:['especes',n],s:[e.type||i.type,e.taille,e.vit?'Vitesse '+e.vit+' m':''].filter(Boolean).join(' · '),
-        body:(e.traits||[]).map(function(x){return x.nom+' '+x.desc}).join(' '),href:'especes.html#'+encodeURIComponent(n),
-        d:function(){return (e.app||i.app?'<p>'+esc(e.app||i.app)+'</p>':'')+liste(e.traits)}});
-    };
-    Object.keys(es||{}).forEach(function(n){espece(n,es[n])});
-    Object.keys(extra).forEach(function(n){if(!(es&&es[n]))espece(n,extra[n])});
-    Object.keys(ca||{}).forEach(function(cl){
-      (ca[cl]||[]).forEach(function(x){
-        add(out,{t:'classe',n:x.nom,alt:cl,vo:['classes','capacites§'+cl+'|'+x.niv+'|'+x.nom],s:cl+' · niv. '+x.niv,body:x.desc,href:clsLien(cl),d:function(){return '<p>'+br(x.desc)+'</p>'}});
-      });
-    });
-    Object.keys(sc||{}).forEach(function(cl){
-      Object.keys(sc[cl]||{}).forEach(function(n){
-        var f=sc[cl][n].feats||[],tip=((ci.sous||{})[cl]||{})[n];
-        add(out,{t:'classe',n:n,alt:cl,vo:['classes','sous§'+cl+'|'+n],s:'Sous-classe · '+cl,body:f.map(function(x){return x.nom}).join(' ')+(tip?' '+tip.t:''),href:clsLien(cl,n),
-          d:function(){return (tip?'<p><i>'+esc(tip.t)+'</i></p>':'')+f.map(function(x){return '<p><b>Niv. '+x.niv+' · '+esc(x.nom)+'.</b> '+br(x.desc)+'</p>'}).join('')}});
-        f.forEach(function(x){
-          add(out,{t:'classe',n:x.nom,alt:n+' '+cl,vo:['classes','sous§'+cl+'|'+n],s:n+' ('+cl+') · niv. '+x.niv,body:x.desc,href:clsLien(cl,n),d:function(){return '<p>'+br(x.desc)+'</p>'}});
-        });
-      });
-    });
-    Object.keys(hi||{}).forEach(function(n){
-      var h=hi[n];
-      add(out,{t:'histo',n:n,vo:['historiques',n],s:(h.comp||[]).join(', '),body:h.desc,
-        d:function(){return '<p>'+br(h.desc)+'</p>'+line('Compétences',(h.comp||[]).join(', '))+line('Outil',h.outil)}});
-    });
-    (qu||[]).forEach(function(x){
-      add(out,{t:'quete',n:x.t,s:[x.type,x.lieu,x.niv?'niv. '+x.niv:''].filter(Boolean).join(' · '),body:[x.acc,x.obj,x.lieu].join(' '),
-        href:lien('quetes.html',x.t),d:function(){return line('Lieu',x.lieu)+'<p>'+esc(x.acc)+'</p><p>'+esc(x.obj)+'</p>'}});
-    });
-    regles(out,r[13],r[14],r[15]);
-    pages(out,r[16]);pages(out,r[17]);
-    IDX=out;
-    return out;
-  });
-  return loading;
+function fetchTextOrEmpty(url) {
+  return fetch(url).then(response => {
+    if (!response.ok) throw new Error(url);
+    return response.text();
+  }).catch(() => '');
 }
 
-// Règles : lues dans le texte des pages (les états et le combat sont des listes dans leur script, assets/js/pages/etats.js et combat.js)
-function regles(out,etats,combat,guide){
-  var slug=function(s){return norm(s).replace(/[^a-z]+/g,'-')};
-  var str="'((?:[^'\\\\]|\\\\.)*)'";
-  var re=new RegExp("\\{n:"+str+",a:"+str+"[^]*?s:"+str,'g'),m;
-  while((m=re.exec(etats))){
-    (function(n,a,s){add(out,{t:'regle',n:n,alt:a,vo:['etats',n],s:'État',body:s,href:'etats.html#'+slug(n),d:function(){return '<p>'+esc(s)+'</p>'}})})(m[1],m[2],m[3]);
-  }
-  var x=etats.split('const X=[')[1];
-  if(x){
-    var rx=new RegExp("\\[\\s*"+str+",\\s*"+str,'g');
-    while((m=rx.exec(x.split('];')[0]))){
-      (function(n,s){add(out,{t:'regle',n:n,s:'Situation proche des états',body:txt(s),href:'etats.html#autres',d:function(){return '<p>'+esc(txt(s))+'</p>'}})})(m[1],m[2]);
-    }
-  }
-  (combat.split('const S=[')[1]||'').split(/\n \{id:/).slice(1).forEach(function(chunk){
-    var head=new RegExp("^"+str+",c:"+str+",t:"+str).exec(chunk);
-    if(!head)return;
-    var id=head[1],titre=head[3],rows=[],rr=new RegExp("\\[\\s*"+str+",\\s*"+str+"\\]",'g'),k;
-    while((k=rr.exec(chunk)))rows.push([k[1],txt(k[2])]);
-    add(out,{t:'regle',n:titre,s:'Règles du combat',body:rows.map(function(x){return x[0]}).join(' '),href:'combat.html#'+id,
-      d:function(){return rows.map(function(x){return '<p><b>'+esc(x[0])+'.</b> '+esc(x[1])+'</p>'}).join('')}});
-    rows.forEach(function(x){
-      add(out,{t:'regle',n:x[0],alt:titre,s:'Combat · '+titre,body:x[1],href:'combat.html#'+id,d:function(){return '<p>'+esc(x[1])+'</p>'}});
+async function fetchAll(urlsByName, fetcher) {
+  const names = Object.keys(urlsByName);
+  const contents = await Promise.all(names.map(name => fetcher(urlsByName[name])));
+  const contentByName = {};
+  names.forEach((name, index) => { contentByName[name] = contents[index]; });
+  return contentByName;
+}
+
+function addResult(results, result) {
+  result.normalizedName = normalize(result.n);
+  result.normalizedAlternatives = normalize(result.alt || '');
+  result.normalizedBody = normalize(result.body || '');
+  results.push(result);
+  return result;
+}
+
+const classPageLink = (className, subclassName) => 'classes.html#' + encodeURIComponent(className) + (subclassName ? '/' + encodeURIComponent(subclassName) : '');
+
+function addClasses(results, classInfo) {
+  Object.keys(classInfo.classes || {}).forEach(className => {
+    const info = classInfo.classes[className];
+    addResult(results, {
+      t: 'classe', n: className, vo: ['classes', 'classes§' + className], s: 'Classe · d' + info.dv + ' · ' + info.prim,
+      body: [info.pitch, info.jeu].concat(info.role || []).join(' '), href: classPageLink(className),
+      d: () => paragraph(info.pitch) + labeledLine('Rôles', (info.role || []).join(', ')) + '<h4>Conseils de jeu</h4>' + (info.conseils || []).slice(0, 3).map(paragraph).join('')
     });
   });
-  if(guide&&window.DOMParser){
-    var doc=new DOMParser().parseFromString(guide,'text/html'),h2='',id='',cur=null;
-    doc.querySelectorAll('main h2,main h3,main p,main li,main td').forEach(function(el){
-      if(el.tagName==='H2'||el.tagName==='H3'){
-        var n=el.textContent.replace(/^\d+\.\s*/,'').trim();
-        if(el.tagName==='H2'){h2=n;id=el.id||id}
-        cur={parts:[]};
-        (function(c){add(out,c.o={t:'regle',n:n,s:'Guide du débutant'+(el.tagName==='H3'?' · '+h2:''),body:'',href:'guide.html'+(id?'#'+id:''),
-          d:function(){return c.parts.slice(0,6).map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+(c.parts.length>6?'<p>…</p>':'')}})})(cur);
-      }else if(cur&&!el.parentNode.closest('li,td')){
-        var t=el.textContent.replace(/\s+/g,' ').trim();
-        if(t){cur.parts.push(t);cur.o.nb+=' '+norm(t)}
+}
+
+function spellSubtitle(spell) {
+  const level = +spell.l ? 'Niveau ' + spell.l : 'Sort mineur';
+  const classes = (spell.c || []).length ? ' · ' + spell.c.join(', ') : '';
+  return level + ' · ' + (spell.e || '') + classes;
+}
+
+function spellDetailHtml(spell, otherNames) {
+  return labeledLine('Incantation', spell.t) + labeledLine('Portée', spell.r) + labeledLine('Composantes', spell.k) + labeledLine('Durée', spell.d)
+    + (otherNames.length ? labeledLine('Aussi appelé', otherNames.join(', ')) : '') + '<div>' + spell.h + '</div>';
+}
+
+function addSpells(results, spells) {
+  (spells || []).forEach(spell => {
+    const [name, ...otherNames] = String(spell.n).split('|');
+    addResult(results, {
+      t: 'sort', n: name, vo: ['sorts', spell.n], alt: otherNames.join(' '), s: spellSubtitle(spell),
+      body: plainText(spell.h), href: searchLink('grimoire.html', name), d: () => spellDetailHtml(spell, otherNames)
+    });
+  });
+}
+
+function addMagicItems(results, magicItems) {
+  (magicItems || []).forEach(item => {
+    addResult(results, {
+      t: 'objet', n: item.n, vo: ['objets', item.n], alt: item.en, s: joinPresent([item.t, item.q, item.a], ' · '), body: plainText(item.h),
+      href: searchLink('objets.html', item.n), d: () => '<div>' + item.h + '</div>' + labeledLine('Source', item.src)
+    });
+  });
+}
+
+function weightLabel(item) {
+  return item.kg != null ? String(item.kg).replace('.', ',') + ' kg' : '';
+}
+
+function addEquipment(results, equipment) {
+  (equipment || []).forEach(item => {
+    addResult(results, {
+      t: 'equip', n: item.n, vo: ['equipement', item.n], alt: item.en, s: joinPresent([item.c || item.t, item.p], ' · '), body: plainText(item.h),
+      href: searchLink('equipement.html', item.n), d: () => labeledLine('Prix', item.p) + labeledLine('Poids', weightLabel(item)) + '<div>' + (item.h || '') + '</div>'
+    });
+  });
+}
+
+function abilityScoresLine(scores) {
+  return (scores || []).map((score, index) => {
+    const modifier = Math.floor((score - 10) / 2);
+    return ABILITY_SHORT_NAMES[index] + ' ' + score + ' (' + (modifier >= 0 ? '+' : '−') + Math.abs(modifier) + ')';
+  }).join(' · ');
+}
+
+function creatureDetailHtml(creature) {
+  const abilities = abilityScoresLine(creature.car);
+  const actionGroups = MONSTER_ACTION_GROUPS.map(([key, title]) => (creature[key] || []).length ? '<h4>' + title + '</h4>' + namedParagraphs(creature[key]) : '').join('');
+  return labeledLine('CA', creature.ca) + labeledLine('PV', creature.pv) + labeledLine('Vitesse', creature.vit) + (abilities ? '<div>' + escapeHtml(abilities) + '</div>' : '')
+    + labeledLine('Sens', creature.sens) + namedParagraphs(creature.traits) + actionGroups + (creature.note ? '<p><i>' + escapeHtml(creature.note) + '</i></p>' : '');
+}
+
+function addCreatures(results, creatures, type, page) {
+  (creatures || []).forEach(creature => {
+    const names = (list) => (list || []).map(entry => entry.n);
+    addResult(results, {
+      t: type, n: creature.n, vo: [type === 'monstre' ? 'monstres' : 'familiers', creature.n], alt: creature.en,
+      s: joinPresent([creature.tail, creature.typ, creature.fp != null ? 'FP ' + creature.fp : '', creature.o], ' · '),
+      body: [creature.typ].concat(names(creature.traits), names(creature.actions)).join(' '), href: searchLink(page, creature.n),
+      d: () => creatureDetailHtml(creature)
+    });
+  });
+}
+
+function addFeats(results, feats) {
+  (feats || []).forEach(feat => {
+    addResult(results, {
+      t: 'don', n: feat.nom, vo: ['dons', feat.id], s: joinPresent([feat.cat, feat.pre ? 'Prérequis : ' + feat.pre : ''], ' · '), body: feat.desc,
+      href: 'dons.html#' + encodeURIComponent(feat.id), d: () => '<p>' + withLineBreaks(feat.desc) + '</p>' + labeledLine('Source', feat.src)
+    });
+  });
+}
+
+function addOneSpecies(results, name, species, info) {
+  const appearance = species.app || info.app;
+  addResult(results, {
+    t: 'espece', n: name, vo: ['especes', name], s: joinPresent([species.type || info.type, species.taille, species.vit ? 'Vitesse ' + species.vit + ' m' : ''], ' · '),
+    body: (species.traits || []).map(trait => trait.nom + ' ' + trait.desc).join(' '), href: 'especes.html#' + encodeURIComponent(name),
+    d: () => (appearance ? paragraph(appearance) : '') + namedParagraphs(species.traits)
+  });
+}
+
+function addSpecies(results, species, speciesInfo) {
+  const infos = (speciesInfo && speciesInfo.infos) || {};
+  const extraSpecies = (speciesInfo && speciesInfo.extra) || {};
+  Object.keys(species || {}).forEach(name => addOneSpecies(results, name, species[name], infos[name] || {}));
+  Object.keys(extraSpecies).forEach(name => {
+    if (!(species && species[name])) addOneSpecies(results, name, extraSpecies[name], infos[name] || {});
+  });
+}
+
+function addClassFeatures(results, classFeatures) {
+  Object.keys(classFeatures || {}).forEach(className => {
+    (classFeatures[className] || []).forEach(feature => {
+      addResult(results, {
+        t: 'classe', n: feature.nom, alt: className, vo: ['classes', 'capacites§' + className + '|' + feature.niv + '|' + feature.nom],
+        s: className + ' · niv. ' + feature.niv, body: feature.desc, href: classPageLink(className), d: () => '<p>' + withLineBreaks(feature.desc) + '</p>'
+      });
+    });
+  });
+}
+
+function subclassDetailHtml(features, tip) {
+  return (tip ? '<p><i>' + escapeHtml(tip.t) + '</i></p>' : '')
+    + features.map(feature => '<p><b>Niv. ' + feature.niv + ' · ' + escapeHtml(feature.nom) + '.</b> ' + withLineBreaks(feature.desc) + '</p>').join('');
+}
+
+function addOneSubclass(results, className, subclassName, features, tip) {
+  const vo = ['classes', 'sous§' + className + '|' + subclassName];
+  addResult(results, {
+    t: 'classe', n: subclassName, alt: className, vo: vo, s: 'Sous-classe · ' + className,
+    body: features.map(feature => feature.nom).join(' ') + (tip ? ' ' + tip.t : ''), href: classPageLink(className, subclassName),
+    d: () => subclassDetailHtml(features, tip)
+  });
+  features.forEach(feature => {
+    addResult(results, {
+      t: 'classe', n: feature.nom, alt: subclassName + ' ' + className, vo: vo, s: subclassName + ' (' + className + ') · niv. ' + feature.niv,
+      body: feature.desc, href: classPageLink(className, subclassName), d: () => '<p>' + withLineBreaks(feature.desc) + '</p>'
+    });
+  });
+}
+
+function addSubclasses(results, subclasses, classInfo) {
+  Object.keys(subclasses || {}).forEach(className => {
+    Object.keys(subclasses[className] || {}).forEach(subclassName => {
+      const tip = ((classInfo.sous || {})[className] || {})[subclassName];
+      addOneSubclass(results, className, subclassName, subclasses[className][subclassName].feats || [], tip);
+    });
+  });
+}
+
+function addBackgrounds(results, backgrounds) {
+  Object.keys(backgrounds || {}).forEach(name => {
+    const background = backgrounds[name];
+    addResult(results, {
+      t: 'histo', n: name, vo: ['historiques', name], s: (background.comp || []).join(', '), body: background.desc,
+      d: () => '<p>' + withLineBreaks(background.desc) + '</p>' + labeledLine('Compétences', (background.comp || []).join(', ')) + labeledLine('Outil', background.outil)
+    });
+  });
+}
+
+function addQuests(results, quests) {
+  (quests || []).forEach(quest => {
+    addResult(results, {
+      t: 'quete', n: quest.t, s: joinPresent([quest.type, quest.lieu, quest.niv ? 'niv. ' + quest.niv : ''], ' · '), body: [quest.acc, quest.obj, quest.lieu].join(' '),
+      href: searchLink('quetes.html', quest.t), d: () => labeledLine('Lieu', quest.lieu) + paragraph(quest.acc) + paragraph(quest.obj)
+    });
+  });
+}
+
+const conditionAnchor = name => normalize(name).replace(/[^a-z]+/g, '-');
+
+function addConditionRules(results, conditionsData) {
+  if (!conditionsData) return;
+  (conditionsData.etats || []).forEach(condition => {
+    addResult(results, {
+      t: 'regle', n: condition.n, alt: condition.a, vo: ['etats', condition.n], s: 'État', body: condition.s,
+      href: 'etats.html#' + conditionAnchor(condition.n), d: () => paragraph(condition.s)
+    });
+  });
+  (conditionsData.situations || []).forEach(situation => {
+    const text = plainText(situation.h);
+    addResult(results, { t: 'regle', n: situation.n, s: 'Situation proche des états', body: text, href: 'etats.html#autres', d: () => paragraph(text) });
+  });
+}
+
+function addCombatRules(results, combatSections) {
+  (combatSections || []).forEach(section => {
+    const href = 'combat.html#' + section.id;
+    const rules = section.rows.map(rule => ({ name: rule.n, text: plainText(rule.h) }));
+    addResult(results, {
+      t: 'regle', n: section.t, s: 'Règles du combat', body: rules.map(rule => rule.name).join(' '), href: href,
+      d: () => rules.map(rule => '<p><b>' + escapeHtml(rule.name) + '.</b> ' + escapeHtml(rule.text) + '</p>').join('')
+    });
+    rules.forEach(rule => {
+      addResult(results, { t: 'regle', n: rule.name, alt: section.t, s: 'Combat · ' + section.t, body: rule.text, href: href, d: () => paragraph(rule.text) });
+    });
+  });
+}
+
+function guideSectionDetailHtml(paragraphs) {
+  return paragraphs.slice(0, 6).map(paragraph).join('') + (paragraphs.length > 6 ? '<p>…</p>' : '');
+}
+
+function addGuideRules(results, guideHtml) {
+  if (!guideHtml || !window.DOMParser) return;
+  const guide = new DOMParser().parseFromString(guideHtml, 'text/html');
+  let chapterTitle = '', chapterId = '', currentSection = null;
+  guide.querySelectorAll('main h2,main h3,main p,main li,main td').forEach(element => {
+    if (element.tagName === 'H2' || element.tagName === 'H3') {
+      const title = element.textContent.replace(/^\d+\.\s*/, '').trim();
+      if (element.tagName === 'H2') {
+        chapterTitle = title;
+        chapterId = element.id || chapterId;
       }
-    });
-  }
-}
-
-// Pages du site : les cartes de l'accueil et de l'espace du MJ
-function pages(out,html){
-  if(!html||!window.DOMParser)return;
-  var doc=new DOMParser().parseFromString(html,'text/html');
-  doc.querySelectorAll('a.card').forEach(function(a){
-    var h=a.querySelector('h2,h3'),p=a.querySelector('p');
-    if(!h)return;
-    var s=p?p.textContent.trim():'';
-    add(out,{t:'page',n:h.textContent.trim(),s:s,body:s,href:a.getAttribute('href'),d:function(){return ''}});
+      const paragraphs = [];
+      const result = addResult(results, {
+        t: 'regle', n: title, s: 'Guide du débutant' + (element.tagName === 'H3' ? ' · ' + chapterTitle : ''), body: '',
+        href: 'guide.html' + (chapterId ? '#' + chapterId : ''), d: () => guideSectionDetailHtml(paragraphs)
+      });
+      currentSection = { paragraphs: paragraphs, result: result };
+    } else if (currentSection && !element.parentNode.closest('li,td')) {
+      const text = element.textContent.replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      currentSection.paragraphs.push(text);
+      currentSection.result.normalizedBody += ' ' + normalize(text);
+    }
   });
 }
 
-/* ---------- Recherche ---------- */
-function score(o,q,words){
-  if(o.nn===q)return 1000;
-  if(o.nn.indexOf(q)===0)return 800-o.nn.length;
-  var i=o.nn.indexOf(q);
-  if(i>0)return (/[^a-z0-9]/.test(o.nn[i-1])?700:600)-o.nn.length;
-  var all=function(s){return words.every(function(w){return s.indexOf(w)>=0})};
-  if(all(o.nn))return 500-o.nn.length;
-  if(o.na.indexOf(q)>=0)return 450;
-  if(all(o.nn+' '+o.na))return 400;
-  if(all(o.nn+' '+o.na+' '+o.nb))return 100;
+function addSitePages(results, pageHtml) {
+  if (!pageHtml || !window.DOMParser) return;
+  const page = new DOMParser().parseFromString(pageHtml, 'text/html');
+  page.querySelectorAll('a.card').forEach(card => {
+    const heading = card.querySelector('h2,h3');
+    if (!heading) return;
+    const description = card.querySelector('p');
+    const summary = description ? description.textContent.trim() : '';
+    addResult(results, { t: 'page', n: heading.textContent.trim(), s: summary, body: summary, href: card.getAttribute('href'), d: () => '' });
+  });
+}
+
+async function buildSearchIndex() {
+  const [data, pages] = await Promise.all([fetchAll(DATA_FILES, fetchJsonOrNull), fetchAll(HTML_PAGES, fetchTextOrEmpty)]);
+  const classInfo = data.classInfo || {};
+  const results = [];
+  addClasses(results, classInfo);
+  addSpells(results, data.spells);
+  addMagicItems(results, data.magicItems);
+  addEquipment(results, data.equipment);
+  addCreatures(results, data.monsters, 'monstre', 'bestiaire.html');
+  addCreatures(results, data.familiars, 'familier', 'familiers.html');
+  addFeats(results, data.feats);
+  addSpecies(results, data.species, data.speciesInfo);
+  addClassFeatures(results, data.classFeatures);
+  addSubclasses(results, data.subclasses, classInfo);
+  addBackgrounds(results, data.backgrounds);
+  addQuests(results, data.quests);
+  addConditionRules(results, data.conditions);
+  addCombatRules(results, data.combatRules);
+  addGuideRules(results, pages.guide);
+  addSitePages(results, pages.home);
+  addSitePages(results, pages.gameMaster);
+  searchIndex = results;
+  return results;
+}
+
+function loadSearchIndex() {
+  if (!searchIndexLoading) searchIndexLoading = buildSearchIndex();
+  return searchIndexLoading;
+}
+
+function containsAllWords(text, words) {
+  return words.every(word => text.indexOf(word) >= 0);
+}
+
+function relevanceScore(result, query, words) {
+  const name = result.normalizedName;
+  if (name === query) return 1000;
+  if (name.indexOf(query) === 0) return 800 - name.length;
+  const position = name.indexOf(query);
+  if (position > 0) return (/[^a-z0-9]/.test(name[position - 1]) ? 700 : 600) - name.length;
+  if (containsAllWords(name, words)) return 500 - name.length;
+  if (result.normalizedAlternatives.indexOf(query) >= 0) return 450;
+  const nameAndAlternatives = name + ' ' + result.normalizedAlternatives;
+  if (containsAllWords(nameAndAlternatives, words)) return 400;
+  if (containsAllWords(nameAndAlternatives + ' ' + result.normalizedBody, words)) return 100;
   return 0;
 }
 
-/* ---------- Fenêtre ---------- */
-var dlg,inp,res,chips,filt='',stamp=0;
-
-var CSS='\
+const SEARCH_CSS = '\
 .rg-btn{white-space:nowrap}\
 .rg-home{display:flex;align-items:center;gap:10px;width:100%;max-width:560px;padding:12px 16px;border:2px solid var(--gold,#d9a21b);border-radius:999px;background:#fff;color:#5f6580;font-size:15px;cursor:text;text-align:left;box-shadow:0 6px 28px #0006}\
 .rg-home:hover,.rg-home:focus-visible{outline:3px solid var(--gold,#d9a21b);outline-offset:2px}\
@@ -237,140 +390,276 @@ var CSS='\
 @media screen and (max-width:700px){.rg-home kbd{display:none}#rg{width:100vw;max-width:100vw;height:100%;max-height:100%;margin:0;border-radius:0}}\
 @media print{.rg-btn,.rg-home{display:none!important}}';
 
-function ui(){
-  if(dlg)return;
-  dlg=document.createElement('dialog');
-  dlg.id='rg';
-  dlg.setAttribute('aria-label','Recherche globale');
-  dlg.innerHTML='<div class="rg-h"><input type="search" placeholder="Sort, objet, monstre, don, règle…" aria-label="Rechercher dans tout le site" autocomplete="off" enterkeyhint="search">'
-    +'<button type="button" class="rg-x" aria-label="Fermer">×</button></div><div class="rg-c" role="group" aria-label="Filtrer par type"></div><div class="rg-r" aria-live="polite"></div>';
-  document.body.appendChild(dlg);
-  inp=dlg.querySelector('input');res=dlg.querySelector('.rg-r');chips=dlg.querySelector('.rg-c');
-  chips.innerHTML='<button type="button" data-t="" aria-pressed="true">Tout</button>'+Object.keys(TYPES).map(function(k){
-    return '<button type="button" data-t="'+k+'" aria-pressed="false">'+esc(TYPES[k][3])+'</button>'}).join('');
-  chips.addEventListener('click',function(e){
-    var b=e.target.closest('button');if(!b)return;
-    filt=b.dataset.t;chips.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});
-    run();
-  });
-  dlg.querySelector('.rg-x').onclick=function(){dlg.close()};
-  dlg.addEventListener('click',function(e){if(e.target===dlg)dlg.close()});
-  inp.addEventListener('input',run);
-  inp.addEventListener('keydown',function(e){
-    if(e.key==='ArrowDown'){var f=res.querySelector('.rg-i>button');if(f){e.preventDefault();f.focus()}}
-    if(e.key==='Enter'){var g=res.querySelector('.rg-i>button');if(g){e.preventDefault();g.click()}}
-  });
-  res.addEventListener('keydown',function(e){
-    var b=e.target.closest('.rg-i>button');if(!b)return;
-    var items=[].slice.call(res.querySelectorAll('.rg-i>button')),i=items.indexOf(b);
-    if(e.key==='ArrowDown'&&items[i+1]){e.preventDefault();items[i+1].focus()}
-    if(e.key==='ArrowUp'){e.preventDefault();(items[i-1]||inp).focus()}
-  });
-  res.addEventListener('click',function(e){
-    var b=e.target.closest('.rg-i>button');if(!b)return;
-    var li=b.parentNode,d=li.querySelector('.rg-d');
-    if(d){d.remove();b.setAttribute('aria-expanded','false');return}
-    var o=shown[+li.dataset.i];if(!o)return;
-    d=document.createElement('div');d.className='rg-d';
-    var here=o.href&&o.href.split(/[?#]/)[0]===location.pathname.split('/').pop();
-    d.innerHTML=(o.d()||'')+(o.vo&&window.VO?'<p class="rg-vo">'+window.VO.btn(o.vo[0],o.vo[1],o.n)+' <span>Version originale en anglais</span></p>':'')+(o.href?'<a class="rg-go" href="'+esc(o.href)+'">Ouvrir dans '+esc(TYPES[o.t][2])+' →</a>':'');
-    if(here){var a=d.querySelector('.rg-go');a.addEventListener('click',function(){dlg.close();setTimeout(function(){applyQ(true)},0)})}
-    li.appendChild(d);b.setAttribute('aria-expanded','true');
-  });
+let dialog, searchInput, resultsContainer, typeFilters;
+let selectedType = '';
+let searchRunId = 0;
+let shownResults = [];
+
+function typeFilterButtonsHtml() {
+  return '<button type="button" data-t="" aria-pressed="true">Tout</button>' + Object.keys(RESULT_TYPES).map(type =>
+    '<button type="button" data-t="' + type + '" aria-pressed="false">' + escapeHtml(RESULT_TYPES[type].filterLabel) + '</button>').join('');
 }
 
-var shown=[];
-function hl(s,q,words){
-  // surligne la recherche entière dans le nom, sinon chaque mot d'au moins 3 lettres
-  // (norm garde les positions tant que le nom n'a que des lettres simples ou accentuées)
-  var n=norm(s);
-  if(n.length!==s.length)return esc(s);
-  var on=new Array(s.length).fill(false),mark=function(w){var p=n.indexOf(w);if(p<0)return false;for(var i=p;i<p+w.length;i++)on[i]=true;return true};
-  if(!mark(q))words.forEach(function(w){if(w.length>=3)mark(w)});
-  var h='',open=false;
-  for(var i=0;i<s.length;i++){
-    if(on[i]!==open){h+=open?'</mark>':'<mark>';open=on[i]}
-    h+=esc(s[i]);
+function selectTypeFilter(event) {
+  const button = event.target.closest('button');
+  if (!button) return;
+  selectedType = button.dataset.t;
+  typeFilters.querySelectorAll('button').forEach(filterButton => filterButton.setAttribute('aria-pressed', filterButton === button));
+  runSearch();
+}
+
+const resultButtons = () => [...resultsContainer.querySelectorAll('.rg-i>button')];
+
+function handleSearchInputKeys(event) {
+  const firstResult = resultButtons()[0];
+  if (!firstResult) return;
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    firstResult.focus();
   }
-  return h+(open?'</mark>':'');
-}
-function run(){
-  var q=norm(inp.value.trim()).replace(/\s+/g,' ');
-  if(!q){res.innerHTML='<div class="rg-m">Tape un nom ou un mot : « boule de feu », « sac sans fond », « gobelin », « agrippé », « vigilant »…</div>';shown=[];return}
-  if(!IDX){
-    res.innerHTML='<div class="rg-m">Chargement des données…</div>';
-    var s=++stamp;build().then(function(){if(s===stamp)run()});return;
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    firstResult.click();
   }
-  var words=q.split(' ');
-  var hits=[];
-  for(var i=0;i<IDX.length;i++){
-    var o=IDX[i];if(filt&&o.t!==filt)continue;
-    var sc=score(o,q,words);if(sc)hits.push([sc,o]);
+}
+
+function moveFocusBetweenResults(event) {
+  const button = event.target.closest('.rg-i>button');
+  if (!button) return;
+  const buttons = resultButtons();
+  const position = buttons.indexOf(button);
+  if (event.key === 'ArrowDown' && buttons[position + 1]) {
+    event.preventDefault();
+    buttons[position + 1].focus();
   }
-  hits.sort(function(a,b){return b[0]-a[0]||a[1].n.localeCompare(b[1].n,'fr')});
-  shown=hits.slice(0,80).map(function(h){return h[1]});
-  if(!shown.length){res.innerHTML='<div class="rg-m">Rien trouvé'+(filt?' dans ce type (essaie « Tout »)':'')+'.</div>';return}
-  res.innerHTML=shown.map(function(o,i){
-    var T=TYPES[o.t];
-    return '<div class="rg-i" data-i="'+i+'" style="--k:'+T[1]+'"><button type="button" aria-expanded="false"><span class="rg-t">'+esc(T[0])+'</span><span><span class="rg-n">'+hl(o.n,q,words)+'</span>'
-      +(o.s?'<span class="rg-s">'+esc(o.s.length>140?o.s.slice(0,140)+'…':o.s)+'</span>':'')+'</span></button></div>';
-  }).join('')+(hits.length>shown.length?'<div class="rg-m">'+(hits.length-shown.length)+' autres résultats : précise ta recherche.</div>':'');
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    (buttons[position - 1] || searchInput).focus();
+  }
 }
 
-function open(q){
-  ui();
-  if(!dlg.open){try{dlg.showModal()}catch(e){dlg.setAttribute('open','')}}
-  if(q!=null)inp.value=q;
-  inp.focus();inp.select();
-  run();
-  build();
+function isLinkToCurrentPage(href) {
+  return href && href.split(/[?#]/)[0] === location.pathname.split('/').pop();
 }
 
-/* ---------- Arrivée sur une page avec ?q=… ---------- */
-function applyQ(force){
-  var q;
-  try{q=new URLSearchParams(location.search).get('q')}catch(e){q=null}
-  if(!q)return;
-  var f=document.getElementById('fq')||document.getElementById('q');
-  if(!f||(!force&&f.value===q))return;
-  // les autres filtres de la page pourraient cacher le résultat : on les remet à « tous »
-  var box=f.closest('section,.qbar');
-  if(box)box.querySelectorAll('select').forEach(function(s){
-    if(s.value!==''&&s.options.length&&s.options[0].value===''){s.value='';s.dispatchEvent(new Event('change',{bubbles:true}))}
-  });
-  f.value=q;f.dispatchEvent(new Event('input',{bubbles:true}));
+function resultDetailHtml(result) {
+  const voLine = result.vo && window.VO ? '<p class="rg-vo">' + window.VO.btn(result.vo[0], result.vo[1], result.n) + ' <span>Version originale en anglais</span></p>' : '';
+  const openLink = result.href ? '<a class="rg-go" href="' + escapeHtml(result.href) + '">Ouvrir dans ' + escapeHtml(RESULT_TYPES[result.t].destination) + ' →</a>' : '';
+  return (result.d() || '') + voLine + openLink;
 }
 
-/* ---------- Mise en place ---------- */
-function init(){
-  var st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
-  var bar=document.querySelector('.top .bar')||document.querySelector('.bar');
-  if(bar){
-    var b=document.createElement('button');
-    b.type='button';b.className='rg-btn';b.textContent='🔍 Rechercher';b.title='Rechercher dans tout le site (touche /)';
-    b.onclick=function(){open()};
-    var home=bar.querySelector('.home');
-    if(home&&home.nextSibling)bar.insertBefore(b,home.nextSibling);else bar.insertBefore(b,bar.firstChild);
-  }else{
-    var h=document.querySelector('body>header');
-    if(h){
-      var c=document.createElement('button');
-      c.type='button';c.className='rg-home';
-      c.innerHTML='<span aria-hidden="true">🔍</span><span>Rechercher un sort, un objet, un monstre, une règle…</span><kbd>/</kbd>';
-      c.onclick=function(){open()};
-      h.parentNode.insertBefore(c,h.nextSibling);
+function toggleResultDetail(event) {
+  const button = event.target.closest('.rg-i>button');
+  if (!button) return;
+  const item = button.parentNode;
+  const openDetail = item.querySelector('.rg-d');
+  if (openDetail) {
+    openDetail.remove();
+    button.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  const result = shownResults[+item.dataset.i];
+  if (!result) return;
+  const detail = document.createElement('div');
+  detail.className = 'rg-d';
+  detail.innerHTML = resultDetailHtml(result);
+  if (isLinkToCurrentPage(result.href)) {
+    detail.querySelector('.rg-go').addEventListener('click', () => {
+      dialog.close();
+      setTimeout(() => fillPageSearchFromUrl(true), 0);
+    });
+  }
+  item.appendChild(detail);
+  button.setAttribute('aria-expanded', 'true');
+}
+
+function createSearchDialog() {
+  if (dialog) return;
+  dialog = document.createElement('dialog');
+  dialog.id = 'rg';
+  dialog.setAttribute('aria-label', 'Recherche globale');
+  dialog.innerHTML = '<div class="rg-h"><input type="search" placeholder="Sort, objet, monstre, don, règle…" aria-label="Rechercher dans tout le site" autocomplete="off" enterkeyhint="search">'
+    + '<button type="button" class="rg-x" aria-label="Fermer">×</button></div><div class="rg-c" role="group" aria-label="Filtrer par type"></div><div class="rg-r" aria-live="polite"></div>';
+  document.body.appendChild(dialog);
+  searchInput = dialog.querySelector('input');
+  resultsContainer = dialog.querySelector('.rg-r');
+  typeFilters = dialog.querySelector('.rg-c');
+  typeFilters.innerHTML = typeFilterButtonsHtml();
+  typeFilters.addEventListener('click', selectTypeFilter);
+  dialog.querySelector('.rg-x').onclick = () => dialog.close();
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  searchInput.addEventListener('input', runSearch);
+  searchInput.addEventListener('keydown', handleSearchInputKeys);
+  resultsContainer.addEventListener('keydown', moveFocusBetweenResults);
+  resultsContainer.addEventListener('click', toggleResultDetail);
+}
+
+function highlightedPositions(normalizedName, query, words) {
+  const highlighted = new Array(normalizedName.length).fill(false);
+  const highlight = word => {
+    const start = normalizedName.indexOf(word);
+    if (start < 0) return false;
+    for (let index = start; index < start + word.length; index++) highlighted[index] = true;
+    return true;
+  };
+  if (!highlight(query)) words.forEach(word => { if (word.length >= 3) highlight(word); });
+  return highlighted;
+}
+
+function highlightMatches(name, query, words) {
+  const normalizedName = normalize(name);
+  if (normalizedName.length !== name.length) return escapeHtml(name);
+  const highlighted = highlightedPositions(normalizedName, query, words);
+  let html = '', insideMark = false;
+  for (let index = 0; index < name.length; index++) {
+    if (highlighted[index] !== insideMark) {
+      html += insideMark ? '</mark>' : '<mark>';
+      insideMark = highlighted[index];
     }
+    html += escapeHtml(name[index]);
   }
-  document.addEventListener('keydown',function(e){
-    var t=e.target,typing=t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable);
-    if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();open();return}
-    if(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();open()}
-  });
-  // les pages chargent leurs données puis restaurent leurs filtres : on remplit le champ après, puis on vérifie
-  applyQ();
-  setTimeout(applyQ,700);
-  setTimeout(applyQ,1800);
+  return html + (insideMark ? '</mark>' : '');
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-window.Recherche={open:open};
+
+function showMessage(text) {
+  resultsContainer.innerHTML = '<div class="rg-m">' + text + '</div>';
+}
+
+function rankedMatches(query, words) {
+  const matches = [];
+  searchIndex.forEach(result => {
+    if (selectedType && result.t !== selectedType) return;
+    const score = relevanceScore(result, query, words);
+    if (score) matches.push({ score: score, result: result });
+  });
+  return matches.sort((first, second) => second.score - first.score || first.result.n.localeCompare(second.result.n, 'fr'));
+}
+
+function shortSubtitle(subtitle) {
+  return subtitle.length > MAX_SUBTITLE_LENGTH ? subtitle.slice(0, MAX_SUBTITLE_LENGTH) + '…' : subtitle;
+}
+
+function resultItemHtml(result, index, query, words) {
+  const type = RESULT_TYPES[result.t];
+  return '<div class="rg-i" data-i="' + index + '" style="--k:' + type.color + '"><button type="button" aria-expanded="false"><span class="rg-t">' + escapeHtml(type.label) + '</span><span><span class="rg-n">' + highlightMatches(result.n, query, words) + '</span>'
+    + (result.s ? '<span class="rg-s">' + escapeHtml(shortSubtitle(result.s)) + '</span>' : '') + '</span></button></div>';
+}
+
+function runSearch() {
+  const query = normalize(searchInput.value.trim()).replace(/\s+/g, ' ');
+  if (!query) {
+    showMessage('Tape un nom ou un mot : « boule de feu », « sac sans fond », « gobelin », « agrippé », « vigilant »…');
+    shownResults = [];
+    return;
+  }
+  if (!searchIndex) {
+    showMessage('Chargement des données…');
+    const runId = ++searchRunId;
+    loadSearchIndex().then(() => { if (runId === searchRunId) runSearch(); });
+    return;
+  }
+  const words = query.split(' ');
+  const matches = rankedMatches(query, words);
+  shownResults = matches.slice(0, MAX_SHOWN_RESULTS).map(match => match.result);
+  if (!shownResults.length) {
+    showMessage('Rien trouvé' + (selectedType ? ' dans ce type (essaie « Tout »)' : '') + '.');
+    return;
+  }
+  const hiddenCount = matches.length - shownResults.length;
+  resultsContainer.innerHTML = shownResults.map((result, index) => resultItemHtml(result, index, query, words)).join('')
+    + (hiddenCount > 0 ? '<div class="rg-m">' + hiddenCount + ' autres résultats : précise ta recherche.</div>' : '');
+}
+
+function openSearch(query) {
+  createSearchDialog();
+  if (!dialog.open) {
+    try { dialog.showModal(); } catch (error) { dialog.setAttribute('open', ''); }
+  }
+  if (query != null) searchInput.value = query;
+  searchInput.focus();
+  searchInput.select();
+  runSearch();
+  loadSearchIndex();
+}
+
+function queryFromUrl() {
+  try { return new URLSearchParams(location.search).get('q'); } catch (error) { return null; }
+}
+
+function resetOtherFilters(searchField) {
+  const filtersArea = searchField.closest('section,.qbar');
+  if (!filtersArea) return;
+  filtersArea.querySelectorAll('select').forEach(select => {
+    const firstOptionIsAll = select.options.length && select.options[0].value === '';
+    if (select.value !== '' && firstOptionIsAll) {
+      select.value = '';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+}
+
+function fillPageSearchFromUrl(force) {
+  const query = queryFromUrl();
+  if (!query) return;
+  const searchField = document.getElementById('fq') || document.getElementById('q');
+  if (!searchField || (!force && searchField.value === query)) return;
+  resetOtherFilters(searchField);
+  searchField.value = query;
+  searchField.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function addSearchButtonToBar(bar) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'rg-btn';
+  button.textContent = '🔍 Rechercher';
+  button.title = 'Rechercher dans tout le site (touche /)';
+  button.onclick = () => openSearch();
+  const homeLink = bar.querySelector('.home');
+  if (homeLink && homeLink.nextSibling) bar.insertBefore(button, homeLink.nextSibling);
+  else bar.insertBefore(button, bar.firstChild);
+}
+
+function addSearchFieldUnderHeader(header) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'rg-home';
+  button.innerHTML = '<span aria-hidden="true">🔍</span><span>Rechercher un sort, un objet, un monstre, une règle…</span><kbd>/</kbd>';
+  button.onclick = () => openSearch();
+  header.parentNode.insertBefore(button, header.nextSibling);
+}
+
+function isTypingIn(element) {
+  return element && (/^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || element.isContentEditable);
+}
+
+function openSearchFromKeyboard(event) {
+  if ((event.key === 'k' || event.key === 'K') && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    openSearch();
+    return;
+  }
+  if (event.key === '/' && !isTypingIn(event.target) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    openSearch();
+  }
+}
+
+function initSearch() {
+  const style = document.createElement('style');
+  style.textContent = SEARCH_CSS;
+  document.head.appendChild(style);
+  const bar = document.querySelector('.top .bar') || document.querySelector('.bar');
+  const header = document.querySelector('body>header');
+  if (bar) addSearchButtonToBar(bar);
+  else if (header) addSearchFieldUnderHeader(header);
+  document.addEventListener('keydown', openSearchFromKeyboard);
+  fillPageSearchFromUrl();
+  setTimeout(fillPageSearchFromUrl, 700);
+  setTimeout(fillPageSearchFromUrl, 1800);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSearch);
+else initSearch();
+window.Recherche = { open: openSearch };
 })();

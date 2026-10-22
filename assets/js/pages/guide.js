@@ -1,1 +1,1 @@
-document.getElementById('bPrint').onclick=()=>window.print();
+$('#bPrint').onclick = () => window.print();

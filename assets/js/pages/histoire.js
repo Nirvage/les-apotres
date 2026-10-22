@@ -1,89 +1,156 @@
 'use strict';
-const $=s=>document.querySelector(s);
-let tm=0;
-function msg(t){const m=$('#msg');m.textContent=t;clearTimeout(tm);if(t)tm=setTimeout(()=>m.textContent='',3500)}
 
-// Parties de l'histoire : [clé, titre, aide, couleur, grande zone, groupe de deux colonnes]
-const SECS=[
- ['histoire','Histoire','son passé, d’où il vient, ce qui l’a mené à l’aventure','#2a3170',1],
- ['apparence','Apparence','âge, taille, allure, signes distinctifs','#2f6fd0'],
- ['personnalite','Traits de personnalité','manières, habitudes, façon de parler','#7a4fc4'],
- ['ideaux','Idéaux','ce en quoi il croit','#2e9e5b',0,'a'],
- ['liens','Liens','personnes, lieux ou objets auxquels il tient','#12968f',0,'a'],
- ['defauts','Défauts','faiblesses, vices, peurs','#c8402f',0,'b'],
- ['secrets','Secrets','ce que les autres ne savent pas (encore)','#9c3d8f',0,'b'],
- ['allies','Alliés, ennemis et organisations','famille, mentor, rivaux, guildes, cultes…','#d8791a'],
- ['objectifs','Objectifs','ce qu’il veut accomplir, à court et à long terme','#8a6d1f'],
+const STORY_SECTIONS = [
+  { key: 'histoire', title: 'Histoire', help: 'son passé, d’où il vient, ce qui l’a mené à l’aventure', color: '#2a3170', isLarge: true },
+  { key: 'apparence', title: 'Apparence', help: 'âge, taille, allure, signes distinctifs', color: '#2f6fd0' },
+  { key: 'personnalite', title: 'Traits de personnalité', help: 'manières, habitudes, façon de parler', color: '#7a4fc4' },
+  { key: 'ideaux', title: 'Idéaux', help: 'ce en quoi il croit', color: '#2e9e5b', columnGroup: 'a' },
+  { key: 'liens', title: 'Liens', help: 'personnes, lieux ou objets auxquels il tient', color: '#12968f', columnGroup: 'a' },
+  { key: 'defauts', title: 'Défauts', help: 'faiblesses, vices, peurs', color: '#c8402f', columnGroup: 'b' },
+  { key: 'secrets', title: 'Secrets', help: 'ce que les autres ne savent pas (encore)', color: '#9c3d8f', columnGroup: 'b' },
+  { key: 'allies', title: 'Alliés, ennemis et organisations', help: 'famille, mentor, rivaux, guildes, cultes…', color: '#d8791a' },
+  { key: 'objectifs', title: 'Objectifs', help: 'ce qu’il veut accomplir, à court et à long terme', color: '#8a6d1f' }
 ];
-const KEYS=SECS.map(s=>s[0]);
+const MESSAGE_DURATION_MS = 3500;
 
-(function build(){
-  const root=$('#secs');let grp=null,gk=null;
-  SECS.forEach(([k,t,aide,c,big,g])=>{
-    const s=document.createElement('section');
-    s.className='sec'+(big?' big':'');s.style.setProperty('--c',c);s.dataset.k=k;
-    s.innerHTML=`<h2><label for="t_${k}">${t}</label><span>${aide}</span></h2><textarea id="t_${k}" data-k="${k}" spellcheck="true"></textarea><div class="pv"></div>${big?'<div class="cnt"></div>':''}`;
-    if(g){if(g!==gk){grp=document.createElement('div');grp.className='grid2';root.appendChild(grp);gk=g}grp.appendChild(s)}
-    else{gk=null;root.appendChild(s)}
+const storyField = key => $('#t_' + key);
+
+function sectionElement(section) {
+  const element = document.createElement('section');
+  element.className = 'sec' + (section.isLarge ? ' big' : '');
+  element.style.setProperty('--c', section.color);
+  element.dataset.k = section.key;
+  element.innerHTML = `<h2><label for="t_${section.key}">${section.title}</label><span>${section.help}</span></h2><textarea id="t_${section.key}" data-k="${section.key}" spellcheck="true"></textarea><div class="pv"></div>${section.isLarge ? '<div class="cnt"></div>' : ''}`;
+  return element;
+}
+
+function buildStorySections() {
+  const container = $('#secs');
+  let currentGroup = null, currentGroupKey = null;
+  STORY_SECTIONS.forEach(section => {
+    const element = sectionElement(section);
+    if (!section.columnGroup) {
+      currentGroupKey = null;
+      container.appendChild(element);
+      return;
+    }
+    if (section.columnGroup !== currentGroupKey) {
+      currentGroup = document.createElement('div');
+      currentGroup.className = 'grid2';
+      container.appendChild(currentGroup);
+      currentGroupKey = section.columnGroup;
+    }
+    currentGroup.appendChild(element);
   });
-})();
-
-// La zone de texte grandit avec son contenu
-function fit(t){t.style.height='auto';t.style.height=t.scrollHeight+2+'px'}
-function count(){
-  const t=$('#t_histoire'),n=t.value.trim()?t.value.trim().split(/\s+/).length:0;
-  t.parentNode.querySelector('.cnt').textContent=n+' mot'+(n>1?'s':'');
 }
-function fitAll(){document.querySelectorAll('#secs textarea').forEach(fit);count()}
 
-function collect(){
-  const d={};
-  KEYS.forEach(k=>d[k]=$('#t_'+k).value);
-  return {version:1,type:'histoire-dnd-5e',data:d};
+function fitTextareaToContent(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 2 + 'px';
 }
-function show(obj){
-  const d=obj&&obj.data||{};
-  KEYS.forEach(k=>$('#t_'+k).value=String(d[k]||''));
-  summary();fitAll();
-}
-// Résumé tiré de la fiche (classe, niveau, espèce, historique)
-function summary(){
-  const p=Persos.current(),f=p&&p.fiche&&p.fiche.data||{};
-  const cl=[f.classe,f.sousclasse].filter(Boolean).join(' — ');
-  $('#sum').textContent=[cl&&(cl+(f.niveau?' niv. '+f.niveau:'')),f.espece,f.historique&&('historique : '+f.historique),f.alignement].filter(Boolean).join(' · ');
-}
-function empty(){return KEYS.every(k=>!$('#t_'+k).value.trim())}
 
-document.addEventListener('input',e=>{
-  if(e.target.matches('#secs textarea')){fit(e.target);if(e.target.id==='t_histoire')count();Persos.save()}
-});
-addEventListener('resize',fitAll);
+function updateWordCount() {
+  const textarea = storyField('histoire');
+  const text = textarea.value.trim();
+  const wordCount = text ? text.split(/\s+/).length : 0;
+  textarea.parentNode.querySelector('.cnt').textContent = wordCount + ' mot' + (wordCount > 1 ? 's' : '');
+}
 
-// Impression : le texte est recopié dans des blocs simples (les zones de texte ne s'impriment pas en entier)
-addEventListener('beforeprint',()=>{
-  document.querySelectorAll('#secs .sec').forEach(s=>{
-    const v=$('#t_'+s.dataset.k).value.trim();
-    s.querySelector('.pv').textContent=v;
-    s.classList.toggle('vide',!v);
+function fitAllTextareas() {
+  document.querySelectorAll('#secs textarea').forEach(fitTextareaToContent);
+  updateWordCount();
+}
+
+function collectStory() {
+  const data = {};
+  STORY_SECTIONS.forEach(section => { data[section.key] = storyField(section.key).value; });
+  return { version: 1, type: 'histoire-dnd-5e', data: data };
+}
+
+function showStory(saved) {
+  const data = saved && saved.data || {};
+  STORY_SECTIONS.forEach(section => { storyField(section.key).value = String(data[section.key] || ''); });
+  showCharacterSummary();
+  fitAllTextareas();
+}
+
+function showCharacterSummary() {
+  const character = Persos.current();
+  const sheet = character && character.fiche && character.fiche.data || {};
+  const classAndSubclass = [sheet.classe, sheet.sousclasse].filter(Boolean).join(' — ');
+  const classLine = classAndSubclass && (classAndSubclass + (sheet.niveau ? ' niv. ' + sheet.niveau : ''));
+  const background = sheet.historique && ('historique : ' + sheet.historique);
+  $('#sum').textContent = [classLine, sheet.espece, background, sheet.alignement].filter(Boolean).join(' · ');
+}
+
+function isStoryEmpty() {
+  return STORY_SECTIONS.every(section => !storyField(section.key).value.trim());
+}
+
+function showStoryMessage(text) {
+  if (text) showMessage(text, MESSAGE_DURATION_MS);
+  else $('#msg').textContent = '';
+}
+
+function handleStoryInput(event) {
+  if (!event.target.matches('#secs textarea')) return;
+  fitTextareaToContent(event.target);
+  if (event.target.id === 't_histoire') updateWordCount();
+  Persos.save();
+}
+
+function copyStoryIntoPrintBlocks() {
+  document.querySelectorAll('#secs .sec').forEach(section => {
+    const text = storyField(section.dataset.k).value.trim();
+    section.querySelector('.pv').textContent = text;
+    section.classList.toggle('vide', !text);
   });
-});
-$('#bPrint').onclick=()=>{if(empty()){msg('Écris d’abord quelque chose');return}window.print()};
-$('#bSave').onclick=()=>{
-  if(empty()){msg('Rien à enregistrer pour l’instant');return}
-  const nom=($('#titre').value||Persos.current().nom||'personnage').trim();
-  let t=nom+'\n'+'='.repeat(nom.length)+'\n';
-  SECS.forEach(([k,tt])=>{const v=$('#t_'+k).value.trim();if(v)t+='\n'+tt+'\n'+'-'.repeat(tt.length)+'\n'+v+'\n'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
-  a.download='histoire_'+nom.replace(/[^\p{L}\p{N}_-]+/gu,'_')+'.txt';
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  msg('Histoire enregistrée dans un fichier .txt');
-};
-$('#bClear').onclick=()=>{
-  if(empty())return;
-  if(!confirm('Effacer toute l’histoire de « '+Persos.current().nom+' » ? Cette action est définitive.'))return;
-  show(null);Persos.save();msg('Histoire effacée');
-};
+}
 
-Persos.init({part:'histoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
+function underlined(text, character) {
+  return text + '\n' + character.repeat(text.length) + '\n';
+}
+
+function storyAsText(characterName) {
+  let text = underlined(characterName, '=');
+  STORY_SECTIONS.forEach(section => {
+    const content = storyField(section.key).value.trim();
+    if (content) text += '\n' + underlined(section.title, '-') + content + '\n';
+  });
+  return text;
+}
+
+function saveStoryAsTextFile() {
+  if (isStoryEmpty()) {
+    showStoryMessage('Rien à enregistrer pour l’instant');
+    return;
+  }
+  const characterName = ($('#titre').value || Persos.current().nom || 'personnage').trim();
+  downloadTextFile('histoire_' + fileSafeName(characterName) + '.txt', storyAsText(characterName), 'text/plain;charset=utf-8');
+  showStoryMessage('Histoire enregistrée dans un fichier .txt');
+}
+
+function printStory() {
+  if (isStoryEmpty()) {
+    showStoryMessage('Écris d’abord quelque chose');
+    return;
+  }
+  window.print();
+}
+
+function clearStory() {
+  if (isStoryEmpty()) return;
+  if (!confirm('Effacer toute l’histoire de « ' + Persos.current().nom + ' » ? Cette action est définitive.')) return;
+  showStory(null);
+  Persos.save();
+  showStoryMessage('Histoire effacée');
+}
+
+buildStorySections();
+document.addEventListener('input', handleStoryInput);
+addEventListener('resize', fitAllTextareas);
+addEventListener('beforeprint', copyStoryIntoPrintBlocks);
+$('#bPrint').onclick = printStory;
+$('#bSave').onclick = saveStoryAsTextFile;
+$('#bClear').onclick = clearStory;
+Persos.init({ part: 'histoire', mount: $('#persos'), title: $('#titre'), collect: collectStory, apply: showStory, msg: showStoryMessage });
