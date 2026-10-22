@@ -161,7 +161,9 @@ const RORDER=['Courant','Peu courant','Rare','Très rare','Légendaire','Artefac
 // Prix d'achat indicatif (Guide du Maître 2024) : selon la rareté, moitié prix pour les consommables (potions, parchemins, munitions)
 const PRIX={'Courant':100,'Peu courant':400,'Rare':4000,'Très rare':40000,'Légendaire':200000};
 const fpo=n=>n.toLocaleString('fr-FR')+' po';
-function prix(s){
+// Raretés possibles d'un objet : mots exacts (« rare » n'attrape pas « très rare »), fourchettes « X à Y » complétées,
+// et pour une rareté « variable » sans précision, celles citées dans la description
+function raretes(s){
   const rar=m=>{const h=[];
     if(/(^|[^a-z])courante?s?(?![a-z])/.test(m.replace(/peu courante?s?/g,'#')))h.push('Courant');
     if(/peu courante?s?/.test(m))h.push('Peu courant');
@@ -170,8 +172,13 @@ function prix(s){
     if(m.includes('legendaire'))h.push('Légendaire');
     if(m.includes('artefact'))h.push('Artefact');
     return h};
-  let hits=rar(norm(s.q));
-  if(!hits.length)hits=rar(norm(String(s.h||'').replace(/<[^>]+>/g,'')));   // rareté « variable » : celles citées dans la description
+  const q=norm(s.q);let hits=rar(q);
+  if(hits.length===2&&/ a /.test(q))hits=RORDER.slice(RORDER.indexOf(hits[0]),RORDER.indexOf(hits[1])+1);
+  if(!hits.length)hits=rar(norm(String(s.h||'').replace(/<[^>]+>/g,'')));
+  return hits;
+}
+function prix(s){
+  const hits=raretes(s);
   if(!hits.length)return '';
   const cons=/^(Potion|Parchemin|Munition)$/.test(s.t)||/consomm/i.test(s.h||'');
   const v=hits.map(r=>PRIX[r]).filter(Boolean).map(x=>cons?x/2:x);
@@ -315,7 +322,7 @@ function card(s,remove){
 }
 function filtered(){
   const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.fam||s.fam===st.fam)&&(!st.cla||s.rec.has(st.cla))&&(!st.role||s.roles.has(st.role))&&(!st.cls||s.t===st.cls)&&(!st.sch||norm(s.q).includes(norm(st.sch)))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.fam||s.fam===st.fam)&&(!st.cla||s.rec.has(st.cla))&&(!st.role||s.roles.has(st.role))&&(!st.cls||s.t===st.cls)&&(!st.sch||raretes(s).includes(st.sch))&&(st.lvl===''||(st.lvl==='1')===!!s.a)&&(!st.src||(st.src==='perso'?!!s.c_:!s.c_&&(st.src==='2014')===(s.ed==='2014')))&&(!st.only||st.sel.has(s.n)));
 }
 function renderList(){
   const r=filtered();
