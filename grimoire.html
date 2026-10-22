@@ -278,8 +278,8 @@ function castInfo(){
   if(k.sous_classe&&c.d.sclance){const s=k.sous_classe;return {type:s.type||'tiers',prepares:s.prepares,mineurs:s.mineurs,emp:s.emp}}
   return null;
 }
-// Liste de sorts dans laquelle la classe prépare ses sorts (Magicien pour le Chevalier occulte et l'Escroc arcanique)
-function classList(){const c=ctx();return c.cl==='Guerrier'||c.cl==='Roublard'?'Magicien':CLS[c.cl]&&CLS[c.cl].prepares?c.cl:''}
+// Liste de sorts dans laquelle la classe prépare ses sorts (Magicien pour le Chevalier occulte et l'Escroc arcanique, Ensorceleur pour le Guerrier des Arts mystiques)
+function classList(){const c=ctx();return c.cl==='Guerrier'||c.cl==='Roublard'?'Magicien':c.cl==='Moine'?'Ensorceleur':CLS[c.cl]&&CLS[c.cl].prepares?c.cl:''}
 const offList=s=>{const l=classList();return !!l&&!s.c.includes(l)};
 function prepMax(){const k=castInfo();return k?k.prepares[ctx().lvl-1]:null}
 function cantripMax(){const k=castInfo();return k&&k.mineurs?k.mineurs[ctx().lvl-1]:null}
