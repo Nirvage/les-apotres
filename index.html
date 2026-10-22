@@ -161,6 +161,11 @@ footer{color:#b9bfe6;font-size:12px}
    <p>Tous les monstres avec leur profil complet (règles 2024, et 2014 pour ceux absents en 2024) : recherche par nom, type, taille et facteur de puissance.</p>
    <span class="go">Ouvrir le bestiaire</span>
   </a>
+  <a class="card" href="classes.html" style="--c:#2f6fd0">
+   <h3>Classes</h3>
+   <p>Les classes et toutes leurs sous-classes : style de jeu, conseils, pièges à éviter, progression niveau par niveau et capacités (règles 2024 et suppléments).</p>
+   <span class="go">Ouvrir les classes</span>
+  </a>
   <a class="card" href="especes.html" style="--c:#b0632a">
    <h3>Espèces</h3>
    <p>Toutes les espèces jouables : pouvoirs, taille, vitesse, durée de vie, apparence et culture (règles 2024, suppléments et anciennes espèces 2014).</p>
@@ -339,7 +344,7 @@ $('#bPrintAll').onclick=async()=>{
   }catch(e){{console.log(e.stack);msg('Impression impossible : '+e.message)}}
 };
 </script>
-<script src="recherche.js?v=20261020a"></script>
+<script src="recherche.js?v=20261022c"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>

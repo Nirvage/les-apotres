@@ -1,0 +1,530 @@
+{
+"sources": {
+ "XPHB": ["Manuel des joueurs (2024)", "2024"],
+ "FRHoF": ["Forgotten Realms : Heroes of Faerûn (2025)", "2024"],
+ "EFA": ["Eberron : Forge of the Artificer (2025)", "2024"],
+ "RHW": ["Ravenloft : The Horrors Within (2026)", "2024"],
+ "AU": ["Arcana Unleashed (2026)", "2024"],
+ "PHB": ["Manuel des joueurs (2014)", "2014"],
+ "DMG": ["Guide du maître (2014)", "2014"],
+ "SCAG": ["Sword Coast Adventurer's Guide (2015)", "2014"],
+ "XGE": ["Xanathar's Guide to Everything (2017)", "2014"],
+ "EGW": ["Explorer's Guide to Wildemount (2020)", "2014"],
+ "TCE": ["Tasha's Cauldron of Everything (2020)", "2014"],
+ "FTD": ["Fizban's Treasury of Dragons (2021)", "2014"],
+ "DSotDQ": ["Dragonlance : Shadow of the Dragon Queen (2022)", "2014"],
+ "BGG": ["Bigby Presents : Glory of the Giants (2023)", "2014"],
+ "PSA": ["Plane Shift : Amonkhet (supplément gratuit)", "ps"],
+ "PSK": ["Plane Shift : Kaladesh (supplément gratuit)", "ps"],
+ "BH": ["Blood Hunter (Matthew Mercer, Critical Role)", "tiers"],
+ "TDR": ["Tal'Dorei Campaign Setting Reborn (Critical Role)", "tiers"],
+ "MM": ["Homebrew de Matthew Mercer (Critical Role)", "tiers"],
+ "HG": ["Heliana's Guide to Monster Hunting (Loot Tavern)", "tiers"],
+ "HF": ["Heliana's Field Notes 2025 (Loot Tavern)", "tiers"],
+ "AL": ["L'Arsène's Ledger of Treasures and Trinkets (Loot Tavern)", "tiers"],
+ "RY": ["Ryoko's Guide to the Yokai Realms (Loot Tavern)", "tiers"]
+},
+"groupes": {
+ "2024": "Livres 2024",
+ "2014": "Livres 2014, adaptés aux niveaux 2024",
+ "ps": "Plane Shift (gratuit, hors jeu organisé)",
+ "tiers": "Contenu tiers (Critical Role, Loot Tavern)"
+},
+"classes": {
+ "Artificier": {
+  "c": "#b5651d", "dv": 8, "prim": "Intelligence", "sv": "Constitution, Intelligence",
+  "arm": "Armures légères et intermédiaires, boucliers", "armes": "Armes courantes", "inc": "Demi-lanceur (Intelligence), sorts préparés",
+  "cplx": 3, "role": ["Soutien", "Polyvalence", "Défense"],
+  "pitch": "Inventeur qui insuffle la magie dans les objets : il fabrique des objets magiques et soutient le groupe avec des sorts pratiques.",
+  "jeu": "L’artificier est un bricoleur de génie. Dès le niveau 2, il fabrique de vrais objets magiques à partir de plans (sac sans fond, baguette, bouclier +1…) et les répartit dans le groupe chaque matin. En combat, il combine quelques sorts de soutien avec sa sous-classe, qui décide de son vrai rôle : soigneur, tireur, protecteur en armure ou combattant accompagné d’un défenseur mécanique. Sa force vient de la préparation : un artificier bien organisé rend tout le groupe plus fort.",
+  "conseils": [
+   "Choisis tes plans d’objets pour le groupe, pas seulement pour toi : une arme +1 pour le guerrier ou un bouclier pour le lanceur fragile change beaucoup de choses.",
+   "Garde un œil sur ta limite d’harmonisation : l’artificier en gagne plus que les autres classes avec le temps, profites-en pour porter les objets que personne d’autre ne peut utiliser.",
+   "Éclair de génie (niveau 7) ajoute ton mod. d’Intelligence à un jet raté d’un allié ou au tien : garde-le pour les jets de sauvegarde importants.",
+   "Prends des sorts qui durent sans concentration (Aide, Arme magique sur un allié) pour ne pas tout perdre au premier coup reçu.",
+   "Hors combat, tes outils sont précieux : réparations, crochetage, fabrication. Annonce au MJ ce que tu sais faire, il te donnera des occasions de briller."
+  ],
+  "eviter": [
+   "Négliger la Constitution : avec un d8 de vie, tu es souvent au contact selon ta sous-classe.",
+   "Oublier de redistribuer tes objets après un repos long : ton bricolage magique ne se fait pas tout seul."
+  ],
+  "depart": "Intelligence d’abord, puis Constitution et Dextérité (ou Force si tu combats en armure lourde avec l’Armurier). Un historique d’artisan ou de sage colle bien, avec un don comme Doué ou Façonneur.",
+  "groupe": "Il rend chaque allié meilleur grâce aux objets fabriqués ; il apprécie un vrai « tank » devant lui s’il joue l’Alchimiste ou l’Artilleur."
+ },
+ "Barbare": {
+  "c": "#a0302a", "dv": 12, "prim": "Force", "sv": "Force, Constitution",
+  "arm": "Armures légères et intermédiaires, boucliers", "armes": "Armes courantes et de guerre", "inc": "Aucune",
+  "cplx": 1, "role": ["Dégâts", "Défense"],
+  "pitch": "Combattant furieux qui entre en Rage : il encaisse les coups comme personne et frappe très fort au corps à corps.",
+  "jeu": "Le barbare est la classe la plus directe du jeu. En action bonus, il entre en Rage : il résiste aux dégâts contondants, perforants et tranchants, ajoute un bonus à ses dégâts et gagne l’avantage en Force. Avec Attaque imprudente, il obtient l’avantage à ses attaques en échange d’en donner aux ennemis contre lui, ce qui est souvent rentable vu ses PV. Il n’a pas de sorts, mais ses sous-classes ajoutent du contrôle, de la protection ou de la magie primitive.",
+  "conseils": [
+   "Entre en Rage dès le premier tour d’un vrai combat : en 2024, elle dure tant que tu attaques, forces un jet ou la prolonges par une action bonus.",
+   "Utilise Attaque imprudente quand tu peux encaisser : avec la Rage, tu prends moitié moins de dégâts des armes, l’échange est souvent gagnant.",
+   "Ta Défense sans armure ajoute la Constitution : sans armure lourde, un bouclier reste possible et augmente encore ta CA.",
+   "Profite de la maîtrise des armes : la grande hache (Fendre) ou le marteau de guerre (Repousser) changent beaucoup tes options.",
+   "Sens du danger donne l’avantage aux sauvegardes de Dextérité : tu es parfait pour déclencher les pièges et traverser les zones dangereuses.",
+   "Savoir primordial (niveau 3) permet d’utiliser la Force pour certaines compétences en Rage, comme l’Intimidation ou la Perception."
+  ],
+  "eviter": [
+   "Rester à distance : sans Rage, tu perds l’essentiel de ta force.",
+   "Oublier que la Rage empêche de lancer des sorts et de te concentrer."
+  ],
+  "depart": "Force puis Constitution, Dextérité ensuite. Un historique de soldat ou de fermier convient bien ; le don Robuste ou Sauvagerie martiale complète ton rôle.",
+  "groupe": "Il occupe les ennemis en première ligne et attire les coups ; un clerc ou un barde pour le soigner l’aide à tenir longtemps."
+ },
+ "Barde": {
+  "c": "#8e3a9d", "dv": 8, "prim": "Charisme", "sv": "Dextérité, Charisme",
+  "arm": "Armures légères", "armes": "Armes courantes", "inc": "Lanceur complet (Charisme), sorts préparés",
+  "cplx": 2, "role": ["Soutien", "Social", "Contrôle"],
+  "pitch": "Artiste dont la musique et les mots tissent la magie : il inspire ses alliés, contrôle les ennemis et brille en société.",
+  "jeu": "Le barde est le grand soutien du jeu. Son Inspiration bardique, donnée en action bonus, ajoute un dé à un jet raté d’un allié. Sa liste de sorts mélange soins, contrôle (Motif hypnotique, Sommeil) et illusions, et ses Secrets magiques lui permettent de piocher dans les autres listes. Avec l’Expertise et Touche-à-tout, il est bon dans presque toutes les compétences : c’est souvent la voix du groupe.",
+  "conseils": [
+   "Donne ton Inspiration tôt et souvent : elle revient au repos court dès le niveau 5 (Source d’inspiration), inutile de la garder.",
+   "Prends des sorts de contrôle de zone : un bon Motif hypnotique ou une Confusion peut gagner un combat à lui seul.",
+   "Mot de guérison en action bonus suffit pour relever un allié à 0 PV : garde-le dans tes sorts préparés.",
+   "Mets ton Expertise en Persuasion et Perception (ou Discrétion) : tu deviens fiable là où le groupe en a besoin.",
+   "Secrets magiques (niveau 10) : comble les trous du groupe, par exemple Contresort, Revigorer ou Boule de feu."
+  ],
+  "eviter": [
+   "Se mettre au contact sans armure intermédiaire ni sous-classe de combat.",
+   "Lancer plusieurs sorts à concentration en même temps : un seul reste actif."
+  ],
+  "depart": "Charisme d’abord, puis Dextérité et Constitution. Un historique d’artiste ou de charlatan colle bien ; Doué ou Initié à la magie sont d’excellents dons d’origine.",
+  "groupe": "Il améliore tout le monde : jets, sauvegardes, soins de secours. Il aime les combattants solides qui profitent de son Inspiration."
+ },
+ "Chasseur de sang": {
+  "c": "#7a1f2b", "dv": 10, "prim": "Force ou Dextérité, puis Intelligence", "sv": "Dextérité, Intelligence",
+  "arm": "Armures légères et intermédiaires, boucliers", "armes": "Armes courantes et de guerre", "inc": "Aucune (Âme profane : magie de pacte)",
+  "cplx": 2, "role": ["Dégâts", "Contrôle"], "tiers": "BH",
+  "pitch": "Chasseur de monstres qui sacrifie son propre sang pour enflammer son arme et maudire ses proies (contenu tiers de Critical Role).",
+  "jeu": "Le chasseur de sang combat avec une arme imprégnée d’un Rite écarlate (feu, froid, foudre…) qui ajoute un dé d’hémocraftie aux dégâts, au prix de quelques PV. Ses Malédictions de sang, lancées en réaction ou en action bonus, perturbent les ennemis : une attaque ratée, une sauvegarde affaiblie, une créature immobilisée. Il marque aussi sa cible avec la Marque de châtiment pour la traquer et la punir. C’est une classe tiers : demande l’accord du MJ.",
+  "conseils": [
+   "Active ton Rite écarlate avant le combat si possible : il coûte des PV, mais dure une heure.",
+   "Choisis le type de dégâts du rite selon la faiblesse du monstre : ton Fléau du chasseur t’aide à la deviner.",
+   "Garde tes Malédictions de sang pour les moments clés : une attaque ennemie ratée ou une sauvegarde affaiblie au bon moment vaut plus qu’un peu de dégâts.",
+   "L’Intelligence règle ton DD et tes dés d’hémocraftie : ne la néglige pas après ta caractéristique d’attaque.",
+   "Surveille tes PV : rite et malédictions amplifiées te blessent, garde une marge."
+  ],
+  "eviter": [
+   "Dépenser trop de PV au début d’une journée sans soigneur dans le groupe.",
+   "Oublier de demander au MJ si cette classe tiers est acceptée à la table."
+  ],
+  "depart": "Force ou Dextérité, puis Intelligence et Constitution. Un historique de soldat ou d’ermite convient bien à la traque ; Robuste ou Vigilant sont de bons dons d’origine.",
+  "groupe": "Il ajoute des dégâts et des malédictions de contrôle en première ligne ; un clerc ou un druide l’aide à compenser les PV sacrifiés."
+ },
+ "Clerc": {
+  "c": "#d9a21b", "dv": 8, "prim": "Sagesse", "sv": "Sagesse, Charisme",
+  "arm": "Armures légères et intermédiaires, boucliers (lourdes avec Protecteur)", "armes": "Armes courantes", "inc": "Lanceur complet (Sagesse), sorts préparés",
+  "cplx": 2, "role": ["Soins", "Soutien", "Défense"],
+  "pitch": "Prêtre qui canalise le pouvoir de sa divinité : soins, protection, bénédictions et colère divine.",
+  "jeu": "Le clerc est un lanceur de sorts complet qui peut porter une armure correcte. Il prépare chaque jour ses sorts parmi toute sa liste : soins, protections (Bénédiction, Esprits gardiens), et quelques sorts offensifs. Sa Canalisation divine sert à renvoyer les morts-vivants, à soigner ou aux effets de son domaine. Au niveau 1, l’Ordre divin le fait Protecteur (armure lourde, armes de guerre) ou Thaumaturge (un sort mineur en plus, bonus en Arcanes ou Religion).",
+  "conseils": [
+   "Esprits gardiens est l’un des meilleurs sorts du jeu au niveau 5 : avance au milieu des ennemis et laisse-les subir les dégâts chaque tour.",
+   "Ne passe pas ton temps à soigner : prévenir avec Bénédiction ou contrôler les ennemis est souvent plus utile que réparer.",
+   "Mot de guérison en action bonus relève un allié à 0 PV et te laisse ton action pour attaquer ou lancer un sort mineur.",
+   "Change tes sorts préparés après chaque repos long selon la journée prévue : c’est ta grande force.",
+   "Choisis Protecteur si tu veux être en première ligne, Thaumaturge si tu restes au second rang."
+  ],
+  "eviter": [
+   "Garder tous ses emplacements « au cas où » : un clerc qui ne lance rien n’aide personne.",
+   "Oublier la concentration : Bénédiction et Esprits gardiens ne se cumulent pas."
+  ],
+  "depart": "Sagesse d’abord, puis Constitution et Force (Protecteur) ou Dextérité. Un historique d’acolyte est idéal ; Initié à la magie (clerc) ou Soigneur sont d’excellents dons d’origine.",
+  "groupe": "Le pilier de nombreux groupes : il soigne, protège et inflige de bons dégâts de zone. Il apprécie un combattant qui tient la ligne pendant qu’il prépare ses sorts."
+ },
+ "Druide": {
+  "c": "#2e9e5b", "dv": 8, "prim": "Sagesse", "sv": "Intelligence, Sagesse",
+  "arm": "Armures légères, boucliers", "armes": "Armes courantes", "inc": "Lanceur complet (Sagesse), sorts préparés",
+  "cplx": 2, "role": ["Contrôle", "Soins", "Polyvalence"],
+  "pitch": "Gardien de la nature qui en tire sa magie : il contrôle le terrain, soigne et peut prendre une forme animale.",
+  "jeu": "Le druide mélange magie de la nature et transformation. Ses sorts contrôlent le terrain (Enchevêtrement, Croissance d’épines), invoquent des animaux ou des éléments et soignent. Sa Forme sauvage, utilisable en action bonus, sert à explorer (araignée, oiseau, poisson), à se cacher ou, selon la sous-classe, à combattre. En 2024, elle donne aussi des PV temporaires, et il peut la dépenser pour invoquer un familier (Compagnon sauvage).",
+  "conseils": [
+   "Pense à la Forme sauvage pour l’exploration : un rat, un chat ou un oiseau peut repérer un camp entier sans risque.",
+   "Les sorts de zone de contrôle ralentissent ou bloquent plusieurs ennemis : place-les là où ils doivent passer.",
+   "Compagnon sauvage (niveau 2) te donne un familier contre une utilisation de Forme sauvage : idéal pour les éclaireurs et l’action Aider.",
+   "Choisis l’ordre primitif Gardien pour l’armure intermédiaire et les armes de guerre si tu veux être au contact, Magicien pour un sort mineur et des bonus aux tests.",
+   "Résurgence sauvage (niveau 5) échange une Forme sauvage contre un emplacement et inversement : tu ne manques jamais complètement de ressources."
+  ],
+  "eviter": [
+   "Rester en forme animale fragile au milieu de la mêlée sans sous-classe faite pour ça (Lune, Lame).",
+   "Oublier que tu ne peux pas lancer de sorts sous Forme sauvage, sauf capacité spéciale."
+  ],
+  "depart": "Sagesse d’abord, puis Constitution et Dextérité. Un historique de guide ou d’ermite colle bien ; Initié à la magie (druide) ou Soigneur sont d’excellents dons d’origine.",
+  "groupe": "Il contrôle le champ de bataille et soigne d’appoint ; il apprécie un groupe qui profite de ses zones (archers, lanceurs)."
+ },
+ "Ensorceleur": {
+  "c": "#c8402f", "dv": 6, "prim": "Charisme", "sv": "Constitution, Charisme",
+  "arm": "Aucune", "armes": "Armes courantes", "inc": "Lanceur complet (Charisme), sorts préparés",
+  "cplx": 2, "role": ["Dégâts", "Contrôle"],
+  "pitch": "La magie coule dans ses veines : il la façonne à volonté grâce à la métamagie.",
+  "jeu": "L’ensorceleur connaît moins de sorts que le magicien, mais il les plie à sa volonté. Ses points de sorcellerie alimentent la métamagie (sort accéléré en action bonus, sort jumelé sur deux cibles, sort subtil sans composantes) et peuvent se convertir en emplacements. Dès le niveau 1, Sorcellerie innée lui donne un bonus au DD et l’avantage aux attaques de sort pendant une minute. Son origine (sous-classe) ajoute des sorts toujours préparés et un style.",
+  "conseils": [
+   "Sort jumelé sur un sort à cible unique (Hâte, Invisibilité, Rapidité) double sa valeur : c’est ton meilleur investissement.",
+   "Sort subtil passe à travers Contresort et les situations sociales : personne ne te voit lancer.",
+   "Sorcellerie innée en action bonus avant un gros sort augmente tes chances qu’il passe.",
+   "Ta sauvegarde de Constitution est maîtrisée : tu es fait pour garder la concentration, choisis de bons sorts à concentration.",
+   "Récupère des points avec Restauration ensorcelée (niveau 5) lors d’un repos court."
+  ],
+  "eviter": [
+   "Prendre trop de sorts proches : tu en connais peu, varie dégâts, contrôle et utilitaires.",
+   "Rester en première ligne avec 6 PV par niveau et sans armure."
+  ],
+  "depart": "Charisme d’abord, puis Constitution et Dextérité. Un historique de noble ou d’ermite fonctionne bien ; Doué, Vigilant ou Initié à la magie sont d’excellents dons d’origine.",
+  "groupe": "Un artilleur ou un contrôleur souple ; il aime avoir un « tank » devant lui et un barde ou un clerc pour le soutenir."
+ },
+ "Guerrier": {
+  "c": "#6b7280", "dv": 10, "prim": "Force ou Dextérité", "sv": "Force, Constitution",
+  "arm": "Toutes les armures, boucliers", "armes": "Armes courantes et de guerre", "inc": "Aucune (Chevalier occulte : tiers-lanceur)",
+  "cplx": 1, "role": ["Dégâts", "Défense", "Polyvalence"],
+  "pitch": "Maître des armes et des armures, solide et polyvalent : celui qui attaque le plus souvent.",
+  "jeu": "Le guerrier est le spécialiste du combat. Il porte n’importe quelle armure, maîtrise toutes les armes et gagne plus d’attaques que n’importe qui (jusqu’à quatre par action au niveau 20). Fougue (Action Surge) lui donne une action entière en plus, et Second souffle le soigne en action bonus. En 2024, il maîtrise les propriétés de plusieurs armes (Renverser, Ralentir, Écorcher…) et Esprit tactique l’aide hors combat.",
+  "conseils": [
+   "Garde Fougue pour le premier tour d’un combat important ou pour achever un ennemi dangereux : elle revient au repos court.",
+   "Varie les maîtrises d’armes : Renverser pour donner l’avantage aux alliés, Ralentir contre les ennemis rapides, Fendre contre les groupes.",
+   "Choisis ton style de combat selon ton rôle : Défense pour tenir la ligne, Archerie pour tirer, Arme à deux mains pour les gros dégâts.",
+   "Second souffle se récupère en partie au repos court : utilise-le dès que tu es entamé, il est fait pour ça.",
+   "Indomitable (niveau 9) relance une sauvegarde ratée : garde-le contre les effets qui te sortent du combat (charme, paralysie)."
+  ],
+  "eviter": [
+   "Négliger la Sagesse : beaucoup d’effets dangereux ciblent les sauvegardes de Sagesse.",
+   "Se contenter d’attaquer le même ennemi : déplace-toi pour protéger les fragiles."
+  ],
+  "depart": "Force ou Dextérité selon ton style, puis Constitution. Un historique de soldat est classique ; Robuste, Vigilant ou Sauvagerie martiale sont de bons dons d’origine.",
+  "groupe": "Il tient la ligne et frappe fort dans tous les groupes ; il fait un excellent garde du corps pour les lanceurs de sorts."
+ },
+ "Magicien": {
+  "c": "#2f6fd0", "dv": 6, "prim": "Intelligence", "sv": "Intelligence, Sagesse",
+  "arm": "Aucune", "armes": "Armes courantes", "inc": "Lanceur complet (Intelligence), grimoire",
+  "cplx": 3, "role": ["Contrôle", "Dégâts", "Polyvalence"],
+  "pitch": "Érudit qui apprend ses sorts dans un grimoire : la plus grande liste de sorts du jeu, pour presque toutes les situations.",
+  "jeu": "Le magicien a accès à la liste de sorts la plus vaste et l’agrandit en copiant des parchemins et grimoires trouvés. Chaque jour, il prépare les sorts adaptés à la situation : contrôle (Toile d’araignée, Métamorphose), dégâts de zone (Boule de feu), utilitaires (Vol, Porte dimensionnelle) et rituels lancés sans emplacement. Fragile, il compte sur sa position et ses sorts défensifs (Bouclier, Armure de mage).",
+  "conseils": [
+   "Copie chaque sort que tu trouves : c’est la force unique du magicien, prévois de l’or pour l’encre.",
+   "Prends Bouclier et Armure de mage tôt : avec quelques PV, la CA fait toute la différence.",
+   "Les rituels (Détection de la magie, Appel de familier, Compréhension des langues) se lancent sans emplacement s’ils sont dans ton grimoire.",
+   "Récupération arcanique au repos court rend des emplacements : fais-la dès le premier repos court de la journée.",
+   "Mémorisation de sorts (niveau 5) change un sort préparé au repos court : adapte-toi au donjon."
+  ],
+  "eviter": [
+   "Rester à portée des ennemis : place-toi derrière un allié ou à couvert.",
+   "Préparer uniquement des sorts de dégâts : le contrôle gagne plus de combats."
+  ],
+  "depart": "Intelligence d’abord, puis Constitution et Dextérité. Un historique de sage ou de scribe convient parfaitement ; Vigilant ou Initié à la magie sont d’excellents dons d’origine.",
+  "groupe": "Il résout les problèmes que les autres ne peuvent pas régler ; il a besoin de combattants pour le protéger."
+ },
+ "Moine": {
+  "c": "#12968f", "dv": 8, "prim": "Dextérité et Sagesse", "sv": "Force, Dextérité",
+  "arm": "Aucune", "armes": "Armes courantes et armes de guerre légères", "inc": "Aucune (Arts mystiques : sorts d’ensorceleur)",
+  "cplx": 2, "role": ["Dégâts", "Mobilité", "Contrôle"],
+  "pitch": "Combattant à mains nues rapide et discipliné, qui puise dans sa Concentration pour frapper plusieurs fois et esquiver.",
+  "jeu": "Le moine est le combattant le plus mobile du jeu. Il frappe à mains nues ou avec des armes simples, et peut porter une frappe en plus en action bonus. Ses points de Concentration alimentent le Déluge de coups, la Défense patiente (Esquiver) et le Pas du vent (Foncer ou Se désengager). Il esquive les projectiles, réduit les dégâts de chute et, dès le niveau 5, peut étourdir un ennemi d’un coup.",
+  "conseils": [
+   "Frappe étourdissante sur le boss au niveau 5 : un ennemi étourdi perd son tour et tous les alliés l’attaquent avec l’avantage.",
+   "Ta mobilité est ton arme : va chercher les archers et les lanceurs de sorts à l’arrière.",
+   "Défense patiente et Pas du vent sont gratuits sans dépenser de Concentration (sauf leur version renforcée) : ne l’oublie pas.",
+   "Les points de Concentration reviennent au repos court : demande au groupe d’en faire.",
+   "Ta CA dépend de la Dextérité et de la Sagesse : augmente-les en priorité."
+  ],
+  "eviter": [
+   "Rester immobile au milieu d’ennemis : tu n’as pas beaucoup de PV.",
+   "Dépenser toute la Concentration en Déluge de coups au premier tour."
+  ],
+  "depart": "Dextérité puis Sagesse, Constitution ensuite. Un historique d’ermite ou de pèlerin colle bien ; Vigilant ou Robuste sont de bons dons d’origine.",
+  "groupe": "Il harcèle et neutralise les ennemis isolés ; il complète bien un groupe avec un « tank » plus lourd."
+ },
+ "Occultiste": {
+  "c": "#5b3a8c", "dv": 8, "prim": "Charisme", "sv": "Sagesse, Charisme",
+  "arm": "Armures légères", "armes": "Armes courantes", "inc": "Magie de pacte (Charisme), emplacements récupérés au repos court",
+  "cplx": 2, "role": ["Dégâts", "Contrôle", "Polyvalence"],
+  "pitch": "Lié par un pacte à une puissance de l’au-delà, qui lui accorde une magie récupérée à chaque repos court et des dons occultes.",
+  "jeu": "L’occultiste a peu d’emplacements, mais ils sont toujours au niveau maximum et reviennent au repos court. Son sort mineur Décharge occulte, renforcé par des invocations, est l’attaque à distance de base la plus fiable du jeu. Ses Invocations occultes personnalisent fortement le personnage : vision dans le noir magique, armure de mage gratuite, pacte de la lame, du grimoire ou de la chaîne. Son patron (sous-classe) donne des sorts et des pouvoirs thématiques.",
+  "conseils": [
+   "Prends Décharge occulte et l’invocation Décharge déchirante : c’est ton attaque principale pour tout le jeu.",
+   "Malédiction (Hex) sur une cible et Décharge occulte chaque tour : simple et efficace, la malédiction passe sur une autre cible quand la première meurt.",
+   "Demande des repos courts : tes emplacements reviennent, c’est ton moteur.",
+   "Ruse magique (niveau 2) récupère des emplacements une fois par repos long sans repos court : garde-la pour un combat difficile.",
+   "Choisis tes invocations selon ton style : Pacte de la lame pour la mêlée, de la chaîne pour un familier espion, du grimoire pour des rituels."
+  ],
+  "eviter": [
+   "Utiliser un emplacement sur un sort de bas niveau sans raison : tes sorts sont toujours lancés au niveau maximum.",
+   "Oublier que tu peux changer une invocation à chaque niveau."
+  ],
+  "depart": "Charisme d’abord, puis Constitution et Dextérité. Un historique de charlatan ou de sage colle bien ; Initié à la magie ou Vigilant sont d’excellents dons d’origine.",
+  "groupe": "Il apporte des dégâts constants et quelques sorts de contrôle ; il apprécie un groupe qui accepte de faire des repos courts."
+ },
+ "Paladin": {
+  "c": "#2a3170", "dv": 10, "prim": "Force et Charisme", "sv": "Sagesse, Charisme",
+  "arm": "Toutes les armures, boucliers", "armes": "Armes courantes et de guerre", "inc": "Demi-lanceur (Charisme), sorts préparés",
+  "cplx": 2, "role": ["Défense", "Dégâts", "Soutien"],
+  "pitch": "Guerrier sacré lié par un serment : armure lourde, châtiments dévastateurs, soins et une aura qui protège ses alliés.",
+  "jeu": "Le paladin est un combattant en armure lourde avec une magie divine. Il soigne en touchant (Imposition des mains), utilise ses emplacements pour des sorts de châtiment ou le Châtiment divin, qui ajoute des dégâts radiants après une attaque réussie. Au niveau 6, son Aura de protection ajoute son Charisme aux jets de sauvegarde de ses alliés proches : c’est l’une des meilleures capacités du jeu. Son serment (sous-classe) fixe ses idéaux et ses pouvoirs.",
+  "conseils": [
+   "Le Châtiment divin se décide après avoir touché : garde-le pour un coup critique (dés doublés) ou un ennemi qu’il faut abattre.",
+   "En 2024, le Châtiment divin compte comme un sort en action bonus : un seul par tour.",
+   "Reste proche de tes alliés à partir du niveau 6 : l’Aura de protection change leurs sauvegardes.",
+   "Imposition des mains peut aussi guérir l’empoisonnement : n’hésite pas à l’utiliser sur un allié tombé.",
+   "Monture fidèle (niveau 5) te donne Appel de destrier gratuit une fois par jour : une monture qui combat est très utile."
+  ],
+  "eviter": [
+   "Dépenser tous les emplacements en châtiments au premier combat de la journée.",
+   "Négliger le Charisme : il règle tes sorts, ton aura et tes soins."
+  ],
+  "depart": "Force et Charisme, puis Constitution. Un historique de noble ou de soldat colle bien ; Robuste ou Vigilant sont de bons dons d’origine.",
+  "groupe": "Il protège tout le groupe grâce à son aura et frappe très fort ; il est la colonne vertébrale de nombreux groupes."
+ },
+ "Rôdeur": {
+  "c": "#4d7c2a", "dv": 10, "prim": "Dextérité et Sagesse", "sv": "Force, Dextérité",
+  "arm": "Armures légères et intermédiaires, boucliers", "armes": "Armes courantes et de guerre", "inc": "Demi-lanceur (Sagesse), sorts préparés",
+  "cplx": 2, "role": ["Dégâts", "Exploration", "Polyvalence"],
+  "pitch": "Chasseur et éclaireur des terres sauvages, aussi bon à l’arc qu’à la lame, avec une magie de la nature.",
+  "jeu": "Le rôdeur est un combattant qui excelle loin de la civilisation. En 2024, il a toujours Marque du chasseur préparé, avec des lancers gratuits : la cible subit des dégâts supplémentaires à chaque coup. Ses sorts de nature (Grêle d’épines, Pas sans trace, Communication avec les animaux) l’aident en combat et en exploration. Explorateur habile lui donne une Expertise et des langues, et il devient de plus en plus difficile à surprendre et à arrêter.",
+  "conseils": [
+   "Lance Marque du chasseur au premier tour et change de cible en action bonus quand la première tombe.",
+   "Pas sans trace rend tout le groupe très discret : idéal pour les embuscades.",
+   "Prends le style Archerie si tu tires : +2 au toucher, c’est énorme.",
+   "Utilise ton Expertise sur la Perception ou la Survie : tu es les yeux du groupe.",
+   "Garde un emplacement pour Soins ou Sur le qui-vive : ta liste a de bons sorts de soutien."
+  ],
+  "eviter": [
+   "Utiliser Marque du chasseur et un autre sort à concentration en même temps.",
+   "Rester au contact d’un ennemi avec un arc sans capacité adaptée."
+  ],
+  "depart": "Dextérité puis Sagesse, Constitution ensuite. Un historique de guide ou d’ermite convient parfaitement ; Vigilant ou Doué sont de bons dons d’origine.",
+  "groupe": "Il apporte des dégâts constants à distance, des pistes et de la discrétion ; il guide le groupe dans les terres sauvages."
+ },
+ "Roublard": {
+  "c": "#3a3f58", "dv": 8, "prim": "Dextérité", "sv": "Dextérité, Intelligence",
+  "arm": "Armures légères", "armes": "Armes courantes et de guerre à finesse ou légères", "inc": "Aucune (Escroc arcanique : tiers-lanceur)",
+  "cplx": 1, "role": ["Dégâts", "Furtivité", "Exploration"],
+  "pitch": "Expert discret et rusé : il frappe là où ça fait mal grâce à l’Attaque sournoise et excelle dans les compétences.",
+  "jeu": "Le roublard ne frappe qu’une fois par tour, mais très fort : son Attaque sournoise ajoute de nombreux dés quand il a l’avantage ou qu’un allié est à côté de la cible. L’Action ruse lui permet de Foncer, Se désengager ou Se cacher en action bonus, ce qui le rend insaisissable. Il a plus de compétences que tout le monde et l’Expertise en double, idéal pour crocheter, désamorcer, espionner ou baratiner.",
+  "conseils": [
+   "Place-toi pour avoir un allié à côté de ta cible : l’Attaque sournoise ne demande pas forcément l’avantage.",
+   "Visée stable (niveau 3) donne l’avantage si tu ne bouges pas ce tour : parfait pour un archer.",
+   "Utilise l’Action ruse chaque tour : frappe puis cache-toi ou éloigne-toi.",
+   "Frappe sournoise (niveau 5) échange des dés pour renverser, empoisonner ou s’enfuir : utile contre les ennemis dangereux.",
+   "Esquive instinctive (niveau 5) divise par deux les dégâts d’une attaque : garde ta réaction pour elle."
+  ],
+  "eviter": [
+   "Attaquer deux fois par tour avec une arme lourde : une seule attaque sournoise compte.",
+   "Avancer seul en éclaireur trop loin du groupe."
+  ],
+  "depart": "Dextérité d’abord, puis Constitution et Intelligence ou Charisme selon ton style. Un historique de criminel ou de charlatan est classique ; Vigilant ou Doué sont d’excellents dons d’origine.",
+  "groupe": "Il infiltre, désamorce et abat les cibles prioritaires ; il profite d’un combattant au contact pour déclencher ses Attaques sournoises."
+ }
+},
+"sous": {
+ "Artificier": {
+  "Alchimiste": {"src": "EFA", "r": ["Soins", "Soutien"], "c": 2, "t": "Prépare chaque matin des élixirs aux effets aléatoires (soins, vitesse, vol, résistance) et ajoute son Intelligence à ses soins et dégâts d’acide ou de poison. Distribue les élixirs avant le combat et garde des emplacements pour Mot de guérison : c’est un soigneur d’appoint plus qu’un artilleur."},
+  "Armurier": {"src": "EFA", "r": ["Défense", "Dégâts"], "c": 1, "t": "Transforme son armure en arsenal : modèle Gardien pour tenir la ligne (gantelets qui attirent les coups, PV temporaires) ou Infiltrateur pour un tireur discret. Le Gardien est l’un des meilleurs protecteurs du jeu : mets-toi au contact et force les ennemis à te viser."},
+  "Artilleur": {"src": "EFA", "r": ["Dégâts", "Défense"], "c": 1, "t": "Pose un canon occulte (lance-flammes, baliste de force ou protecteur qui donne des PV temporaires) et fait de sa baguette une arme de sort. Place le canon à l’écart des ennemis, choisis le protecteur quand le groupe encaisse, et fais exploser un canon menacé."},
+  "Forgeron de bataille": {"src": "EFA", "r": ["Dégâts", "Défense", "Invocations"], "c": 2, "t": "Combat avec son arme et un défenseur d’acier, une créature mécanique qui agit à son tour et pare les coups. Tu attaques avec l’Intelligence : inutile de monter la Force. Ordonne au défenseur de protéger l’allié le plus menacé."},
+  "Cartographe": {"src": "EFA", "r": ["Soutien", "Mobilité", "Contrôle"], "c": 2, "t": "Dessine des cartes magiques qui relient le groupe et lance Lueurs féeriques sans emplacement. Lance-les dès le premier tour (avantage pour tous), puis profite des téléportations courtes pour placer tes alliés ; à haut niveau, les cartes sauvent un allié tombé."},
+  "Réanimateur": {"src": "RHW", "r": ["Invocations", "Soins"], "c": 2, "t": "Assemble un compagnon de chair animé par la foudre et réveille les mourants avec un Stabilisation qui soigne et électrocute. Le compagnon encaisse et sert de relais pour tes sorts ; garde Stabilisation pour remettre un allié debout au milieu des ennemis."}
+ },
+ "Barbare": {
+  "Voie du Berserker": {"src": "XPHB", "r": ["Dégâts"], "c": 1, "t": "La Frénésie ajoute des dés de dégâts à ta première attaque de chaque tour quand tu attaques de façon imprudente en Rage, et tu deviens insensible au charme et à la peur. La voie la plus simple : Rage, Attaque imprudente, et frappe le plus gros ennemi."},
+  "Voie du Cœur sauvage": {"src": "XPHB", "r": ["Défense", "Mobilité", "Polyvalence"], "c": 2, "t": "Choisis à chaque Rage un esprit animal : ours (résistance à presque tous les dégâts), aigle (Foncer et Se désengager en action bonus) ou loup (avantage pour les alliés contre tes cibles). L’ours par défaut, l’aigle pour atteindre les tireurs, le loup quand le groupe compte beaucoup d’attaquants."},
+  "Voie de l’Arbre-Monde": {"src": "XPHB", "r": ["Défense", "Contrôle", "Soutien"], "c": 2, "t": "En entrant en Rage, tu donnes des PV temporaires aux alliés proches, puis tes branches gênent les ennemis et téléportent les alliés. Prends une arme à allonge : tu contrôles une large zone et ramènes l’ennemi vers tes amis."},
+  "Voie du Fanatique": {"src": "XPHB", "r": ["Dégâts", "Défense"], "c": 1, "t": "Tes coups en Rage infligent des dégâts divins supplémentaires et tu peux soigner un allié ; tu deviens difficile à abattre et facile à ramener à la vie. Fonce sans crainte : c’est le barbare le plus solide à bas niveau."},
+  "Voie du Gardien ancestral": {"src": "XGE", "r": ["Défense", "Soutien"], "c": 1, "t": "Les esprits des ancêtres gênent la créature que tu frappes : elle a le désavantage contre tout le monde sauf toi, et ses dégâts sur tes alliés sont réduits. Le meilleur protecteur des barbares : frappe toujours l’ennemi le plus dangereux."},
+  "Voie du Héraut de la tempête": {"src": "XGE", "r": ["Dégâts", "Soutien"], "c": 2, "t": "Ta Rage projette une aura de tempête : désert (feu), mer (foudre) ou toundra (PV temporaires aux alliés). Reste au cœur de la mêlée pour toucher le plus de monde possible ; la toundra est le choix le plus défensif."},
+  "Voie de la Bête": {"src": "TCE", "r": ["Dégâts", "Mobilité"], "c": 1, "t": "Fais pousser à chaque Rage une morsure (qui soigne), des griffes (une attaque de plus) ou une queue (réaction défensive). Les griffes sont excellentes avant le niveau 5 ; la morsure aide quand tu es blessé."},
+  "Voie de la Magie sauvage": {"src": "TCE", "r": ["Polyvalence", "Soutien"], "c": 2, "t": "Chaque Rage déclenche un effet magique aléatoire, et tu sens la magie et rends des emplacements aux lanceurs de sorts. Accepte le hasard et sers-toi de Magie renforçante pour recharger le lanceur du groupe."},
+  "Voie du Géant": {"src": "BGG", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Tu grandis en Rage (allonge accrue), ajoutes des dégâts élémentaires et lances armes et ennemis. Prends une arme de lancer : la projeter puis la faire revenir dans ta main rend chaque tour spectaculaire."},
+  "Voie du Furieux des batailles": {"src": "SCAG", "r": ["Dégâts"], "c": 2, "t": "Ancienne voie naine centrée sur l’armure à pointes : tu blesses en agrippant et quand on te frappe. Combine Agripper et armure hérissée ; voie assez limitée, pour les amateurs du style."},
+  "Voie du Guerrier totémique": {"src": "PHB", "r": ["Défense", "Polyvalence", "Exploration"], "c": 2, "t": "Version 2014 de l’esprit animal (ours, aigle, loup, élan, tigre), avec un choix séparé aux niveaux 3, 6 et 14. L’ours au niveau 3 donne la résistance à presque tous les dégâts : toujours un excellent choix."},
+  "Voie du Mastodonte": {"src": "TDR", "r": ["Contrôle", "Défense"], "c": 1, "t": "Chaque coup en Rage repousse l’ennemi, et toi tu ne peux être ni renversé ni déplacé. Pousse les ennemis contre les murs, dans les pièges ou vers tes alliés ; redoutable aussi contre les créatures artificielles et les portes."},
+  "Voie du Chaos fondamental": {"src": "MM", "r": ["Polyvalence", "Contrôle"], "c": 3, "t": "Chaque Rage tire au sort une force fondamentale (Temps, Espace, Gravité, Potentiel) avec son effet, que tu amplifies avec des charges. Garde une fiche des quatre effets sous la main : c’est puissant mais demande de bien connaître ses options."},
+  "Voie du Maître brasseur": {"src": "AL", "r": ["Soutien", "Polyvalence"], "c": 2, "t": "Brasse des boissons qui renforcent ta Rage et sers des tournées qui donnent des bonus à tout le groupe ; les armes improvisées deviennent une vraie option. Prépare tes boissons au repos long selon la journée prévue."},
+  "Voie du Kaiju": {"src": "RY", "r": ["Dégâts", "Défense"], "c": 2, "t": "Puise dans la force d’un kaiju géant : souffle, taille Grande en Rage, puis transformation complète. Choisis le kaiju qui comble un manque du groupe ; la taille Grande aide beaucoup pour agripper et pousser."}
+ },
+ "Barde": {
+  "Collège de la Danse": {"src": "XPHB", "r": ["Mobilité", "Défense", "Dégâts"], "c": 2, "t": "Combat sans armure (Dextérité + Charisme à la CA), frappe à mains nues avec son dé d’Inspiration et fait bouger le groupe à l’initiative. Un barde de mêlée agile : reste mobile et sers-toi de tes déplacements pour placer tes alliés."},
+  "Collège du Glamour": {"src": "XPHB", "r": ["Soutien", "Social", "Contrôle"], "c": 1, "t": "Donne des PV temporaires et un déplacement gratuit à plusieurs alliés, et peut charmer toute une foule. Utilise Manteau d’inspiration en début de combat pour placer le groupe ; brillant aussi dans les scènes sociales."},
+  "Collège du Savoir": {"src": "XPHB", "r": ["Contrôle", "Polyvalence", "Social"], "c": 1, "t": "Gagne des compétences, des sorts d’autres listes et des Mots cinglants qui font rater les ennemis. Choisis tes Secrets magiques pour combler les trous du groupe (Contresort, Boule de feu, soins) : c’est le barde couteau suisse."},
+  "Collège de la Vaillance": {"src": "XPHB", "r": ["Dégâts", "Défense", "Soutien"], "c": 1, "t": "Armure intermédiaire, bouclier, armes de guerre et Inspiration qui protège ou renforce les dégâts des alliés. Combine attaque et sort mineur dès le niveau 6 ; idéal pour un barde en première ligne."},
+  "Collège des Épées": {"src": "XGE", "r": ["Dégâts", "Mobilité"], "c": 2, "t": "Bretteur artiste : style de combat et fioritures de lame (dégâts en plus, défense, mobilité). Les fioritures dépensent ton Inspiration : trouve le bon équilibre entre toi et tes alliés."},
+  "Collège des Murmures": {"src": "XGE", "r": ["Furtivité", "Social", "Dégâts"], "c": 2, "t": "Espion qui ajoute des dégâts psychiques à ses coups et peut voler l’apparence d’un mort. Excellent dans une campagne d’intrigue ; en combat, garde les Lames psychiques pour un coup critique."},
+  "Collège de la Création": {"src": "TCE", "r": ["Soutien", "Polyvalence"], "c": 2, "t": "Crée des objets à partir de rien et anime un objet dansant qui combat à tes côtés ; ses Notes de potentiel renforcent l’Inspiration. L’objet animé est un bon allié, et la création d’objets règle mille problèmes hors combat."},
+  "Collège de l'Éloquence": {"src": "TCE", "r": ["Social", "Contrôle", "Soutien"], "c": 1, "t": "Ne fait jamais moins de 10 en Persuasion ou Tromperie, sape les jets ennemis et ne gaspille pas son Inspiration en cas d’échec. Le roi des scènes sociales, et un excellent soutien des sorts de contrôle du groupe."},
+  "Collège des Esprits": {"src": "RHW", "r": ["Polyvalence", "Soutien"], "c": 3, "t": "Médium qui canalise des esprits aux effets aléatoires en donnant l’Inspiration, et renforce ses sorts de dégâts et de soins. Puissant mais imprévisible : relis les effets possibles avant de jouer."},
+  "Collège de la Lune": {"src": "FRHoF", "r": ["Mobilité", "Soins", "Furtivité"], "c": 2, "t": "Apprend la magie druidique ; en donnant l’Inspiration, tu deviens invisible et te téléportes. Chaque Inspiration est aussi une porte de sortie : reste insaisissable et soigne grâce à Rayon de lune."},
+  "Collège de la Cuisine": {"src": "HG", "r": ["Soutien", "Soins"], "c": 2, "t": "Prépare des friandises magiques au repos et choisit une spécialité culinaire (dont Cuisson lente, qui fait un barde de mêlée en armure lourde). Distribue les friandises avant le combat ; au niveau 14, tes dés et friandises deviennent des ordres."},
+  "Collège de la Tragédie": {"src": "TDR", "r": ["Contrôle", "Dégâts", "Soutien"], "c": 2, "t": "Transforme les échecs en ressource : un 1 naturel te rend de l’Inspiration, et tu punis les ennemis qui réussissent un coup critique. Utilise Infortune imminente (+10) sur un jet décisif, en sachant que le suivant subira −10."},
+  "Collège du Maestro": {"src": "MM", "r": ["Soutien", "Contrôle"], "c": 2, "t": "Dirige le champ de bataille comme un orchestre, avec des techniques de direction alimentées par l’Inspiration. Choisis des techniques qui déplacent ou protègent les alliés ; le Crescendo distribue des dés à tout le groupe d’un coup."},
+  "Collège du Tissage de chair": {"src": "HG", "r": ["Soutien", "Social", "Polyvalence"], "c": 2, "t": "Chirurgien de la chair : change les apparences, combat avec une aiguille spirituelle et greffe des adaptations à tout le groupe. Parfait pour l’infiltration ; le Remodelage rituel prépare le groupe à un milieu hostile."},
+  "Collège de la Mixologie": {"src": "AL", "r": ["Soutien", "Polyvalence"], "c": 2, "t": "Mélange des cocktails magiques aux effets combinables et les lance à ses alliés en plein combat. Prépare quelques cocktails à l’avance, puis sers-toi du Remède express pour réagir à la situation."},
+  "Collège du Hanabi": {"src": "RY", "r": ["Contrôle", "Dégâts"], "c": 2, "t": "Maître des feux d’artifice : pièces pyrotechniques défensives ou offensives et spectacles qui marquent l’esprit du public. Garde une pièce défensive pour les tours où tu es pris pour cible."},
+  "Collège des Masques": {"src": "RY", "r": ["Polyvalence", "Social"], "c": 2, "t": "Change de masque (héros, méchant, beauté…) pour changer de magie, et échange sa place avec une autre créature. Choisis le masque selon la scène ; Mise en scène sort un allié encerclé."}
+ },
+ "Chasseur de sang": {
+  "Ordre du Tueur de fantômes": {"src": "BH", "r": ["Dégâts", "Défense"], "c": 1, "t": "Spécialiste des morts-vivants : rite de l’aube radiant, malédictions qui touchent toutes les créatures, puis marche éthérée. Excellent dans une campagne d’horreur, simple et solide ailleurs."},
+  "Ordre du Lycan": {"src": "BH", "r": ["Dégâts", "Défense"], "c": 2, "t": "Se transforme en hybride bestial (griffes, résistance, régénération) au risque de céder à la Soif de sang. Sous la moitié de tes PV, tu dois résister à la frénésie : garde un peu de marge."},
+  "Ordre du Mutant": {"src": "BH", "r": ["Polyvalence"], "c": 2, "t": "Boit des mutagènes qui améliorent une capacité avec un effet secondaire, et finit immunisé au poison. Prépare tes mutagènes selon la journée et choisis des effets secondaires qui gênent peu ton rôle."},
+  "Ordre de l'Âme profane": {"src": "BH", "r": ["Dégâts", "Polyvalence"], "c": 2, "t": "Pactise avec un patron d’occultiste et ajoute la magie de pacte à ses rites. Combine sort mineur et attaque grâce à Frénésie mystique ; Lame maudite ou Fiélon sont des patrons simples."}
+ },
+ "Clerc": {
+  "Domaine de la Vie": {"src": "XPHB", "r": ["Soins", "Soutien", "Défense"], "c": 1, "t": "Le soigneur par excellence : chaque sort de soin rend plus de PV, et Préservation de la vie répartit des soins entre plusieurs alliés. Ne soigne pas trop tôt : relever un allié tombé et protéger le groupe vaut souvent mieux que compléter les PV."},
+  "Domaine de la Lumière": {"src": "XPHB", "r": ["Dégâts", "Contrôle", "Défense"], "c": 1, "t": "Lumière ardente et sorts de feu : Boule de feu, et une réaction qui aveugle les attaquants. Un clerc offensif qui se tient au second rang ; garde ta réaction pour gêner les attaques dangereuses."},
+  "Domaine de la Ruse": {"src": "XPHB", "r": ["Furtivité", "Soutien"], "c": 2, "t": "Bénit la discrétion d’un allié et crée un double illusoire d’où il lance ses sorts et avec lequel il échange sa place. Lance tes sorts de contact via le double, et sers-t’en pour échapper au corps à corps."},
+  "Domaine de la Guerre": {"src": "XPHB", "r": ["Dégâts", "Soutien"], "c": 1, "t": "Prêtre combattant : attaques en action bonus, +10 au toucher grâce à la Canalisation divine et sorts de combat. Prends l’ordre Protecteur et frappe aux côtés des guerriers."},
+  "Domaine de la Connaissance": {"src": "FRHoF", "r": ["Polyvalence", "Social"], "c": 2, "t": "Expertise dans les savoirs, sorts de divination gratuits et télépathie. Ton rôle est l’enquête : pose des questions, lis les pensées, prépare le groupe à ce qui l’attend."},
+  "Domaine de la Nature": {"src": "PHB", "r": ["Défense", "Contrôle"], "c": 2, "t": "Version 2014 : armure lourde, sort mineur de druide et contrôle des bêtes et des plantes. Solide en défense, il joue plutôt en première ligne qu’en spécialiste de la nature."},
+  "Domaine de la Tempête": {"src": "PHB", "r": ["Dégâts", "Contrôle"], "c": 1, "t": "Maître du tonnerre et de la foudre : repousse les attaquants et maximise ses dégâts électriques ou de tonnerre avec la Canalisation divine. Combine Vague tonnante et Appel de la foudre pour des dégâts maximisés."},
+  "Domaine de la Mort": {"src": "DMG", "r": ["Dégâts"], "c": 2, "t": "Prêtre nécromancien (version 2014) : armes de guerre, sorts mineurs de nécromancie sur deux cibles et dégâts nécrotiques qui ignorent la résistance. Pensé pour les campagnes sombres : parles-en au MJ."},
+  "Domaine des Arcanes": {"src": "AU", "r": ["Polyvalence", "Contrôle"], "c": 2, "t": "Clerc de la magie elle-même : sorts mineurs de magicien, sorts modifiés par la Canalisation et dissipation gratuite après un soin. Prends les sorts mineurs offensifs qui manquent au clerc ; au niveau 17, tu apprends des sorts de magicien de haut niveau."},
+  "Domaine de la Forge": {"src": "XGE", "r": ["Défense", "Polyvalence"], "c": 1, "t": "Bénit une arme ou une armure (+1), puis devient résistant au feu et aux dégâts des armes. Avec armure lourde et bouclier, c’est l’une des meilleures CA du jeu : sers de bouclier vivant."},
+  "Domaine de la Tombe": {"src": "RHW", "r": ["Soins", "Soutien", "Dégâts"], "c": 2, "t": "Gardien entre la vie et la mort : dégâts en plus sur les blessés, malédiction qui affaiblit une cible et réaction qui protège les alliés en sang. Utilise Chemin vers la tombe juste avant que les gros frappeurs du groupe attaquent."},
+  "Domaine de l'Ordre": {"src": "TCE", "r": ["Soutien", "Contrôle", "Social"], "c": 2, "t": "Ses sorts lancés sur un allié lui offrent une attaque en réaction, et il peut charmer les ennemis. Lance tes sorts de soutien sur le meilleur attaquant du groupe pour lui offrir une attaque gratuite."},
+  "Domaine de la Paix": {"src": "TCE", "r": ["Soutien", "Défense"], "c": 1, "t": "Relie ses alliés : ils ajoutent 1d4 à leurs jets et peuvent se téléporter pour se protéger les uns les autres. L’un des meilleurs soutiens du jeu ; garde le groupe soudé pour profiter des liens."},
+  "Domaine du Crépuscule": {"src": "TCE", "r": ["Soutien", "Défense"], "c": 1, "t": "Sanctuaire crépusculaire qui donne des PV temporaires à chaque tour et vision dans le noir à tout le groupe. Très puissant : active le sanctuaire au premier tour d’un combat difficile et reste près des alliés."},
+  "Domaine de l'Ambition (Amonkhet)": {"src": "PSA", "r": ["Furtivité", "Contrôle"], "c": 2, "t": "Domaine de Bontu : double illusoire, invisibilité et sorts de tromperie. Lance tes sorts depuis le double pour rester en sécurité ; un clerc de ruse pour les campagnes d’intrigue."},
+  "Domaine de la Connaissance (Amonkhet)": {"src": "PSA", "r": ["Polyvalence", "Social"], "c": 2, "t": "Domaine de Kefnet, proche du domaine de la Connaissance 2014 : expertises, lecture des pensées, visions du passé. Le sage et l’enquêteur du groupe."},
+  "Domaine de la Solidarité (Amonkhet)": {"src": "PSA", "r": ["Soins", "Soutien"], "c": 1, "t": "Domaine d’Oketra : armure lourde, soins de groupe et +10 à l’attaque d’un allié. Garde la Bénédiction d’Oketra pour une attaque décisive."},
+  "Domaine de la Force (Amonkhet)": {"src": "PSA", "r": ["Défense", "Polyvalence"], "c": 1, "t": "Domaine de Rhonas : armure lourde, sort mineur de druide et +10 aux jets de Force. Excellent pour agripper, pousser et réussir les épreuves physiques."},
+  "Domaine du Zèle (Amonkhet)": {"src": "PSA", "r": ["Dégâts"], "c": 1, "t": "Domaine d’Hazoret : armes de guerre, attaques en action bonus et dégâts de feu ou de tonnerre maximisés. Un clerc de choc : garde la Canalisation pour une Boule de feu maximisée."},
+  "Domaine du Sang": {"src": "TDR", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Magie du sang divine : ses sorts de dégâts saignent davantage, et il traque ou manipule une créature par son sang. Méfie-toi de Rappel sanguin : il rend des emplacements en échange de PV."},
+  "Domaine de la Lune": {"src": "TDR", "r": ["Contrôle", "Soutien", "Furtivité"], "c": 2, "t": "Clerc des lunes d’Exandrie : illusions, lumière et bénédictions. Dès le niveau 6, tu peux maintenir deux sorts de domaine à la fois : combine Rayon de lune avec un sort de contrôle."},
+  "Domaine de la Chasse": {"src": "HG", "r": ["Dégâts", "Soutien"], "c": 1, "t": "Marque une proie pour des dégâts en plus, en apprend les faiblesses, puis fait profiter le groupe de la marque. Marque la cible prioritaire dès le premier tour."},
+  "Domaine de la Fête": {"src": "AL", "r": ["Soutien", "Social"], "c": 2, "t": "Prêtre de la fête : bienfaits pour trois alliés, relances de concentration et après-fête qui donne des PV temporaires. Mise sur les sorts de soutien à concentration, que tu protèges bien."},
+  "Domaine du Gardien de sanctuaire": {"src": "RY", "r": ["Soutien", "Contrôle", "Défense"], "c": 2, "t": "Érige un sanctuaire spectral qui bénit les alliés ou maudit les ennemis dans sa zone, et repousse ceux qu’il frappe. Place le sanctuaire là où le groupe va combattre, puis déplace-le avec son esprit gardien."}
+ },
+ "Druide": {
+  "Cercle de la Terre": {"src": "XPHB", "r": ["Dégâts", "Contrôle", "Polyvalence"], "c": 1, "t": "Choisis un terrain (aride, polaire, tempéré, tropical) qui fixe tes sorts toujours préparés ; tu récupères des emplacements et gagnes des résistances. Un lanceur de sorts pur : laisse la Forme sauvage à l’exploration."},
+  "Cercle de la Lune": {"src": "XPHB", "r": ["Défense", "Dégâts"], "c": 1, "t": "Maître de la Forme sauvage : formes plus puissantes, CA améliorée et quelques sorts lancés sous forme animale. Prends des formes à gros PV (ours) au début : tu es le protecteur du groupe tant que tu restes transformé."},
+  "Cercle des Étoiles": {"src": "XPHB", "r": ["Dégâts", "Soins", "Polyvalence"], "c": 1, "t": "Prend une forme étoilée : archer (attaque en action bonus), calice (soins en plus) ou dragon (concentration fiable). L’archer en général, le calice quand le groupe manque de soins."},
+  "Cercle de la Mer": {"src": "XPHB", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Colère de la mer : une aura de vent et d’eau glacée qui blesse et repousse les ennemis proches, puis le vol au niveau 10. Reste près des ennemis pour les toucher chaque tour, sans te faire encercler."},
+  "Cercle des Rêves": {"src": "XGE", "r": ["Soins", "Mobilité"], "c": 1, "t": "Soins en action bonus grâce à une réserve de d6, téléportation et camp protégé. Le meilleur soigneur des druides ; la téléportation de groupe sauve bien des situations."},
+  "Cercle du Berger": {"src": "XGE", "r": ["Invocations", "Soutien"], "c": 2, "t": "Totems spirituels (ours, faucon, licorne) et invocations plus solides. Combine-le avec les sorts de convocation : tes créatures deviennent beaucoup plus résistantes."},
+  "Cercle des Spores": {"src": "TCE", "r": ["Dégâts", "Défense"], "c": 2, "t": "Halo de spores nécrotiques et forme symbiotique pour la mêlée ; il anime même les morts. Un druide de contact aux dégâts réguliers, parfait pour un ton sombre."},
+  "Cercle du Feu sauvage": {"src": "TCE", "r": ["Dégâts", "Soins", "Mobilité"], "c": 2, "t": "Invoque un esprit de feu qui téléporte le groupe et renforce ses sorts de feu et de soins. L’esprit est un formidable outil de mobilité : sors tes alliés d’un mauvais pas."},
+  "Cercle des Flétris": {"src": "TDR", "r": ["Contrôle", "Invocations"], "c": 2, "t": "Corrompt le sol (terrain difficile) et fait jaillir des pousses d’ombre sur les ennemis blessés. Pose la Souillure là où les ennemis vont combattre et combine-la avec des sorts de zone."},
+  "Cercle de la Ruche": {"src": "HG", "r": ["Défense", "Soutien", "Soins"], "c": 2, "t": "Ton corps abrite des insectes : forme de nuée, protection contre les dégâts et miel qui soigne et déplace un allié. Un druide résistant et soutenant, parfait pour une campagne de chasse aux monstres."},
+  "Cercle de la Lame": {"src": "HF", "r": ["Dégâts", "Défense"], "c": 2, "t": "Combat avec ses armes sous Forme sauvage, lance des châtiments sous forme animale et attaque deux fois au niveau 6. Un druide guerrier aux PV temporaires généreux : fonce au contact."},
+  "Cercle des Yokai": {"src": "RY", "r": ["Polyvalence", "Furtivité"], "c": 2, "t": "Ta Forme sauvage peut prendre l’apparence de yokai (créatures variées), et tu animes des objets. Lis les profils de yokai disponibles : ils offrent bien plus de variété que les bêtes."}
+ },
+ "Ensorceleur": {
+  "Sorcellerie aberrante": {"src": "XPHB", "r": ["Contrôle", "Social"], "c": 1, "t": "Télépathie et sorts psioniques toujours préparés, qui peuvent se lancer sans composantes et à moindre coût. Profite des sorts lancés en secret dans les scènes sociales."},
+  "Sorcellerie draconique": {"src": "XPHB", "r": ["Dégâts", "Défense"], "c": 1, "t": "Écailles qui protègent, plus de PV, bonus de dégâts dans un élément, puis des ailes. Choisis l’élément de ton sort principal (feu pour Boule de feu) : simple et efficace."},
+  "Sorcellerie mécanique": {"src": "XPHB", "r": ["Défense", "Soutien"], "c": 2, "t": "Rétablit l’ordre : annule l’avantage ou le désavantage d’un jet et crée des protections pour le groupe. Sers-toi de Rétablissement de l’équilibre pour annuler le désavantage d’un ami ou l’avantage d’un ennemi."},
+  "Sorcellerie sauvage": {"src": "XPHB", "r": ["Polyvalence"], "c": 2, "t": "Magie imprévisible : effets aléatoires, et Marées du chaos qui donne l’avantage. Accepte le chaos et mets-toi d’accord avec le MJ sur les déclenchements : idéal pour un style de jeu amusant."},
+  "Âme divine": {"src": "XGE", "r": ["Soins", "Polyvalence"], "c": 1, "t": "Accède à la liste de sorts du clerc et ajoute 2d4 à un jet raté. Un ensorceleur soigneur : prends Soins et Mot de guérison, et sers-toi de la métamagie sur tes sorts de soutien."},
+  "Sorcellerie des tempêtes": {"src": "XGE", "r": ["Mobilité", "Dégâts"], "c": 2, "t": "Vole un peu après chaque sort et blesse les ennemis proches avec la foudre ou le tonnerre. Combine-le avec des sorts de foudre et place-toi grâce à ton vol gratuit."},
+  "Sorcellerie lunaire": {"src": "DSotDQ", "r": ["Polyvalence", "Défense"], "c": 2, "t": "Trois phases de lune (pleine, nouvelle, croissant) qui changent tes sorts gratuits et moins chers. Change de phase selon le combat : nouvelle lune pour gêner, pleine lune pour soutenir."},
+  "Sorcellerie du feu-sort": {"src": "FRHoF", "r": ["Soins", "Dégâts", "Soutien"], "c": 2, "t": "Chaque dépense de points de sorcellerie donne des PV temporaires ou brûle en dégâts radiants, et Contresort te rend des points. Utilise la métamagie à chaque tour pour profiter des éruptions."},
+  "Sorcellerie de l'ombre": {"src": "RHW", "r": ["Furtivité", "Défense"], "c": 2, "t": "Voit à travers ses propres ténèbres, refuse la mort une fois et convoque une bête de mauvais augure. Combine Ténèbres et ta vision : tu es le seul à voir dedans."},
+  "Pyromancien (Kaladesh)": {"src": "PSK", "r": ["Dégâts"], "c": 1, "t": "Brûle les créatures proches en lançant ses sorts de feu, puis ignore la résistance au feu. Simple et direct : prends tous les sorts de feu."},
+  "Enfant des runes": {"src": "TDR", "r": ["Défense", "Dégâts"], "c": 3, "t": "Tes runes d’essence se chargent quand tu dépenses des points : elles réduisent les dégâts, donnent l’avantage aux tests physiques ou changent tes sorts en force. Suis tes runes chargées avec attention : elles protègent et frappent."},
+  "Change-peau": {"src": "HG", "r": ["Polyvalence", "Défense"], "c": 2, "t": "Mute après ses sorts et choisit ses adaptations : résistances, armes naturelles, mobilité. Sers-toi de Mue sélective pour t’adapter à chaque situation."},
+  "Invocateur d'esprit": {"src": "RY", "r": ["Invocations", "Dégâts"], "c": 2, "t": "Manifeste un esprit combattant d’où peuvent partir tes sorts. Envoie l’esprit au contact pendant que tu restes à l’abri ; la concentration reste ton point faible jusqu’au niveau 18."}
+ },
+ "Guerrier": {
+  "Champion": {"src": "XPHB", "r": ["Dégâts", "Défense"], "c": 1, "t": "Critique sur 19-20 (puis 18-20), style de combat supplémentaire, puis récupération de PV à chaque tour quand tu es en sang (niveau 18). La sous-classe la plus simple du jeu : parfaite pour débuter."},
+  "Maître de guerre": {"src": "XPHB", "r": ["Dégâts", "Contrôle", "Soutien"], "c": 2, "t": "Dés de supériorité dépensés en manœuvres : renverser, désarmer, riposter, donner un ordre à un allié. Prends Riposte, Renversement et Attaque précise ; les dés reviennent au repos court."},
+  "Chevalier occulte": {"src": "XPHB", "r": ["Défense", "Polyvalence"], "c": 2, "t": "Guerrier lanceur de sorts de magicien (Intelligence) : Bouclier, arme liée, puis attaque et sort dans le même tour. Prends Bouclier en priorité : avec une armure lourde, ta CA devient énorme."},
+  "Combattant psychique": {"src": "XPHB", "r": ["Défense", "Mobilité", "Dégâts"], "c": 2, "t": "Dés d’énergie psionique : dégâts de force, bouclier qui protège un allié, télékinésie. Utilise le bouclier sur les attaques graves et compte bien tes dés."},
+  "Chevalier banneret": {"src": "FRHoF", "r": ["Soutien", "Soins"], "c": 1, "t": "Son Second souffle soigne aussi les alliés, et sa Fougue leur offre une attaque ou un déplacement. Un guerrier meneur : plus le groupe est nombreux, plus il brille."},
+  "Archer arcanique": {"src": "AU", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Tirs arcaniques une fois par tour (bannissement, entrave, aveuglement…) et flèches qui changent de cible. Choisis des tirs de contrôle : ils complètent tes dégâts d’archer."},
+  "Cavalier": {"src": "XGE", "r": ["Défense", "Mobilité"], "c": 1, "t": "Monté ou non, il marque les ennemis, protège ses alliés et punit ceux qui les attaquent. Un très bon protecteur ; la monture est un bonus, pas une obligation."},
+  "Samouraï": {"src": "XGE", "r": ["Dégâts", "Social"], "c": 1, "t": "Esprit combatif : avantage aux attaques et PV temporaires, puis attaques rapides. Active Esprit combatif au tour décisif : simple et puissant."},
+  "Chevalier de l'écho": {"src": "EGW", "r": ["Mobilité", "Dégâts"], "c": 3, "t": "Crée un double d’ombre d’où il frappe et avec lequel il échange sa place. Très puissant mais tactique : place le double pour prendre l’ennemi à revers ou frapper de loin."},
+  "Chevalier des runes": {"src": "TCE", "r": ["Défense", "Contrôle"], "c": 2, "t": "Grandit jusqu’à la taille Grande et grave des runes aux effets variés. La taille Grande aide à agripper ; choisis des runes à la fois défensives et utiles hors combat."},
+  "Pistolero": {"src": "MM", "r": ["Dégâts"], "c": 2, "t": "Premier maître des armes à feu : tirs spéciaux alimentés par des points de cran, au risque d’enrayer l’arme. Demande au MJ si les armes à feu existent dans son monde, et prévois des outils de bricoleur."},
+  "Bagarreur de taverne": {"src": "AL", "r": ["Contrôle", "Dégâts"], "c": 1, "t": "Se bat à mains nues et avec tout ce qui traîne, et agrippe en action bonus. Agrippe puis frappe avec l’avantage ; parfait pour un personnage haut en couleur."},
+  "Lame squelettique": {"src": "RY", "r": ["Dégâts", "Défense", "Furtivité"], "c": 2, "t": "Fait jaillir une armure et une lame d’os, puis des ailes, et change de taille et de visage. Entre en Forme squelettique au premier tour : la lame d’os gagne des bottes supplémentaires."}
+ },
+ "Magicien": {
+  "Abjurateur": {"src": "XPHB", "r": ["Défense", "Soutien"], "c": 1, "t": "Une protection arcanique absorbe les dégâts et se recharge avec tes sorts d’abjuration. Prends Armure de mage et Bouclier : ta protection se recharge et tu deviens très solide pour un magicien."},
+  "Devin": {"src": "XPHB", "r": ["Contrôle", "Soutien"], "c": 1, "t": "Présage : lance deux d20 après un repos long et remplace n’importe quel jet par l’un d’eux. Garde un résultat élevé pour un allié ou un résultat faible pour la sauvegarde d’un boss."},
+  "Évocateur": {"src": "XPHB", "r": ["Dégâts"], "c": 1, "t": "Épargne ses alliés dans ses zones et ajoute son Intelligence aux dégâts. Lance Boule de feu au milieu de la mêlée sans crainte : le meilleur artilleur de zone."},
+  "Illusionniste": {"src": "XPHB", "r": ["Contrôle", "Furtivité"], "c": 2, "t": "Illusions améliorées puis rendues temporairement réelles. Demande de l’imagination : mets-toi d’accord avec le MJ sur ce qu’une illusion peut faire."},
+  "Magie de guerre": {"src": "XGE", "r": ["Défense", "Dégâts"], "c": 1, "t": "+2 à la CA ou +4 à une sauvegarde en réaction, et bonus à l’initiative. Un magicien combattant solide, simple à jouer."},
+  "Chronurgie": {"src": "EGW", "r": ["Contrôle", "Soutien"], "c": 2, "t": "Manipule le temps : force la relance d’un jet et fige une créature hors du temps. Très puissant : réserve la relance aux jets ennemis décisifs."},
+  "Graviturgie": {"src": "EGW", "r": ["Contrôle"], "c": 2, "t": "Joue avec la gravité : alourdit ou allège, déplace les ennemis avec ses sorts. Combine-la avec des zones dangereuses ou des sorts de zone."},
+  "Chantelame": {"src": "FRHoF", "r": ["Dégâts", "Défense", "Mobilité"], "c": 3, "t": "Chant de lame : CA, vitesse et concentration améliorées, sort mineur à la place d’une attaque. Reste fragile malgré tout : bouge beaucoup et évite d’être encerclé."},
+  "Ordre des Scribes": {"src": "TCE", "r": ["Polyvalence"], "c": 2, "t": "Grimoire éveillé : change le type de dégâts de tes sorts et copie les sorts très vite. Change de type de dégâts face aux résistances ; idéal pour les rituels."},
+  "Invocateur": {"src": "AU", "r": ["Invocations", "Mobilité"], "c": 2, "t": "Téléportation courte, invocations plus robustes, puis deux créatures convoquées d’un seul sort. Prends des sorts de convocation : ils deviennent beaucoup plus durables."},
+  "Enchanteur": {"src": "AU", "r": ["Contrôle", "Social"], "c": 2, "t": "Charme d’un regard, sorts d’enchantement qui touchent une cible de plus et réaction qui retourne une attaque contre un autre. Un magicien de contrôle et de scènes sociales."},
+  "Nécromancien": {"src": "AU", "r": ["Invocations", "Dégâts"], "c": 2, "t": "Familier mort-vivant, Animation des morts gratuite et renforcée, sorts nécrotiques qui ignorent la résistance. Gère ta horde avec soin et parles-en au MJ (temps de jeu)."},
+  "Transmutateur": {"src": "AU", "r": ["Polyvalence", "Soutien"], "c": 2, "t": "Pierre du transmutateur (bonus pour un allié), transmutations renforcées et métamorphose. Confie la pierre au membre du groupe qui en profite le plus."},
+  "Magie du sang": {"src": "TDR", "r": ["Dégâts"], "c": 2, "t": "Puise dans ses propres PV pour relancer ses dés de dégâts et renvoie la douleur à l’attaquant. Surveille tes PV : la magie du sang coûte cher."},
+  "Biomancien": {"src": "HG", "r": ["Soins", "Polyvalence"], "c": 2, "t": "Greffes et améliorations corporelles, et sorts de biomancie qui soignent. Un magicien hors norme, à la fois soigneur et bricoleur du vivant."},
+  "Shinobi": {"src": "RY", "r": ["Dégâts", "Furtivité"], "c": 2, "t": "Magicien ninja : armure légère, armes de finesse, frappes de l’ombre alimentées par les emplacements et attaque supplémentaire. Combine arme et magie : tes emplacements servent aussi aux frappes."}
+ },
+ "Moine": {
+  "Guerrier de la Main ouverte": {"src": "XPHB", "r": ["Contrôle", "Dégâts"], "c": 1, "t": "Chaque coup du Déluge de coups peut renverser, repousser ou priver l’ennemi de réaction. Le moine le plus simple et efficace : renverse, puis laisse tes alliés frapper avec l’avantage."},
+  "Guerrier de la Miséricorde": {"src": "XPHB", "r": ["Soins", "Dégâts"], "c": 1, "t": "Soigne ou blesse d’un geste grâce à ses points de Concentration. Un moine soigneur : utilise la Main de guérison pendant ton Déluge de coups."},
+  "Guerrier des Éléments": {"src": "XPHB", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Frappes élémentaires à allonge, éruptions de zone, puis vol et nage. Profite de l’allonge pour frapper sans t’exposer."},
+  "Guerrier de l’Ombre": {"src": "XPHB", "r": ["Furtivité", "Mobilité"], "c": 2, "t": "Ténèbres où il voit parfaitement et téléportation d’ombre en ombre. Lance Ténèbres puis profite de ta vision : un infiltrateur hors pair."},
+  "Voie de la Longue Mort": {"src": "SCAG", "r": ["Défense", "Contrôle"], "c": 2, "t": "Gagne des PV temporaires en abattant des ennemis et sème la peur. À l’aise au milieu de la mêlée, il refuse longtemps de tomber."},
+  "Voie du Maître ivre": {"src": "XGE", "r": ["Mobilité", "Défense"], "c": 1, "t": "Se désengage gratuitement pendant le Déluge de coups et redirige les attaques ratées. Fonce au milieu des ennemis puis ressors sans attaque d’opportunité."},
+  "Voie du Kensei": {"src": "XGE", "r": ["Dégâts"], "c": 2, "t": "Maître de quelques armes choisies, avec parade et tir précis. Un bon choix pour un moine à l’arc ou à l’épée."},
+  "Voie de l'Âme solaire": {"src": "XGE", "r": ["Dégâts"], "c": 1, "t": "Lance des rayons de lumière à distance et une explosion radieuse. Un moine qui attaque aussi de loin."},
+  "Voie du Soi astral": {"src": "TCE", "r": ["Dégâts", "Défense"], "c": 2, "t": "Bras spectraux à allonge qui frappent avec la Sagesse. La Sagesse remplace la Dextérité pour ces attaques : mise tout sur elle."},
+  "Voie du Dragon ascendant": {"src": "FTD", "r": ["Dégâts", "Mobilité"], "c": 2, "t": "Souffle de dragon, ailes et aura effrayante. Un moine spectaculaire qui touche plusieurs ennemis à la fois."},
+  "Guerrier des Arts mystiques": {"src": "AU", "r": ["Polyvalence", "Dégâts"], "c": 2, "t": "Lance des sorts d’ensorceleur avec la Sagesse et remplace des frappes par des sorts mineurs. Convertis emplacements et Concentration selon le besoin du moment."},
+  "Voie de l'Âme de cobalt": {"src": "TDR", "r": ["Polyvalence", "Social"], "c": 2, "t": "Analyse les faiblesses des ennemis qu’il frappe et peut les forcer à dire la vérité. Parfait pour une campagne d’enquête."},
+  "Voie de l'Artisan": {"src": "AL", "r": ["Polyvalence"], "c": 2, "t": "Se bat avec ses outils d’artisan et fabrique de petits objets qui stockent sa Concentration. Fabrique tes objets au repos long : ce sont des points en plus."},
+  "Voie des Huit Portes": {"src": "RY", "r": ["Dégâts", "Défense"], "c": 2, "t": "Ouvre une à une ses portes intérieures : soins, frappes en plus, puis une transformation ultime. Un moine qui monte en puissance avec les niveaux."}
+ },
+ "Occultiste": {
+  "Patron de l'Archifée": {"src": "XPHB", "r": ["Mobilité", "Contrôle"], "c": 1, "t": "Foulées féeriques gratuites (Foulée brumeuse) avec des effets en plus : soins, charme, dégâts. Le patron le plus mobile : téléporte-toi presque à chaque tour."},
+  "Patron Céleste": {"src": "XPHB", "r": ["Soins", "Dégâts"], "c": 1, "t": "Soigne en action bonus grâce à une réserve de d6 et ajoute des dégâts radiants ou de feu. Un occultiste soigneur d’appoint, très apprécié des groupes sans clerc."},
+  "Patron Fiélon": {"src": "XPHB", "r": ["Dégâts", "Défense"], "c": 1, "t": "Gagne des PV temporaires à chaque ennemi abattu et des sorts de feu. Simple et robuste."},
+  "Patron Grand Ancien": {"src": "XPHB", "r": ["Contrôle", "Social"], "c": 2, "t": "Télépathie, sorts psychiques discrets et pouvoirs de folie. Un occultiste de contrôle et d’intrigue."},
+  "Patron Immortel": {"src": "SCAG", "r": ["Défense"], "c": 1, "t": "Version 2014 centrée sur la survie : il se relève, n’a besoin ni de manger ni de respirer. Peu de puissance offensive."},
+  "Patron Lame maudite": {"src": "XGE", "r": ["Dégâts", "Défense"], "c": 1, "t": "Attaque avec le Charisme, maudit une cible pour des critiques et des soins. L’occultiste de mêlée : prends le Pacte de la lame."},
+  "Patron Insondable": {"src": "TCE", "r": ["Contrôle", "Dégâts"], "c": 2, "t": "Tentacule spectral qui blesse et ralentit, et sorts marins. Invoque le tentacule au début du combat, il frappe chaque tour."},
+  "Patron Génie": {"src": "TCE", "r": ["Polyvalence", "Dégâts"], "c": 2, "t": "Récipient où le groupe peut se reposer, dégâts élémentaires et souhait limité au niveau 14. Très polyvalent."},
+  "Patron Mort-vivant": {"src": "RHW", "r": ["Dégâts", "Défense"], "c": 2, "t": "Forme d’effroi : PV temporaires, peur et dégâts nécrotiques, puis vol fantomatique. Active la forme au premier tour d’un vrai combat."},
+  "Patron Vestige": {"src": "AU", "r": ["Invocations", "Soutien"], "c": 2, "t": "Un compagnon issu d’un dieu mourant et les sorts d’un domaine de clerc. Choisis le domaine qui comble le groupe (Vie pour les soins)."},
+  "Patron Parasite": {"src": "HG", "r": ["Dégâts", "Défense"], "c": 2, "t": "Arme parasite à grande allonge (Charisme) et bouclier symbiotique. Un occultiste de mêlée original."},
+  "Patron Dame peinte": {"src": "HF", "r": ["Dégâts", "Polyvalence"], "c": 2, "t": "Change la couleur et le type de dégâts de ses sorts mineurs et peint ses armes. Adapte la couleur aux résistances de l’ennemi."},
+  "Patron Shinigami": {"src": "RY", "r": ["Contrôle", "Invocations"], "c": 3, "t": "Prend le contrôle de cadavres et de créatures inconscientes comme de marionnettes. Très original : parles-en au MJ avant de jouer."}
+ },
+ "Paladin": {
+  "Serment de Dévotion": {"src": "XPHB", "r": ["Défense", "Soutien"], "c": 1, "t": "Arme sacrée (Charisme ajouté à l’attaque) et aura contre le charme. Le paladin chevaleresque classique."},
+  "Serment de Gloire": {"src": "XPHB", "r": ["Mobilité", "Soutien"], "c": 1, "t": "Héros athlétique : PV temporaires aux alliés après un châtiment, vitesse et prouesses physiques. Sers-toi d’Athlète inégalé pour les épreuves de force."},
+  "Serment des Anciens": {"src": "XPHB", "r": ["Défense", "Contrôle"], "c": 1, "t": "Entrave végétale et aura qui réduit les dégâts des sorts. Excellent contre les lanceurs de sorts."},
+  "Serment de Vengeance": {"src": "XPHB", "r": ["Dégâts", "Mobilité"], "c": 1, "t": "Vœu d’hostilité : avantage contre une cible et poursuite implacable. Le paladin le plus offensif."},
+  "Briseur de serment": {"src": "DMG", "r": ["Dégâts"], "c": 2, "t": "Paladin déchu (version 2014) : aura de dégâts et contrôle des morts-vivants. Pensé pour les méchants : à discuter avec le MJ."},
+  "Serment de la Couronne": {"src": "SCAG", "r": ["Défense", "Contrôle"], "c": 1, "t": "Défie les ennemis de l’attaquer et prend sur lui les dégâts de ses alliés. Un excellent protecteur."},
+  "Serment de Conquête": {"src": "XGE", "r": ["Contrôle", "Dégâts"], "c": 1, "t": "Effraie les ennemis puis les immobilise dans son aura. Combine peur et aura : redoutable."},
+  "Serment de Rédemption": {"src": "XGE", "r": ["Social", "Défense"], "c": 2, "t": "Paladin pacifiste qui renvoie les dégâts et protège ses alliés. Préfère la diplomatie, mais sait se défendre."},
+  "Serment des Veilleurs": {"src": "TCE", "r": ["Défense", "Soutien"], "c": 1, "t": "Gardien contre les créatures d’autres plans, aura qui améliore l’initiative et les sauvegardes mentales. Excellent contre les fiélons, les fées et les aberrations."},
+  "Serment des Nobles génies": {"src": "FRHoF", "r": ["Défense", "Contrôle", "Mobilité"], "c": 2, "t": "Châtiments élémentaires (agrippe, téléporte…), CA avec le Charisme sans armure et aura de résistance élémentaire. Choisis l’effet du génie à chaque châtiment."},
+  "Serment de la Haute Mer": {"src": "TDR", "r": ["Contrôle", "Mobilité"], "c": 2, "t": "Brume marine, ennemis repoussés à chaque coup et aura qui empêche les entraves. Parfait pour une campagne maritime."},
+  "Serment de la Moisson": {"src": "HG", "r": ["Soins", "Soutien"], "c": 1, "t": "Paladin nourricier : PV temporaires, soins partagés et grand festin. Un soigneur de première ligne."},
+  "Serment du Yōjimbō": {"src": "RY", "r": ["Défense", "Soutien"], "c": 1, "t": "Garde du corps : protège un protégé, réduit les dégâts qu’il subit et attire les attaques. Choisis comme protégé le membre le plus fragile du groupe."}
+ },
+ "Rôdeur": {
+  "Chasseur": {"src": "XPHB", "r": ["Dégâts", "Défense"], "c": 1, "t": "Choisit ses techniques contre les grands ennemis ou les groupes, et apprend les faiblesses de sa proie. Simple et polyvalent."},
+  "Maître des bêtes": {"src": "XPHB", "r": ["Invocations", "Dégâts"], "c": 2, "t": "Compagnon primal (terre, mer ou ciel) qui agit à tes ordres. Ordonne-lui d’attaquer en action bonus et garde-le en vie : il revient avec un emplacement."},
+  "Vagabond féerique": {"src": "XPHB", "r": ["Social", "Dégâts"], "c": 1, "t": "Dégâts psychiques en plus, Sagesse ajoutée au social et magie de charme. Le rôdeur sociable."},
+  "Traqueur des ténèbres": {"src": "XPHB", "r": ["Furtivité", "Dégâts"], "c": 1, "t": "Invisible pour la vision dans le noir et attaque en plus au premier tour. Parfait pour les donjons et les embuscades."},
+  "Arpenteur des horizons": {"src": "XGE", "r": ["Mobilité", "Dégâts"], "c": 2, "t": "Téléportation et dégâts de force ; il détecte les portails. Mobile et efficace contre les créatures d’autres plans."},
+  "Tueur de monstres": {"src": "XGE", "r": ["Contrôle", "Dégâts"], "c": 2, "t": "Étudie et contre les monstres et les lanceurs de sorts. Marque le boss avec Sens du chasseur dès le début."},
+  "Gardien de l'essaim": {"src": "TCE", "r": ["Contrôle", "Mobilité"], "c": 2, "t": "Une nuée d’esprits qui blesse, repousse les ennemis ou te déplace. Excellent pour contrôler les positions."},
+  "Gardien des drakes": {"src": "FTD", "r": ["Invocations", "Dégâts"], "c": 2, "t": "Compagnon drake qui grandit avec toi, jusqu’à pouvoir le monter. Un compagnon draconique fidèle."},
+  "Marcheur de l'hiver": {"src": "FRHoF", "r": ["Contrôle", "Défense"], "c": 2, "t": "Froid qui ignore la résistance, PV temporaires avec Marque du chasseur et riposte qui étourdit. Redoutable contre les ennemis qui frappent souvent."},
+  "Gardien des creux": {"src": "RHW", "r": ["Dégâts", "Défense"], "c": 2, "t": "Prend une forme monstrueuse grâce à Ennemi juré : CA, peur, soins quand il est en sang. Un rôdeur sauvage et sombre."},
+  "Trappeur": {"src": "HG", "r": ["Contrôle", "Exploration"], "c": 2, "t": "Pose des pièges physiques et magiques et piège ses armes. Prépare le terrain avant le combat pour en tirer le meilleur."},
+  "Rōnin": {"src": "RY", "r": ["Dégâts"], "c": 2, "t": "Dégainer-trancher, parade en dégainant et attaques en chaîne. Un rôdeur samouraï errant."}
+ },
+ "Roublard": {
+  "Voleur": {"src": "XPHB", "r": ["Mobilité", "Exploration"], "c": 1, "t": "Mains lestes (utilise un objet en action bonus), escalade et saut améliorés. Parfait avec les potions et les objets magiques."},
+  "Assassin": {"src": "XPHB", "r": ["Dégâts", "Furtivité"], "c": 1, "t": "Avantage et dégâts en plus au premier round, déguisements et poisons. Agis avant les ennemis pour profiter de l’effet."},
+  "Escroc arcanique": {"src": "XPHB", "r": ["Contrôle", "Polyvalence"], "c": 2, "t": "Sorts de magicien (enchantement, illusion) et main de mage invisible. Sers-toi de la main pour voler ou distraire."},
+  "Âme-lame": {"src": "XPHB", "r": ["Dégâts", "Social"], "c": 2, "t": "Lames psychiques et télépathie. Impossible à désarmer : tes armes naissent de ton esprit."},
+  "Enquêteur": {"src": "XGE", "r": ["Social", "Exploration"], "c": 1, "t": "Repère les mensonges et place ses Attaques sournoises par l’observation. Parfait pour une campagne d’enquête."},
+  "Cerveau": {"src": "XGE", "r": ["Soutien", "Social"], "c": 1, "t": "Aide un allié à distance en action bonus et imite voix et écritures. Un roublard de soutien."},
+  "Éclaireur": {"src": "XGE", "r": ["Mobilité", "Exploration"], "c": 1, "t": "Expert en Survie et Nature, il se déplace en réaction quand un ennemi approche. L’éclaireur mobile du groupe."},
+  "Bretteur": {"src": "XGE", "r": ["Dégâts", "Mobilité"], "c": 1, "t": "Attaque sournoise en duel et pas d’attaque d’opportunité de la cible qu’il frappe. Le duelliste charismatique."},
+  "Fantôme": {"src": "RHW", "r": ["Dégâts", "Polyvalence"], "c": 2, "t": "Dégâts nécrotiques sur une seconde cible et babioles d’âme. Un roublard lugubre qui parle aux morts."},
+  "Rejeton des Trois": {"src": "FRHoF", "r": ["Dégâts", "Mobilité"], "c": 2, "t": "Se téléporte pour frapper un ennemi qui vient de passer en sang. Lié aux trois dieux morts des Royaumes oubliés."},
+  "Charlatan": {"src": "AL", "r": ["Social", "Furtivité"], "c": 2, "t": "Armes cachées et déguisements préparés à l’avance. Un escroc qui frappe quand on ne s’y attend pas."},
+  "Tamaya": {"src": "RY", "r": ["Dégâts", "Contrôle"], "c": 2, "t": "Bombes-sorts et feux d’artifice. Un roublard artificier qui prépare ses explosions à l’avance."}
+ }
+}
+}

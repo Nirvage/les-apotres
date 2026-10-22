@@ -1,6 +1,6 @@
 /* Recherche globale : un bouton « Rechercher » dans la barre du haut de chaque page (et sur l'accueil)
    ouvre une fenêtre qui trouve un sort, un objet, un équipement, un monstre, un familier, un don,
-   une espèce, un historique, une capacité de classe, une sous-classe, une règle, une quête ou une page.
+   une espèce, un historique, une classe, une capacité de classe, une sous-classe, une règle, une quête ou une page.
 
    Les données sont lues à la première ouverture dans les fichiers JSON du site et dans les pages de
    règles (états, combat, guide) : rien à tenir à jour quand une donnée est ajoutée. Le mode hors ligne
@@ -29,7 +29,7 @@ var TYPES={
   familier:['Familier','#2e9e5b','les familiers','Familiers'],
   don:['Don','#b8860b','les dons','Dons'],
   espece:['Espèce','#12968f','les espèces','Espèces'],
-  classe:['Classe','#2f6fd0','','Classes et sous-classes'],
+  classe:['Classe','#2f6fd0','la page des classes','Classes et sous-classes'],
   histo:['Historique','#8a5a2b','','Historiques'],
   regle:['Règle','#2a3170','la page','Règles'],
   quete:['Quête','#8e3a9d','les quêtes','Quêtes'],
@@ -51,10 +51,16 @@ function add(out,o){
 function build(){
   if(loading)return loading;
   var files=['spells.json','objets.json','equipement.json','bestiaire.json','familiers.json','dons.json','especes.json','especes_infos.json',
-    'capacites.json','sousclasses.json','historiques.json','quetes.json'];
+    'capacites.json','sousclasses.json','historiques.json','quetes.json','classes_infos.json'];
   loading=Promise.all(files.map(get).concat([getText('etats.html'),getText('combat.html'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
     var out=[];
-    var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11];
+    var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11],ci=r[12]||{};
+    var clsLien=function(cl,n){return 'classes.html#'+encodeURIComponent(cl)+(n?'/'+encodeURIComponent(n):'')};
+    Object.keys(ci.classes||{}).forEach(function(cl){
+      var k=ci.classes[cl];
+      add(out,{t:'classe',n:cl,s:'Classe · d'+k.dv+' · '+k.prim,body:[k.pitch,k.jeu].concat(k.role||[]).join(' '),href:clsLien(cl),
+        d:function(){return '<p>'+esc(k.pitch)+'</p>'+line('Rôles',(k.role||[]).join(', '))+'<h4>Conseils de jeu</h4>'+(k.conseils||[]).slice(0,3).map(function(x){return '<p>'+esc(x)+'</p>'}).join('')}});
+    });
     (sp||[]).forEach(function(s){
       var p=String(s.n).split('|');
       var lv=+s.l?'Niveau '+s.l:'Sort mineur';
@@ -98,16 +104,16 @@ function build(){
     Object.keys(extra).forEach(function(n){if(!(es&&es[n]))espece(n,extra[n])});
     Object.keys(ca||{}).forEach(function(cl){
       (ca[cl]||[]).forEach(function(x){
-        add(out,{t:'classe',n:x.nom,alt:cl,s:cl+' · niv. '+x.niv,body:x.desc,d:function(){return '<p>'+br(x.desc)+'</p>'}});
+        add(out,{t:'classe',n:x.nom,alt:cl,s:cl+' · niv. '+x.niv,body:x.desc,href:clsLien(cl),d:function(){return '<p>'+br(x.desc)+'</p>'}});
       });
     });
     Object.keys(sc||{}).forEach(function(cl){
       Object.keys(sc[cl]||{}).forEach(function(n){
-        var f=sc[cl][n].feats||[];
-        add(out,{t:'classe',n:n,alt:cl,s:'Sous-classe · '+cl,body:f.map(function(x){return x.nom}).join(' '),
-          d:function(){return f.map(function(x){return '<p><b>Niv. '+x.niv+' · '+esc(x.nom)+'.</b> '+br(x.desc)+'</p>'}).join('')}});
+        var f=sc[cl][n].feats||[],tip=((ci.sous||{})[cl]||{})[n];
+        add(out,{t:'classe',n:n,alt:cl,s:'Sous-classe · '+cl,body:f.map(function(x){return x.nom}).join(' ')+(tip?' '+tip.t:''),href:clsLien(cl,n),
+          d:function(){return (tip?'<p><i>'+esc(tip.t)+'</i></p>':'')+f.map(function(x){return '<p><b>Niv. '+x.niv+' · '+esc(x.nom)+'.</b> '+br(x.desc)+'</p>'}).join('')}});
         f.forEach(function(x){
-          add(out,{t:'classe',n:x.nom,alt:n+' '+cl,s:n+' ('+cl+') · niv. '+x.niv,body:x.desc,d:function(){return '<p>'+br(x.desc)+'</p>'}});
+          add(out,{t:'classe',n:x.nom,alt:n+' '+cl,s:n+' ('+cl+') · niv. '+x.niv,body:x.desc,href:clsLien(cl,n),d:function(){return '<p>'+br(x.desc)+'</p>'}});
         });
       });
     });
@@ -120,8 +126,8 @@ function build(){
       add(out,{t:'quete',n:x.t,s:[x.type,x.lieu,x.niv?'niv. '+x.niv:''].filter(Boolean).join(' · '),body:[x.acc,x.obj,x.lieu].join(' '),
         href:lien('quetes.html',x.t),d:function(){return line('Lieu',x.lieu)+'<p>'+esc(x.acc)+'</p><p>'+esc(x.obj)+'</p>'}});
     });
-    regles(out,r[12],r[13],r[14]);
-    pages(out,r[15]);pages(out,r[16]);
+    regles(out,r[13],r[14],r[15]);
+    pages(out,r[16]);pages(out,r[17]);
     IDX=out;
     return out;
   });

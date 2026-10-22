@@ -202,7 +202,7 @@ $('#bPrint').onclick=()=>window.print();
 const apply=o=>{S={lvl:0,np:0,tir:null,...(o||{})};render();if(M.estMJ())M.load().then(()=>{if(!S.tir)tirer();else render()}).catch(()=>msg('Bestiaire indisponible'))};
 Persos.init({part:'ecranmj',mount:$('#persos'),msg,collect:()=>S,apply,onName:()=>apply(S)});
 </script>
-<script src="recherche.js?v=20261020a"></script>
+<script src="recherche.js?v=20261022c"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>
 </html>
