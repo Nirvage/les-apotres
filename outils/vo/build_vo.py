@@ -1,4 +1,4 @@
-"""Construit les fichiers vo_*.json (version originale anglaise) lus par vo.js.
+"""Construit les fichiers json/vo/*.json (version originale anglaise) lus par vo.js.
 
 Usage : python3 outils/vo/build_vo.py <dossier data 5etools> <racine du site>
 Le dossier 5etools contient une copie de https://github.com/5etools-mirror-3/5etools-src/tree/main/data
@@ -137,7 +137,7 @@ def build_spells():
     for f in glob.glob(ET + '/spells/spells-*.json'):
         for s in J(f)['spell']:
             EN[s['name']].append(s)
-    site = J(REPO + '/spells.json')
+    site = J(REPO + '/json/vf/spells.json')
     names = {}
     for l in open(os.path.join(os.path.dirname(__file__), 'sorts_en.txt'), encoding='utf-8'):
         if l.startswith('#') or '=' not in l:
@@ -263,7 +263,7 @@ def pick_item(pool, en, ed):
 
 def build_objets(pool):
     res = {}
-    for o in J(REPO + '/objets.json'):
+    for o in J(REPO + '/json/vf/objets.json'):
         x = pick_item(pool, o['en'], o.get('ed'))
         if not x:
             res[o['n']] = out(o['en'], '')
@@ -277,7 +277,7 @@ def build_objets(pool):
 
 def build_equipement(pool):
     res = {}
-    for o in J(REPO + '/equipement.json'):
+    for o in J(REPO + '/json/vf/equipement.json'):
         x = pick_item(pool, o['en'], None)
         if not x:
             res[o['n']] = out(o['en'], 'XPHB')
@@ -468,7 +468,7 @@ def build_monsters():
                     return x
         return c[0]
     res = {}
-    for m in J(REPO + '/bestiaire.json'):
+    for m in J(REPO + '/json/vf/bestiaire.json'):
         x = pick(m['en'], m.get('v'))
         if not x:
             res[m['n']] = out(m['en'], ''); STATS['monstres-nom-seul'] += 1; continue
@@ -476,7 +476,7 @@ def build_monsters():
         res[m['n']] = out(srd_name(x) if lic else x['name'], x['source'], monster_html(x) if lic else None, lic)
         STATS['monstres-srd' if lic else 'monstres-nom'] += 1
     fam = {}
-    for m in J(REPO + '/familiers.json'):
+    for m in J(REPO + '/json/vf/familiers.json'):
         x = pick(m['en'], '2014' if '2014' in m.get('src', '') or 'SRD 5.1' in m.get('src', '') else '2024')
         if not x:
             fam[m['n']] = out(m['en'], ''); STATS['familiers-nom-seul'] += 1; continue
@@ -541,7 +541,7 @@ def build_feats():
     for x in J(ET + '/feats.json')['feat'] + J(ET + '/optionalfeatures.json')['optionalfeature']:
         pool[x['name'].lower()].append(x)
     res = {}
-    for d in J(REPO + '/dons.json'):
+    for d in J(REPO + '/json/vf/dons.json'):
         en = d.get('en') or FEATS.get(d['nom'])
         c = pool.get((en or '').lower().replace('’', "'")) or []
         old = d.get('ed') == '2014'
@@ -589,8 +589,8 @@ def build_classes():
                 h.append(entries(e, 1))
         return '<br>'.join(x for x in h if x)
 
-    info = J(REPO + '/classes_infos.json')
-    caps = J(REPO + '/capacites.json')
+    info = J(REPO + '/json/vf/classes_infos.json')
+    caps = J(REPO + '/json/vf/capacites.json')
     res = {'classes': {}, 'capacites': {}, 'sous': {}}
     for fr, en in CLASSES.items():
         src = 'EFA' if en == 'Artificer' else ('BH' if en == 'Blood Hunter' else 'XPHB')
@@ -691,7 +691,7 @@ def build_species():
     for x in races:
         pool[x['name'].lower()].append(x)
     res = {}
-    site = list(J(REPO + '/especes.json')) + list(J(REPO + '/especes_infos.json').get('extra', {}))
+    site = list(J(REPO + '/json/vf/especes.json')) + list(J(REPO + '/json/vf/especes_infos.json').get('extra', {}))
     for fr in site:
         en = SPECIES.get(fr)
         c = pool.get((en or '').lower()) or []
@@ -712,7 +712,7 @@ def build_species():
 
 
 def build_backgrounds():
-    return simple(J(ET + '/backgrounds.json')['background'], BACKGROUNDS, 'historiques', list(J(REPO + '/historiques.json')))
+    return simple(J(ET + '/backgrounds.json')['background'], BACKGROUNDS, 'historiques', list(J(REPO + '/json/vf/historiques.json')))
 
 
 def build_conditions():
@@ -720,7 +720,7 @@ def build_conditions():
 
 
 def dump(name, data):
-    p = os.path.join(REPO, 'vo_%s.json' % name)
+    p = os.path.join(REPO, 'json', 'vo', '%s.json' % name)
     with open(p, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, separators=(',', ':'), sort_keys=True)
     print(name, len(data), os.path.getsize(p) // 1024, 'Ko')

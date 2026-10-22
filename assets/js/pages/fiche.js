@@ -1,0 +1,1081 @@
+const AB=[['for','Force','#c8402f'],['dex','Dextérité','#2e9e5b'],['con','Constitution','#d8791a'],['int','Intelligence','#2f6fd0'],['sag','Sagesse','#7a4fc4'],['cha','Charisme','#d6458e']];
+const SK=[['Acrobaties','dex'],['Arcanes','int'],['Athlétisme','for'],['Discrétion','dex'],['Dressage','sag'],['Escamotage','dex'],['Histoire','int'],['Intimidation','cha'],['Intuition','sag'],['Investigation','int'],['Médecine','sag'],['Nature','int'],['Perception','sag'],['Persuasion','cha'],['Religion','int'],['Représentation','cha'],['Supercherie','cha'],['Survie','sag']];
+const CLS={'Artificier':8,'Barbare':12,'Barde':8,'Chasseur de sang':10,'Clerc':8,'Druide':8,'Ensorceleur':6,'Guerrier':10,'Magicien':6,'Moine':8,'Occultiste':8,'Paladin':10,'Rôdeur':10,'Roublard':8};
+const PERC=SK.findIndex(s=>s[0]==='Perception');
+const $=s=>document.querySelector(s);
+const sg=n=>(n>=0?'+':'')+n;
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',3500)};
+const el=k=>document.querySelector(`[data-k="${k}"]`);
+const val=k=>{const e=el(k);return e?e.value:''};
+const chk=k=>{const e=el(k);return !!(e&&e.checked)};
+
+// Blocs de caractéristiques (compétences groupées) répartis en deux colonnes équilibrées
+const block=([k,n,c])=>{
+  const sk=SK.map((s,i)=>[s,i]).filter(([s])=>s[1]===k);
+  const rows=sk.map(([s,i])=>`<div class="row"><input type="checkbox" class="m" data-k="sk_${i}" title="Maîtrise" aria-label="Maîtrise ${s[0]}"><input type="checkbox" class="e" data-k="ske_${i}" title="Expertise" aria-label="Expertise ${s[0]}"><span class="v" id="sk_${i}">+0</span><span class="t">${s[0]}</span></div>`).join('');
+  return `<section class="abil" style="--c:${c};flex:${sk.length+1} 1 auto"><header><span class="nm">${n}</span><input class="sc" data-k="ab_${k}" type="number" min="1" max="30" value="10" aria-label="Valeur de ${n}"><span class="fin" id="f_${k}" hidden></span><div class="mod" id="m_${k}">+0</div></header>
+  <div class="body"><div class="row sv"><input type="checkbox" class="m" data-k="sv_${k}" aria-label="Maîtrise du jet de sauvegarde ${n}"><span class="sp"></span><span class="v" id="sv_${k}">+0</span><span class="t">Jet de sauvegarde</span></div>${rows}</div></section>`;
+};
+$('#stackA').innerHTML=AB.slice(0,4).map(block).join('');
+$('#stackB').insertAdjacentHTML('afterbegin',AB.slice(4).map(block).join(''));
+$('#atks').innerHTML=[0,1,2,3,4].map(i=>`<div class="atk"><input data-k="a${i}_n"><input data-k="a${i}_b"><input data-k="a${i}_d"></div>`).join('');
+$('#slots').innerHTML=[1,2,3,4,5,6,7,8,9].map(i=>`<div class="slot"><b>Niveau ${i}</b><input data-k="sl${i}_u" type="number" min="0" placeholder="util." aria-label="Emplacements utilisés niveau ${i}"><input data-k="sl${i}_t" type="number" min="0" placeholder="total" aria-label="Emplacements totaux niveau ${i}"></div>`).join('');
+$('#clsel').innerHTML='<option value="">Choisir…</option>'+Object.entries(CLS).map(([n,d])=>`<option value="${n}">${n} (d${d})</option>`).join('');
+
+// ---------- Incantation et capacités selon la classe (données dans classes.json) ----------
+let CD=null,CDFAIL=false;   // données de classes, chargées au démarrage
+let POOLS=[];   // réserves d'espèce, de dons, de sous-classe (calculées par renderExtras, rechargées par les repos)
+let RS={};                  // cases cochées et réserves (emplacements, ressources de classe)
+// Le bloc n'est reconstruit que si son contenu change : un simple « change » sur un autre champ
+// ne doit pas remplacer le champ que l'on vient de sélectionner. Le cache est vidé quand RS change.
+let LAST=new WeakMap();
+const setRS=o=>{RS=o;LAST=new WeakMap()};
+const setHTML=(e,h)=>{if(LAST.get(e)!==h){e.innerHTML=h;LAST.set(e,h)}};
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const at=(a,l)=>Array.isArray(a)?a[l-1]:undefined;
+const ABN={for:'Force',dex:'Dextérité',con:'Constitution',int:'Intelligence',sag:'Sagesse',cha:'Charisme'};
+const RCOL=['#c8402f','#2e9e5b','#d8791a','#7a4fc4','#d6458e','#12968f'];
+
+// Classe reconnue d'après le champ « Classe » (nom exact) ; sinon saisie manuelle
+function findClass(){
+  const v=norm(val('classe'));
+  if(!CD||!v)return null;
+  for(const [n,d] of Object.entries(CD.classes))
+    if(norm(n)===v||(d.alias||[]).some(a=>norm(a)===v))return [n,d];
+  return null;
+}
+// Incantation de la classe, ou de sa sous-classe (Guerrier, Roublard) si la case est cochée
+function castOf(d){
+  if(d.lanceur)return {type:d.lanceur,carac:d.carac,mineurs:d.mineurs,prepares:d.prepares};
+  const s=d.sous_classe;
+  return s&&chk('sclance')?{type:s.type||'tiers',carac:s.carac,mineurs:s.mineurs,prepares:s.prepares,emp:s.emp}:null;
+}
+const bx=(key,n,label)=>Array.from({length:n},(_,j)=>`<input type="checkbox" data-r="${key}_${j}" aria-label="${esc(label)} ${j+1}"${RS[key+'_'+j]?' checked':''}>`).join('');
+function maxOf(m,lvl,mod){
+  if(Array.isArray(m))return m[lvl-1]||0;
+  if(m&&m.mod)return lvl>=(m.niv||1)?Math.max(1,mod[m.mod]):0;
+  return 0;
+}
+function slotsHTML(cst,lvl){
+  if(cst.type==='pacte'){
+    const [n,l]=(cst.emp||CD.emplacements.pacte)[lvl-1];
+    if(!n)return '<div class="mgnone">Aucun emplacement de sorts à ce niveau.</div>';
+    return `<div class="slot pact"><b>Magie de pacte · niveau ${l}</b><span class="bx">${bx('pc',n,'Emplacement de pacte')}</span></div>`;
+  }
+  const row=CD.emplacements[cst.type][lvl-1]||[];
+  return row.map((n,i)=>n?`<div class="slot"><b>Niveau ${i+1}</b><span class="bx">${bx('sl'+(i+1),n,'Emplacement de niveau '+(i+1))}</span></div>`:'').join('')
+    ||'<div class="mgnone">Aucun emplacement de sorts à ce niveau.</div>';
+}
+function infosHTML(d,lvl,mod,pb){
+  return (d.infos||[]).map((x,i)=>{
+    let v;
+    if(x.calc==='dd:sag')v=lvl>=(x.niv||1)?8+pb+mod.sag:null;
+    else if(x.calc==='moitie_sup')v=Math.ceil(lvl/2);
+    else v=x.val[lvl-1];
+    return v==null?'':`<div class="tile" style="--c:${RCOL[(i+3)%RCOL.length]}"><span class="lbl">${esc(x.nom)}</span><span class="calc">${esc(v)}</span></div>`;
+  }).join('');
+}
+function resHTML(d,lvl,mod){
+  return (d.ressources||[]).map((r,i)=>{
+    const m=maxOf(r.max,lvl,mod);
+    if(!m)return '';
+    const key='r_'+r.id;
+    let ctl;
+    if(r.mode==='reserve'){   // réserve : on saisit ce qu'il reste (pleine tant qu'on n'y touche pas)
+      const v=RS[key]===undefined?m:Math.min(m,Math.max(0,+RS[key]||0));
+      ctl=`<span class="pool"><input type="number" min="0" max="${m}" data-r="${key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${m}${r.unite?' '+r.unite:''}</span>`;
+    }else ctl=`<span class="bx">${bx(key,m,r.nom)}</span>`;   // cases : on coche ce qui est dépensé
+    return `<div class="rs" style="--c:${RCOL[i%RCOL.length]}"><div class="rh"><b>${esc(r.nom)}</b>${ctl}</div><small>${esc(r.repos||'')}</small></div>`;
+  }).join('');
+}
+// Objets magiques à charges (choisis sur la page Objets magiques) : nombre de charges et recharge, lus dans la description
+function chargesOf(h){
+  const t=String(h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  const m=t.match(/(?<![\p{L}])(?:a|ont|possèdent?|possède|contient|contiennent|de ses)\s+(\d+)\s+charges(?![\p{L}])/iu)||t.match(/^[^:(]{0,40}[:(]\s*(\d+) charges/u);
+  if(!m||+m[1]<2)return null;
+  const r=t.match(/(?:regagnen?t?|récupèren?t?|en récupère)\s+(?:(toutes)|(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)(?:\s+charges?)?)[^.;]*?(?:à l'aube|chaque aube|au lever du soleil|au crépuscule|à minuit)/i)
+    ||t.match(/les regagne toutes[^.;]*?(?:à l'aube|chaque aube)/i);
+  return {max:+m[1],rec:r?(r[2]?r[2].replace(/\s+/g,''):'all'):null,when:!r?'':/crépuscule/i.test(r[0])?'au crépuscule':/minuit/i.test(r[0])?'à minuit':'à l’aube'};
+}
+let CHG=[];   // objets à charges du personnage (rechargés au repos long)
+function renderCharges(){
+  const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];
+  CHG=[...new Set(L)].map(n=>{const s=magItem(n),c=s&&chargesOf(s.h);return c?Object.assign(c,{n,key:'ch_'+n}):null}).filter(Boolean);
+  const h=CHG.map(r=>{
+    const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
+    const rep=r.rec==='all'?'Toutes ses charges reviennent '+r.when+' (repos long).':r.rec?'Regagne '+r.rec+' charge'+(r.rec==='1'?'':'s')+' '+r.when+' : lancé au repos long.':'Ne se recharge pas tout seul : voir la description de l’objet.';
+    return `<div class="rs" style="--c:#d6458e"><div class="rh"><b>${esc(r.n)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${esc(r.key)}" value="${v}" aria-label="${esc(r.n)} : charges restantes"> / ${r.max}</span></div><small>${esc(rep)}</small></div>`;
+  }).join('');
+  setHTML($('#chRes'),h);$('#chRes').hidden=!h;$('#secCh').hidden=!h;
+}
+// Rappel sous les boutons de repos : ce qui revient au repos court, le reste au repos long
+function shortNames(){
+  const cl=findClass(),lvl=lvlNow(),o=[],cst=cl&&castOf(cl[1]);
+  if(cst&&cst.type==='pacte')o.push('emplacements de pacte');
+  if(cl)(cl[1].ressources||[]).forEach(r=>{if(shortGain(r.repos||'')&&maxOf(r.max,lvl,CUR.mod))o.push(r.nom)});
+  POOLS.forEach(r=>{if(shortGain(r.repos||''))o.push(r.nom)});
+  return o;
+}
+function renderRestHint(){
+  const s=shortNames();
+  setHTML($('#restHint'),'<b>Repos court</b> : dés de vie'+(s.length?', '+esc(s.join(', ')):'')+'. <b>Repos long</b> : tout'+(CHG.some(r=>r.rec)?', charges des objets':'')+'.');
+}
+function renderMagic(mod,pb,lvl,cl,cst){
+  const d=cl&&cl[1],auto=!!cl;
+  const vis=(id,on)=>{$(id).hidden=!on};
+  const sub=auto&&d.sous_classe;
+  vis('#mgBar',!!sub);
+  vis('#sclWrap',!!sub);
+  if(sub)$('#sclTxt').textContent='Sous-classe lanceuse de sorts ('+sub.nom+')';
+  vis('#castTiles',!auto||!!cst);
+  $('#castTiles').className='tiles'+(auto?' t5':'');
+  vis('#tMin',auto);vis('#tPrep',auto);
+  vis('#slots',!auto);                       // saisie manuelle des emplacements : classe non reconnue seulement
+  vis('#secSlots',auto&&!!cst);vis('#slotsAuto',auto&&!!cst);
+  const note=$('#mgNote');
+  if(CDFAIL){note.textContent='Les données de classes n’ont pas pu être chargées : saisie manuelle.';note.hidden=false}
+  else if(!auto&&CD&&val('classe').trim()){note.textContent='Classe non reconnue (multiclasse, classe maison…) : emplacements à saisir à la main.';note.hidden=false}
+  else note.hidden=true;
+  el('cast').options[0].textContent=cst?'Auto : '+ABN[cst.carac]:'—';
+  $('#mgTitle').textContent=auto?(cst?'Incantation et capacités':'Capacités de classe')+' — '+cl[0]:'Incantation';
+  $('#sorts').placeholder=!auto||cst?'Tours de magie, sorts préparés…':'Options choisies, notes de classe…';
+  if(!auto){vis('#secCls',false);vis('#clsInfos',false);vis('#clsRes',false);return}
+  if(cst){
+    $('#nmin').textContent=at(cst.mineurs,lvl)||'—';
+    $('#nprep').textContent=at(cst.prepares,lvl)||'—';
+    setHTML($('#slotsAuto'),slotsHTML(cst,lvl));
+  }
+  const inf=infosHTML(d,lvl,mod,pb),res=resHTML(d,lvl,mod);
+  setHTML($('#clsInfos'),inf);setHTML($('#clsRes'),res);
+  vis('#clsInfos',!!inf);vis('#clsRes',!!res);vis('#secCls',!!(inf||res));
+}
+
+
+// ---------- Espèce, sous-classe, dons, capacités de classe (données JSON) ----------
+let ESPD=null,DOND=null,SCD=null,CAPD=null,BGD=null;
+const newPX=()=>({sp:{k:'',ch:{}},bg:{k:'',ch:{}},dons:[],spl:[],auto:{},mal:[],oh:{}});
+function findBg(){return BGD&&PX.bg.k&&BGD[PX.bg.k]?[PX.bg.k,BGD[PX.bg.k]]:null}
+// Le don d'origine de l'historique est ajouté automatiquement (et retiré si l'historique change)
+function syncBgFeat(){
+  const b=findBg();
+  PX.dons=PX.dons.filter(g=>{
+    if(!g.bg)return true;
+    const ok=b&&g.id===b[1].don;
+    if(!ok)Object.keys(RS).forEach(k=>{if(k.startsWith('d'+g.u+'_'))delete RS[k]});
+    return ok;
+  });
+  if(b&&DOND&&!PX.dons.some(g=>g.bg)&&DOND.some(x=>x.id===b[1].don))PX.dons.unshift({u:rid(),id:b[1].don,ch:Object.assign({},b[1].don_ch),bg:1});
+}
+let PX=newPX();
+const rid=()=>Math.random().toString(36).slice(2,8);
+const fm=n=>String(n).replace('.',',');
+const skIdx=n=>SK.findIndex(s=>s[0]===n);
+const optObj=o=>typeof o==='string'?{v:o}:o;
+const short=v=>String(v).split(' (')[0];
+function findEsp(){
+  const v=norm(val('race'));
+  if(!ESPD||!v)return null;
+  for(const n in ESPD)if(norm(n)===v)return [n,ESPD[n]];
+  return null;
+}
+const lignOpt=E=>E&&E[1].lignage?E[1].lignage.opts.find(o=>o.v===val('sespece')):null;
+function resMax(r,lvl,pb,mod){
+  const m=r.max;
+  if(m==='pb')return pb;
+  if(typeof m==='number')return m;
+  if(Array.isArray(m))return m[lvl-1]||0;
+  if(m&&m.mod)return Math.max(m.min||0,mod[m.mod]||0);
+  return 0;
+}
+// Effets des objets magiques sur la fiche, appliqués seulement si le personnage est harmonisé avec l'objet (page Objets magiques).
+// set : la caractéristique passe à n (sans effet si elle est déjà plus haute) ; carac : +n (max) ; ca, sv (tous les jets de sauvegarde),
+// tests (tests de caractéristique, compétences et initiative), init, satk (attaque de sort), sdd (DD des sorts), vit. Les objets « +1, +2 ou +3 » proposent un choix.
+const PLUS=fx=>[1,2,3].map(n=>['+'+n,fx(n)]);
+const SORTN=n=>[{t:'satk',n},{t:'sdd',n}];
+const FXO={
+  "Amulette de bonne santé":[{t:'set',v:'con',n:19}],
+  "Bandeau d'intelligence":[{t:'set',v:'int',n:19}],
+  "Gantelets de puissance d'ogre":[{t:'set',v:'for',n:19}],
+  "Ceinturon de force de géant":{choix:[['Géant des collines (Force 21)',[{t:'set',v:'for',n:21}]],['Géant du givre (Force 23)',[{t:'set',v:'for',n:23}]],['Géant des pierres (Force 23)',[{t:'set',v:'for',n:23}]],['Géant du feu (Force 25)',[{t:'set',v:'for',n:25}]],['Géant des nuages (Force 27)',[{t:'set',v:'for',n:27}]],['Géant des tempêtes (Force 29)',[{t:'set',v:'for',n:29}]]]},
+  "Ceinturon des nains":[{t:'carac',v:'con',n:2,max:20}],
+  "Éclat de Xeluan":[{t:'carac',v:'for',n:4,max:22},{t:'satk',n:1}],
+  "Pierre de Ioun":{choix:[['Agilité (Dextérité +2)',[{t:'carac',v:'dex',n:2,max:20}]],['Vigueur (Constitution +2)',[{t:'carac',v:'con',n:2,max:20}]],['Intuition (Sagesse +2)',[{t:'carac',v:'sag',n:2,max:20}]],['Intellect (Intelligence +2)',[{t:'carac',v:'int',n:2,max:20}]],['Commandement (Charisme +2)',[{t:'carac',v:'cha',n:2,max:20}]],['Force (Force +2)',[{t:'carac',v:'for',n:2,max:20}]],['Protection (CA +1)',[{t:'ca',n:1}]],['Autre pierre (pas d’effet sur la fiche)',[]]]},
+  "Anneau de protection":[{t:'ca',n:1},{t:'sv',n:1}],
+  "Cape de protection":[{t:'ca',n:1},{t:'sv',n:1}],
+  "Armure d'écailles de dragon":[{t:'ca',n:1}],
+  "Armure démoniaque":[{t:'ca',n:1}],
+  "Armure de golem de cuir":[{t:'ca',n:1}],
+  "Mailles de l'éfrit":[{t:'ca',n:3}],
+  "Armure de scorpion":[{t:'init',n:5}],
+  "Bâton de défense":[{t:'ca',n:1}],
+  "Bouclier du cavalier":[{t:'ca',n:2}],
+  "Bouclier de bélier":[{t:'ca',n:1}],
+  "Bouclier de la tortue":[{t:'ca',n:1}],
+  "Bracelets de défense":[{t:'ca',n:2,cond:'sans armure ni bouclier',noA:1,noS:1}],
+  "Insigne de la Garde":[{t:'ca',n:2,cond:'sans bouclier',noS:1}],
+  "Scarabée de protection":[{t:'ca',n:1}],
+  "Robe de l'archimage":[{t:'cab',b:15,cond:'sans armure'},...SORTN(2)],
+  "Robe aux étoiles":[{t:'sv',n:1}],
+  "Lame porte-bonheur":[{t:'sv',n:1}],
+  "Pierre porte-bonheur":[{t:'sv',n:1},{t:'tests',n:1}],
+  "Morsure de Harkon":[{t:'sv',n:1},{t:'tests',n:1}],
+  "Bâton de surpuissance":[{t:'ca',n:2},{t:'sv',n:2},{t:'satk',n:2}],
+  "Bâton du thaumaturge":[{t:'satk',n:2}],
+  "Bâton des forêts":[{t:'satk',n:2}],
+  "Bâton aveuglant":[{t:'satk',n:1}],
+  "Bâton de l'ivoire griffu":[{t:'satk',n:1}],
+  "Bâton du voyageur":[{t:'satk',n:1}],
+  "Talisman du bien absolu":[{t:'satk',n:2}],
+  "Talisman du mal absolu":[{t:'satk',n:2}],
+  "Bracelets de célérité":[{t:'vit',n:3}],
+  "Armure +1, +2 ou +3":{choix:PLUS(n=>[{t:'arm',n}])},
+  "Bouclier +1, +2 ou +3":{choix:PLUS(n=>[{t:'arm',n}])},
+  "Baguette du mage de guerre +1, +2 ou +3":{choix:PLUS(n=>[{t:'satk',n}])},
+  "Amulette du dévot":{choix:PLUS(SORTN)},
+  "Grimoire arcanique":{choix:PLUS(SORTN)},
+  "Outil universel":{choix:PLUS(SORTN)},
+  "Sceptre du gardien des pactes":{choix:PLUS(SORTN)},
+  "Tambour du faiseur de rythme":{choix:PLUS(SORTN)},
+  "Fiole de puits de sang":{choix:PLUS(SORTN)},
+  "Faucille lunaire":{choix:PLUS(SORTN)},
+  "Jeu du donneur de destin":{choix:[['Rare (+1)',SORTN(1)],['Très rare (+2)',SORTN(2)],['Légendaire (+3)',SORTN(3)]]},
+};
+// Objets avec lesquels le personnage actif est harmonisé (choisis sur la page Objets magiques)
+const harmonises=()=>{const o=Persos.part('objets');return o&&o.data&&Array.isArray(o.data.harmonises)?o.data.harmonises:[]};
+// Éléments personnalisés (objets / équipement créés par le joueur), s'ils existent : même forme que objets.json / equipement.json, effets dans fx
+const custom=k=>{try{const c=Persos.custom&&Persos.custom();return c&&Array.isArray(c[k])?c[k]:[]}catch(x){return []}};
+const fxCustom=n=>{const o=custom('objets').find(x=>x.n===n);return o&&Array.isArray(o.fx)?o.fx.filter(f=>f.t!=='arme'):null};
+const fxObj=n=>{const d=FXO[n];if(!d)return fxCustom(n);if(Array.isArray(d))return d;const c=d.choix.find(x=>x[0]===PX.oh[n]);return c?c[1]:[]};
+// Calcule les effets (espèce, lignage, dons, sous-classe, capacités de classe) ; calc() les applique ensuite
+function fxCompute(lvl,pb){
+  const F={cap:{},ab:{},set:{},sv:{},sk:{},init:0,pvn:0,vit:0,ca:0,cca:[],cab:[],svb:0,tst:0,satk:0,sdd:0,res:[],lines:[],E:findEsp(),cl:findClass()};
+  const add=(o,k,n)=>{o[k]=(o[k]||0)+n};
+  const run=(fx,ch,src,key)=>{
+    for(const f of fx){
+      if(f.niv&&lvl<f.niv)continue;
+      const v=f.v||(f.c?ch[f.c]:null);
+      if(f.t==='carac'){if(v){add(F.ab,v,f.n||1);F.cap[v]=Math.max(F.cap[v]||20,f.max||20);F.lines.push([src,ABN[v]+' +'+(f.n||1)])}}
+      else if(f.t==='set'){F.set[v]=Math.max(F.set[v]||0,f.n);F.lines.push([src,ABN[v]+' '+f.n+' (si plus faible)'])}
+      else if(f.t==='sv'&&f.n){F.svb+=f.n;F.lines.push([src,'jets de sauvegarde '+sg(f.n)])}
+      else if(f.t==='tests'){F.tst+=f.n;F.lines.push([src,'tests de caractéristique et initiative '+sg(f.n)])}
+      else if(f.t==='init'){F.init+=f.n;F.lines.push([src,'initiative '+sg(f.n)])}
+      else if(f.t==='satk'){F.satk+=f.n;F.lines.push([src,'attaque de sort '+sg(f.n)])}
+      else if(f.t==='sdd'){F.sdd+=f.n;F.lines.push([src,'DD des sorts '+sg(f.n)])}
+      else if(f.t==='bg_carac'){
+        const m=ch.mode||'+2 / +1',abl=(PX.bg.k&&BGD&&BGD[PX.bg.k]?BGD[PX.bg.k].carac:[]);
+        const give=(k,n)=>{add(F.ab,k,n);F.cap[k]=Math.max(F.cap[k]||20,20);F.lines.push([src,ABN[k]+' +'+n])};
+        if(m==='+1 / +1 / +1')abl.forEach(k=>give(k,1));
+        else{if(ch.a2)give(ch.a2,2);if(ch.a1&&ch.a1!==ch.a2)give(ch.a1,1)}
+      }
+      else if(f.t==='sv'){if(v){F.sv[v]=1;F.lines.push([src,'maîtrise du jet de sauvegarde de '+ABN[v]])}}
+      else if(f.t==='comp'){const i=skIdx(v);if(i>=0){F.sk[i]=Math.max(F.sk[i]||0,1);F.lines.push([src,'maîtrise : '+v])}}
+      else if(f.t==='exp'){const i=skIdx(v);if(i>=0){F.sk[i]=2;F.lines.push([src,'expertise : '+v])}}
+      else if(f.t==='init_pb'){F.init+=pb;F.lines.push([src,'initiative '+sg(pb)])}
+      else if(f.t==='pv_niv'){F.pvn+=f.n*lvl;F.lines.push([src,'PV max +'+f.n*lvl+' ('+f.n+' par niveau)'])}
+      else if(f.t==='vit'){F.vit+=f.n;F.lines.push([src,'vitesse +'+fm(f.n)+' m'])}
+      else if(f.t==='ca'){if(f.noA||f.noS||f.reqA)F.cca.push(f);else F.ca+=f.n;F.lines.push([src,'CA +'+f.n+(f.cond?' ('+f.cond+')':'')])}
+      else if(f.t==='cab')F.cab.push({src,b:f.b||10,m:f.m||[],noS:f.noS,cond:f.cond});   // CA de base sans armure (Défense sans armure…)
+      else if(f.t==='res')F.res.push({key:key+f.id,nom:f.nom,max:f.max,repos:f.repos,niv:f.niv});
+    }
+  };
+  if(F.E){
+    const [n,d]=F.E,ch=PX.sp.ch,o=lignOpt(F.E);
+    run(d.fx,ch,n,'e_');
+    if(o)run(o.fx||[],ch,n+' ('+short(o.v)+')','e_');
+  }
+  const B=findBg();
+  if(B)run(B[1].fx,PX.bg.ch,'Historique ('+B[0]+')','h_');
+  if(DOND)for(const g of PX.dons){
+    const dd=DOND.find(x=>x.id===g.id);
+    if(dd)run(dd.fx,g.ch,dd.nom,'d'+g.u+'_');
+  }
+  const sf=F.cl&&SCD&&SCD[F.cl[0]]&&SCD[F.cl[0]][val('sclasse')];
+  if(sf)run(sf.fx||[],{},val('sclasse'),'s_');
+  for(const n of harmonises()){const fx=fxObj(n);if(fx)run(gearFx(n,fx),{},n,'o_')}
+  {const o=Persos.part('objets'),L=o&&o.data&&o.data.objets||[];   // objets créés sans harmonisation : effets dès qu'ils sont choisis
+   for(const n of L){const c=custom('objets').find(x=>x.n===n);if(c&&!c.a&&c.fx&&c.fx.length)run(gearFx(n,fxCustom(n)),{},n,'o_')}}
+  // capacités de classe : seuls les effets sur les valeurs de la fiche (les réserves de classe sont déjà au-dessus)
+  if(F.cl&&CAPD&&CAPD[F.cl[0]])for(const f of CAPD[F.cl[0]])
+    if(f.niv<=lvl)run((f.fx||[]).filter(x=>x.t!=='res').map(x=>({...x,niv:0})),{},f.nom,'c_');
+  return F;
+}
+function chHTML(path,c,cur){
+  const a=`data-x="${path}|${c.id}"`;
+  if(c.t==='texte')return `<label class="ch"><small>${esc(c.lbl)}</small><input type="text" ${a} value="${esc(cur||'')}"></label>`;
+  let o;
+  if(c.t==='carac')o=c.opts.map(k=>[k,ABN[k]]);
+  else if(c.t==='comp')o=(c.opts||SK.map(s=>s[0])).map(n=>[n,n]);
+  else o=c.opts.map(optObj).map(x=>[x.v,x.v]);
+  return `<label class="ch"><small>${esc(c.lbl)}</small><select ${a}><option value="">—</option>${o.map(([v,t])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+}
+const poolHTML=r=>{
+  const v=RS[r.key]===undefined?r.max:Math.min(r.max,Math.max(0,+RS[r.key]||0));
+  return `<div class="rs" style="--c:#12968f"><div class="rh"><b>${esc(r.nom)}</b><span class="pool"><input type="number" min="0" max="${r.max}" data-r="${r.key}" value="${v}" aria-label="${esc(r.nom)} restants"> / ${r.max}</span></div><small>${esc(r.repos||'')}</small></div>`;
+};
+// Listes de sorts par niveau (« niv. 3 a, b ; niv. 5 c » ou « a, b (niv. 3), c (niv. 5) ») : un niveau par ligne
+function lvlLines(h){
+  if(/; niv\. \d/.test(h))return h.replace(/\s*:\s*(?=niv\. \d+ )/,' :<br>').replace(/\s*;\s*(?=niv\. \d+ )/g,'<br>');
+  return h.replace(/(préparés\s*:\s*)((?:[^().:;]+\(niv\. \d+\)(?:,\s*)?){2,})/,(m,lead,list)=>
+    lead.replace(/\s*:\s*$/,' :')+list.split(/\s*\(niv\. (\d+)\)(?:,\s*)?/).reduce((o,x,i,arr)=>i%2?o:x.trim()?o+'<br>niv. '+arr[i+1]+' : '+x.trim():o,''));
+}
+const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${lvlLines(esc(t.desc)).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`;
+const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${lvlLines(esc(f.desc)).replace(/\n/g,'<br>')}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
+function renderExtras(F,lvl,pb,mod,tot){
+  const E=F.E,cl=F.cl;
+  const RES=F.res.map(r=>({...r,max:resMax(r,lvl,pb,mod)})).filter(r=>r.max>0);
+  POOLS=RES;
+  // Espèce
+  const lo=lignOpt(E);
+  $('#xSpT').textContent=E?'Espèce — '+E[0]+(lo?' ('+short(lo.v)+')':''):'Espèce';
+  let h;
+  if(!ESPD)h='<p class="xh">Les données d’espèces n’ont pas pu être chargées.</p>';
+  else if(!E)h=`<p class="xh">${val('race').trim()?'Espèce non reconnue : aucun trait automatique.':'Choisissez une espèce dans les paramètres.'}</p>`;
+  else{
+    const d=E[1],ch=PX.sp.ch;
+    h=`<p class="xh">Taille : ${esc(d.taille)} · Vitesse de base : ${fm(d.vit)} m</p>`+traitsHTML(d.traits);
+    if(d.lignage)h+=lo?`<p class="xh"><b>${esc(d.lignage.lbl)} : ${esc(lo.v)}</b></p>`+traitsHTML(lo.traits||[{nom:lo.v,desc:lo.txt||''}]):`<p class="xh">Choisissez un ${esc(d.lignage.lbl.toLowerCase())} dans les paramètres (sous-espèce).</p>`;
+    if(d.choix.length)h+=`<div class="chs">${d.choix.map(c=>chHTML('sp',c,ch[c.id])).join('')}</div>`;
+    h+=RES.filter(r=>r.key.startsWith('e_')).map(poolHTML).join('');
+  }
+  setHTML($('#xSp'),h);
+  // Tableau de sorts
+  // Historique
+  const B=findBg();
+  $('#xBgC').hidden=!B;
+  if(B){
+    const d=B[1],dn=DOND&&DOND.find(x=>x.id===d.don);
+    $('#xBgT').textContent='Historique — '+B[0];
+    setHTML($('#xBg'),`<p class="xh">${esc(d.desc)}</p><ul class="xl"><li><b>Caractéristiques</b> — ${d.carac.map(k=>ABN[k]).join(', ')} : +2 / +1, ou +1 à chacune</li><li><b>Compétences</b> — ${d.comp.join(', ')}</li><li><b>Outil</b> — ${esc(d.outil)}</li><li><b>Don d’origine</b> — ${esc(dn?dn.nom:d.don)} (ajouté dans la liste des dons)</li></ul><p class="xh">${esc(d.equip)}</p><div class="chs">${d.choix.map(c=>chHTML('bg',c,PX.bg.ch[c.id])).join('')}</div>`);
+  }
+  // Sous-classe
+  const sn=val('sclasse'),sf=cl&&SCD&&SCD[cl[0]]&&SCD[cl[0]][sn];
+  $('#xSubC').hidden=!sf;
+  if(sf){
+    $('#xSubT').textContent='Sous-classe — '+sn;
+    setHTML($('#xSub'),featsHTML(sf.feats,lvl)+RES.filter(r=>r.key.startsWith('s_')).map(poolHTML).join(''));
+  }
+  // Capacités de classe (page 4)
+  const cf=cl&&CAPD&&CAPD[cl[0]];
+  $('#pg4').classList.toggle('empty',!cf);$('#pg4').hidden=!cf;
+  if(cf){$('#xClsT').textContent='Capacités de classe — '+cl[0]+' (niveau '+lvl+')';setHTML($('#xCls'),featsHTML(cf,lvl))}
+  // Dons
+  let dh='';
+  if(!DOND)dh='<p class="xh">Les données de dons n’ont pas pu être chargées.</p>';
+  else dh=PX.dons.map(g=>{
+    const dd=DOND.find(x=>x.id===g.id);
+    if(!dd)return '';
+    return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${esc(dd.nom)}</b><span>${esc(dd.cat)}${dd.pre?' · '+esc(dd.pre):''}${g.bg?' · de l’historique':''}${dd.c_?' · création':''}</span>${dd.c_?`<button type="button" class="noprint" data-donedit="${esc(dd.id)}">Modifier</button>`:''}${g.bg?'':`<button type="button" class="noprint" data-del="${g.u}">Retirer</button>`}</div><p>${esc(dd.desc)}</p>`
+      +(dd.choix.length?`<div class="chs">${dd.choix.map(c=>chHTML('d'+g.u,c,g.ch[c.id])).join('')}</div>`:'')
+      +RES.filter(r=>r.key.startsWith('d'+g.u+'_')).map(poolHTML).join('')+'</div>';
+  }).join('')||'<p class="xh">Aucun don. Ajoutez-en avec la liste ci-dessus (un même don peut être pris plusieurs fois).</p>';
+  setHTML($('#xDons'),dh);
+  // Objets harmonisés
+  const H=harmonises().slice();
+  {const o=Persos.part('objets');(o&&o.data&&o.data.objets||[]).forEach(n=>{const d=FXO[n],m=magItem(n);if(d&&!Array.isArray(d)&&m&&!m.a&&!H.includes(n))H.push(n)})}   // objets sans harmonisation à préciser (Armure +1, +2 ou +3…)
+  $('#xObC').hidden=!H.length;
+  if(H.length)setHTML($('#xOb'),'<ul class="xl">'+H.map(n=>{
+    const d=FXO[n];
+    if(!d&&fxCustom(n)&&fxCustom(n).length)return `<li><b>${esc(n)}</b> — effets appliqués (voir « Effets appliqués »)</li>`;
+    if(!d)return `<li><b>${esc(n)}</b> — pas d’effet chiffré à appliquer sur la fiche</li>`;
+    if(Array.isArray(d))return `<li><b>${esc(n)}</b> — effets appliqués (voir « Effets appliqués »)</li>`;
+    return `<li><b>${esc(n)}</b><div class="chs">${chHTML('oh',{id:n,lbl:'Version de l’objet',opts:d.choix.map(c=>c[0])},PX.oh[n])}</div></li>`;
+  }).join('')+'</ul>');
+  // Effets appliqués
+  const spd=E?E[1].vit+F.vit:F.vit?9+F.vit:null;
+  const row=(a,b)=>`<b>${a}</b><span>${b}</span>`;
+  let fx=F.lines.map(([a,b])=>row(esc(a),esc(b))).join('');
+  if(spd!=null)fx+=row('Vitesse',fm(spd)+' m');
+  const ac=AB.filter(([k])=>F.ab[k]||F.set[k]).map(([k])=>`${ABN[k]} ${tot[k]}`).join(', ');
+  if(ac)fx+=row('Caractéristiques finales',esc(ac));
+  setHTML($('#xFx'),fx?`<div class="fxs">${fx}</div><p class="xh">Les bonus de caractéristique, d’initiative, de CA, de sauvegarde, de sorts (objets harmonisés compris) et les maîtrises sont déjà appliqués à la fiche (cases cochées automatiquement). Ajoutez vous-même les PV maximum supplémentaires.</p>`:'<p class="xh">Aucun effet pour le moment.</p>');
+  $('#pg3').classList.toggle('empty',!E&&!PX.dons.length&&!sf&&!B&&!H.length);
+}
+// Liste de choix de la classe (Malédictions de sang du Chasseur de sang) : sélecteur avec limite selon le niveau
+let MALQ='';
+function renderMal(cl,lvl){
+  const L=cl&&cl[1].liste;
+  $('#xMalC').hidden=!L;
+  if(!L)return;
+  const max=L.max[lvl-1]||0,sel=PX.mal.filter(n=>L.items.some(i=>i.nom===n)),full=sel.length>=max,q=norm(MALQ);
+  const sub=val('sclasse'),od=L.ordres[sub],og=od&&od.niv<=lvl?od:null;
+  $('#xMalT').textContent=L.titre+' — '+sel.length+' / '+max;
+  const row=i=>{
+    const on=sel.includes(i.nom),hid=q&&!norm(i.court+' '+i.en+' '+i.desc).includes(q);
+    return `<label class="mrow${on?' on':''}"${hid?' hidden':''}><input type="checkbox" class="noprint" data-mal="${esc(i.nom)}"${on?' checked':''}${!on&&full?' disabled':''}><span><b>${esc(i.court)}</b> <small>${esc(i.en)}</small><br>${esc(i.desc)}${i.amp?`<br><em>Amplifiée :</em> ${esc(i.amp)}`:''}</span></label>`;
+  };
+  setHTML($('#xMal'),(max?'':'<p class="xh">Aucune malédiction connue à ce niveau.</p>')+`<p class="xh noprint">Coche tes malédictions connues (${max} à ce niveau) ; tu peux en échanger une à chaque niveau gagné. Une fois la limite atteinte, décoche-en une pour en changer.</p>`+L.items.map(row).join('')+(og?`<div class="mrow on og"><span><b>${esc(og.nom.replace(/\s*\(.*$/,''))}</b> <small>offerte par ${esc(sub)} · hors limite</small><br>${esc(og.desc)}</span></div>`:''));
+}
+document.addEventListener('change',e=>{
+  const c=e.target.closest&&e.target.closest('[data-mal]');if(!c)return;
+  const n=c.dataset.mal;PX.mal=PX.mal.filter(x=>x!==n);
+  if(c.checked)PX.mal.push(n);
+  calc();autosave();
+});
+document.addEventListener('input',e=>{if(e.target.id==='malQ'){MALQ=e.target.value;calc()}});
+// Cases de maîtrise / expertise / sauvegarde cochées automatiquement par les effets (et verrouillées tant que l'effet dure)
+function syncChecks(F){
+  const A=PX.auto=PX.auto||{};
+  const sync=(cb,want,store,key)=>{
+    if(!cb)return;
+    if(want&&!cb.checked){cb.checked=true;store[key]=1}
+    if(!want&&store[key]){cb.checked=false;delete store[key]}
+    if(cb.dataset.t0===undefined)cb.dataset.t0=cb.title||'';
+    cb.disabled=!!want;
+    cb.title=want?'Accordée par un effet (espèce, don…)':cb.dataset.t0;
+  };
+  A.sk=A.sk||{};A.ske=A.ske||{};A.sv=A.sv||{};
+  SK.forEach((s,i)=>{
+    const x=F.sk[i]===2,m=x||F.sk[i]>=1;
+    sync(el('sk_'+i),m,A.sk,i);sync(el('ske_'+i),x,A.ske,i);
+  });
+  AB.forEach(([k])=>sync(el('sv_'+k),!!F.sv[k],A.sv,k));
+}
+function fillSub(){
+  const cl=findClass(),sel=$('#sclasse'),keep=sel.value;
+  const names=cl&&SCD&&SCD[cl[0]]?Object.keys(SCD[cl[0]]):[];
+  setHTML(sel,'<option value="">—</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''));
+  if(sel.value!==keep){
+    sel.value=keep;
+    if(sel.value!==keep&&val('sousclasse')===keep)el('sousclasse').value='';   // la classe a changé : la sous-classe n'existe plus
+  }
+}
+function fillSpec(){
+  const E=findEsp(),sel=$('#sespece'),keep=sel.value,l=E&&E[1].lignage;
+  setHTML(sel,l?`<option value="">${esc(l.lbl)}…</option>`+l.opts.map(o=>`<option value="${esc(o.v)}">${esc(o.v)}</option>`).join(''):'<option value="">— (aucune sous-espèce)</option>');
+  sel.disabled=!l;
+  if(sel.value!==keep)sel.value=keep;
+}
+function ensureRace(v){
+  const sel=$('#race');
+  if(v&&![...sel.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (personnalisé)';sel.appendChild(o)}
+}
+// Champ « Espèce » de la page 1 : espèce + sous-espèce
+function syncEspece(){
+  const r=val('race'),l=val('sespece');
+  el('espece').value=r?(l?r+' ('+short(l)+')':r):'';
+}
+
+let EQD=null,OBD=null;   // equipement.json et objets.json, chargés au démarrage (armures, boucliers)
+const armures=()=>(EQD||[]).concat(custom('equipement')).filter(x=>x&&x.t==='Armure'&&x.h);
+const isShield=x=>x.c==='Bouclier'||/^bouclier/i.test(x.n);
+const magItem=n=>custom('objets').find(x=>x.n===n)||(OBD||[]).find(x=>x.n===n);
+const isGear=n=>{const s=magItem(n);return !!(s&&s.t==='Armure')};
+const gearFx=(n,fx)=>isGear(n)?fx.filter(f=>f.t!=='ca'||f.noA||f.noS):fx;   // CA d'une armure / d'un bouclier magique : comptée seulement s'il est porté
+function armorStats(x){   // « Classe d’armure : 14 + mod. de Dex (max. +2). Force requise : Force 13… »
+  const h=x.h.replace(/<[^>]+>/g,''),m=h.match(/Classe d.armure\s*:\s*(\d+)(\s*\+\s*(?:le\s+)?mod[^(.]*\.?[^(.]*(?:\(\s*max\.?\s*\+?\s*(\d+)\s*\))?)?/i);
+  if(!m)return null;
+  const st=h.match(/Force requise\s*:\s*(?:Force\s*)?(\d+)/i);
+  return {base:+m[1],dex:m[2]?(m[3]!=null?+m[3]:null):0,str:st?+st[1]:0,disc:/Désavantage aux tests de Discrétion/i.test(h)};
+}
+const acOf=(st,dex)=>st.base+(st.dex===0?0:st.dex==null?dex:Math.min(dex,st.dex));
+function baseArmors(s){   // armures de base possibles pour une armure magique (« Armure (cotte de mailles ou chemise de mailles) »)
+  const BA=armures().filter(a=>!isShield(a)&&armorStats(a));
+  const txt=s.h.replace(/<[^>]+>/g,'');
+  let head=norm((txt.match(/^[^.]*?\(([^)]*)\)/)||[])[1]||'')+' | '+norm(txt.split('.')[0]);
+  const key=a=>norm(a.n).replace(/^armure (de |d'|a )?/,'');
+  const r=[];
+  for(const a of [...BA].sort((x,y)=>key(y).length-key(x).length)){
+    const re=new RegExp('(^|[^a-z])'+key(a).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![a-z])','g');
+    if(re.test(head)){r.push(a);head=head.replace(re,'$1#')}
+  }
+  if(r.length)return r;
+  const cats=[['legere','Armure légère'],['intermediaire','Armure intermédiaire'],['lourde','Armure lourde']].filter(([k])=>head.includes(k)).map(c=>c[1]);
+  return cats.length?BA.filter(a=>cats.includes(a.c)):BA;
+}
+function magicAC(s){   // bonus de CA d'une armure / d'un bouclier magique
+  const fx=fxObj(s.n);
+  if(fx)return fx.filter(f=>(f.t==='ca'&&!f.noA&&!f.noS)||f.t==='arm').reduce((t,f)=>t+(+f.n||0),0);
+  const m=s.h.replace(/<[^>]+>/g,'').match(/bonus de \+(\d) à la CA/);
+  return m?+m[1]:0;
+}
+// Armure et bouclier portés : les meilleurs parmi l'inventaire (page Équipement) et les objets magiques utilisables (sans harmonisation, ou harmonisés)
+function gear(dex){
+  const eq=Persos.part('equipement'),EL=(eq&&eq.data&&eq.data.objets||[]).map(o=>o.n);
+  const o=Persos.part('objets'),OL=o&&o.data&&o.data.objets||[],H=new Set(harmonises());
+  const AL=armures(),own=AL.filter(a=>EL.includes(a.n));
+  const bodies=[],shields=[];
+  own.forEach(a=>{if(isShield(a)){const m=a.h.replace(/<[^>]+>/g,'').match(/\+\s*(\d+)\s*à la classe d.armure/i);shields.push({n:a.n,ca:m?+m[1]:2})}
+    else{const st=armorStats(a);if(st)bodies.push({n:a.n,st,b:0})}});
+  OL.forEach(n=>{
+    const s=magItem(n);if(!s||s.t!=='Armure'||!s.h||(s.a&&!H.has(n)))return;
+    const b=magicAC(s);
+    if(isShield(s)||/^(armure \()?bouclier/i.test(s.h.replace(/<[^>]+>/g,''))){shields.push({n,ca:2+b});return}
+    const opts=baseArmors(s).map(a=>({a,st:armorStats(a)}));if(!opts.length)return;
+    const mine=opts.filter(x=>EL.includes(x.a.n)),pool=mine.length?mine:opts;
+    const best=pool.sort((x,y)=>acOf(y.st,dex)-acOf(x.st,dex))[0];
+    const t=s.h.replace(/<[^>]+>/g,''),st={...best.st};
+    if(/n.impose pas le désavantage|n'a pas cette contrainte/i.test(t))st.disc=false;   // mithral, écailles de serpent
+    if(/Force minimale[^.]*n'a pas cette contrainte/i.test(t))st.str=0;
+    if(/modificateur de Dextérité complet/i.test(t))st.dex=null;
+    bodies.push({n,st,b,base:best.a.n,mg:1});
+  });
+  const AR=bodies.sort((x,y)=>acOf(y.st,dex)+y.b-acOf(x.st,dex)-x.b||(y.mg||0)-(x.mg||0))[0]||null;   // à CA égale, l'armure magique
+  const sh=shields.sort((x,y)=>y.ca-x.ca)[0]||null;
+  return {AR,sh};
+}
+// Maîtrises d'armures, d'armes et d'outils par classe (règles 2024) ; s'ajoutent celles de l'historique et des dons
+const PROF={
+  'Artificier':{ar:['légères','intermédiaires','boucliers'],ar_:'',w:'Armes courantes',o:'Outils de voleur, outils de bricoleur, un type d’outils d’artisan au choix'},
+  'Barbare':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Barde':{ar:['légères'],w:'Armes courantes',o:'Trois instruments de musique au choix'},
+  'Chasseur de sang':{ar:['légères','intermédiaires'],w:'Armes courantes et armes de guerre',o:'Matériel d’alchimiste'},
+  'Clerc':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes',o:''},
+  'Druide':{ar:['légères','boucliers'],w:'Armes courantes',o:'Matériel d’herboriste'},
+  'Ensorceleur':{ar:[],w:'Armes courantes',o:''},
+  'Guerrier':{ar:['légères','intermédiaires','lourdes','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Magicien':{ar:[],w:'Armes courantes',o:''},
+  'Moine':{ar:[],w:'Armes courantes et armes de guerre ayant la propriété Légère',o:'Un type d’outils d’artisan ou un instrument de musique au choix'},
+  'Occultiste':{ar:['légères'],w:'Armes courantes',o:''},
+  'Paladin':{ar:['légères','intermédiaires','lourdes','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Rôdeur':{ar:['légères','intermédiaires','boucliers'],w:'Armes courantes et armes de guerre',o:''},
+  'Roublard':{ar:['légères'],w:'Armes courantes et armes de guerre ayant la propriété Finesse ou Légère',o:'Outils de voleur'},
+};
+const DONPROF={armure_legere:['légères','boucliers'],armure_inter:['intermédiaires','boucliers'],armure_lourde:['lourdes']};
+const ARORD=['légères','intermédiaires','lourdes','boucliers'];
+function renderProf(cl){
+  const P=cl&&PROF[cl[0]],ar=new Set(P?P.ar:[]),o=[];
+  if(P&&P.o)o.push(P.o);
+  const B=findBg();if(B&&B[1].outil)o.push(B[1].outil);
+  for(const g of PX.dons){
+    (DONPROF[g.id]||[]).forEach(x=>ar.add(x));
+    if(g.id==='artisan'&&g.ch.o)o.push(g.ch.o);
+    if(g.id==='musicien'&&g.ch.i)o.push(g.ch.i);
+  }
+  const a=ARORD.filter(x=>ar.has(x)),arm=a.filter(x=>x!=='boucliers');
+  if(DERIV)DERIV.ar=a;
+  const at=a.length?(arm.length?'Armures '+(arm.length>1?arm.slice(0,-1).join(', ')+' et '+arm.at(-1):arm[0]):'')+(ar.has('boucliers')?(arm.length?', boucliers':'Boucliers'):''):'Aucune';
+  setHTML($('#prof'),cl||o.length||a.length?`<div><b>Armures :</b> ${esc(at)}</div><div><b>Armes :</b> ${esc(P?P.w:'—')}</div><div><b>Outils :</b> ${esc(o.join(' ; ')||'Aucun')}</div>`:'<div style="color:var(--soft)">Choisis une classe et un historique dans les Paramètres.</div>');
+}
+// Langues (règles 2024) : choisies dans une liste, affichées dans le bloc « Langues »
+const LANGS=[['Langues courantes',['Commun','Commun des signes','Draconique','Elfique','Géant','Gnome','Gobelin','Halfelin','Nain','Orc']],['Langues rares',['Abyssal','Céleste','Commun des profondeurs','Druidique','Infernal','Primordial','Profond','Sylvestre','Argot des voleurs']]];
+const langSel=()=>val('langs').split(',').map(x=>x.trim()).filter(Boolean);
+function renderLangs(){
+  const L=langSel();
+  setHTML($('#langList'),L.length?L.map(x=>`<span>${esc(x)}</span>`).join(''):'<i>Aucune langue choisie</i>');
+  const box=$('#langPick');
+  if(!box.childElementCount)box.innerHTML=LANGS.map(([g,a])=>`<small>${g}</small>`+a.map(n=>`<label><input type="checkbox" data-lang="${esc(n)}">${esc(n)}</label>`).join('')).join('');
+  box.querySelectorAll('[data-lang]').forEach(c=>{c.checked=L.includes(c.dataset.lang)});
+}
+document.addEventListener('input',e=>{   // en capture : avant le recalcul général de la fiche
+  const c=e.target.closest&&e.target.closest('[data-lang]');if(!c)return;
+  const all=LANGS.flatMap(x=>x[1]),L=langSel().filter(x=>x!==c.dataset.lang);
+  if(c.checked)L.push(c.dataset.lang);
+  L.sort((a,b)=>(all.indexOf(a)+1||99)-(all.indexOf(b)+1||99));
+  el('langs').value=L.join(', ');renderLangs();autosave();
+},true);
+let CUR={mod:{for:0,dex:0},pb:2};   // derniers modificateurs calculés (pour l'import des armes)
+let DERIV=null;   // valeurs calculées, enregistrées avec la fiche pour les autres pages (prérequis des dons)
+function calc(){
+  const lvl=Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
+  const pb=Math.ceil(lvl/4)+1;
+  fillSub();
+  syncBgFeat();
+  const F=fxCompute(lvl,pb);
+  syncChecks(F);
+  fillSpec();
+  const mod={},tot={};
+  AB.forEach(([k])=>{
+    const base=parseInt(val('ab_'+k))||10;
+    tot[k]=F.ab[k]?Math.max(base,Math.min(F.cap[k]||20,base+F.ab[k])):base;   // les bonus ne dépassent pas 20 (30 pour une faveur épique)
+    if(F.set[k])tot[k]=Math.max(tot[k],F.set[k]);   // objet qui fixe la valeur (Bandeau d'intelligence…)
+    mod[k]=Math.floor((tot[k]-10)/2);
+    $('#m_'+k).textContent=sg(mod[k]);
+    {const fe=$('#f_'+k);fe.hidden=tot[k]===base;fe.textContent='→ '+tot[k];fe.title='Valeur finale avec les bonus (espèce, historique, dons, objets harmonisés)'}
+    el('ab_'+k).title=tot[k]!==base?'Valeur de base ; '+tot[k]+' avec les bonus (espèce, historique, dons, objets harmonisés)':'';
+    $('#sv_'+k).textContent=sg(mod[k]+(chk('sv_'+k)?pb:0)+F.svb);
+    $('#sv_'+k).classList.toggle('fx',!!F.sv[k]);
+  });
+  const bonus=i=>chk('ske_'+i)?2*pb:chk('sk_'+i)?pb:0;
+  SK.forEach(([n,a],i)=>{$('#sk_'+i).textContent=sg(mod[a]+bonus(i)+F.tst);$('#sk_'+i).classList.toggle('fx',!!F.sk[i])});
+  $('#pb').textContent=sg(pb);
+  const nb=k=>parseInt(val(k))||0;
+  $('#init').textContent=sg(mod.dex+nb('b_init')+F.init+F.tst);
+  // CA : armure portée (base + Dex plafonnée selon le type), bouclier, objets harmonisés (certains seulement sans armure / sans bouclier)
+  // Sans armure : la meilleure CA de base (10 + Dex, Défense sans armure du barbare ou du moine, Résistance draconique…).
+  // On garde l'armure et le bouclier possédés seulement s'ils donnent une meilleure CA.
+  const G=gear(mod.dex),bare=[{src:'Sans armure',b:10,m:[]}].concat(F.cab);
+  const caOf=(A,S)=>{
+    let t,u=null;
+    if(A)t=acOf(A.st,mod.dex)+A.b;
+    else{const o=bare.filter(x=>!(x.noS&&S)).map(x=>({x,v:x.b+mod.dex+x.m.reduce((n,k)=>n+mod[k],0)})).sort((p,q)=>q.v-p.v)[0];t=o.v;u=o.x}
+    if(S)t+=S.ca;
+    F.cca.forEach(f=>{if(!(f.noA&&A)&&!(f.noS&&S)&&!(f.reqA&&!A))t+=f.n});
+    return {t,u,AR:A,sh:S};
+  };
+  const W=[[G.AR,G.sh],[null,G.sh],[G.AR,null],[null,null]].map(([a,b])=>caOf(a,b)).reduce((p,q)=>q.t>p.t?q:p);
+  const {AR,sh}=W,ca=W.t;
+  if(sh)F.lines.unshift([sh.n,'bouclier : CA +'+sh.ca]);
+  else if(G.sh)F.lines.unshift([G.sh.n,'bouclier non utilisé : la CA est meilleure sans']);
+  if(AR){
+    const st=AR.st;
+    F.lines.unshift([AR.n+(AR.base?' ('+AR.base.toLowerCase()+')':''),'armure portée : CA '+st.base+(st.dex===0?'':st.dex==null?' + Dex':' + Dex (max. +'+st.dex+')')+(AR.b?' + '+AR.b:'')]);
+    if(st.str&&tot.for<st.str){F.vit-=3;F.lines.push([AR.n,'Force '+st.str+' requise : vitesse −3 m'])}
+    if(st.disc)F.lines.push([AR.n,'désavantage aux tests de Discrétion']);
+  }else{
+    if(G.AR)F.lines.unshift([G.AR.n,'armure non portée : la CA est meilleure sans']);
+    const u=W.u;F.lines.unshift([u.src,(u.src!=='Sans armure'?'sans armure : ':'')+'CA '+u.b+' + Dex'+u.m.map(k=>' + '+ABN[k]).join('')+(u.noS?' (sans bouclier)':'')]);
+  }
+  $('#ca').textContent=ca+nb('b_ca')+F.ca;
+  $('#pp').textContent=10+mod.sag+bonus(PERC)+F.tst;
+  const cl=findClass(),cst=cl?castOf(cl[1]):null;
+  DERIV={niv:lvl,tot:{...tot},cl:cl?cl[0]:'',cast:!!cst,ar:[],ca:ca+nb('b_ca')+F.ca,init:mod.dex+nb('b_init')+F.init+F.tst,pp:10+mod.sag+bonus(PERC)+F.tst};
+  const c=val('cast')||(cst?cst.carac:'');   // la caractéristique choisie à la main prime sur celle de la classe
+  $('#dc').textContent=c?8+pb+mod[c]+nb('b_dd')+F.sdd:'—';
+  $('#sab').textContent=c?sg(pb+mod[c]+nb('b_atk')+F.satk):'—';
+  DERIV.pb=pb;if(c){DERIV.atk=pb+mod[c]+nb('b_atk')+F.satk;DERIV.dd=8+pb+mod[c]+nb('b_dd')+F.sdd}   // pour les familiers et montures
+  CUR={mod,pb};
+  el('vitesse').placeholder=F.E||F.vit?fm((F.E?F.E[1].vit:9)+F.vit)+' m':'9 m';
+  renderMagic(mod,pb,lvl,cl,cst);
+  renderMal(cl,lvl);
+  renderProf(cl);renderLangs();
+  renderExtras(F,lvl,pb,mod,tot);
+  renderCharges();renderRestHint();
+}
+
+// Classe choisie => champs « Classe » et « Dés de vie » (total = niveau + d de la classe)
+function setDV(){
+  const c=val('clsel');
+  if(c&&CLS[c])el('dvtot').value=(Math.min(20,Math.max(1,parseInt(val('niveau'))||1)))+'d'+CLS[c];
+}
+$('#clsel').addEventListener('change',()=>{
+  const c=val('clsel');if(!c)return;
+  el('classe').value=c;setDV();calc();autosave();
+});
+
+// Sérialisation JSON
+function collect(){
+  const d={};
+  document.querySelectorAll('[data-k]').forEach(e=>d[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);
+  d.ress=RS;d.extras=PX;d.derive=DERIV;
+  return {version:5,type:'fiche-dnd-5e',data:d};
+}
+function apply(obj){
+  const d=obj&&obj.data;
+  if(!d||typeof d!=='object')throw new Error('format');
+  ensureRace(d.race);
+  document.querySelectorAll('[data-k]').forEach(e=>{
+    if(!(e.dataset.k in d))return;
+    if(e.type==='checkbox')e.checked=!!d[e.dataset.k];else e.value=d[e.dataset.k];
+  });
+  setRS(d.ress&&typeof d.ress==='object'?JSON.parse(JSON.stringify(d.ress)):{});
+  PX=newPX();
+  if(d.extras&&typeof d.extras==='object'){
+    const x=JSON.parse(JSON.stringify(d.extras));
+    PX.sp=Object.assign(PX.sp,x.sp||{});
+    PX.spl=Array.isArray(x.spl)?x.spl.filter(r=>r&&r.n):[];
+    PX.bg=Object.assign(PX.bg,x.bg||{});if(!PX.bg.ch)PX.bg.ch={};
+    PX.dons=Array.isArray(x.dons)?x.dons.filter(g=>g&&g.id&&g.u):[];
+    PX.dons.forEach(g=>{g.ch=g.ch||{}});
+    PX.auto=x.auto&&typeof x.auto==='object'?x.auto:{};
+    PX.mal=Array.isArray(x.mal)?x.mal.filter(n=>typeof n==='string'):[];
+    if(!PX.sp.ch)PX.sp.ch={};
+    PX.oh=x.oh&&typeof x.oh==='object'?x.oh:{};
+  }
+  fillSub();el('sclasse').value=d.sclasse||'';
+  fillSpec();el('sespece').value=d.sespece||'';
+  calc();
+}
+// Remet tous les champs à leur valeur par défaut (utilisé pour « Vider » et pour changer de personnage)
+function reset(){
+  document.querySelectorAll('[data-k]').forEach(e=>{
+    if(e.type==='checkbox'){e.checked=false;e.disabled=false}
+    else if(e.tagName==='SELECT')e.selectedIndex=0;
+    else e.value=e.dataset.k==='niveau'?'1':e.dataset.k.startsWith('ab_')?'10':'';
+  });
+  setRS({});PX=newPX();
+}
+// Le nom du personnage (sélecteur) fait foi pour le champ « Nom » de la fiche
+function show(obj,perso){
+  reset();
+  if(obj)apply(obj);
+  el('nom').value=perso.nom;
+  calc();
+}
+function autosave(){Persos.save()}
+// Reprend l'équipement choisi sur la page Équipement (« 2× Potion de guérison »), sans doublon
+const fire=e=>e.dispatchEvent(new Event('input',{bubbles:true}));
+// Sorts du grimoire -> tableau (page 3) : niveau, nom, incantation, portée, dégâts / effet, concentration
+const SAV={Force:'For',Dextérité:'Dex',Constitution:'Con',Intelligence:'Int',Sagesse:'Sag',Charisme:'Cha'};
+function spellEffect(h){
+  const t=String(h).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().split(/Emplacement de niveau supérieur|Amélioration de sort mineur/)[0].trim();
+  const p=[];
+  const dm=t.match(/(\d+d\d+(?:\s*[+×x]\s*\d+)?)\s*(?:points? de\s+)?dégâts?\s+(?:d[e’' ]\s*|d')?([a-zéèêûôï]+)/i);
+  if(dm)p.push(dm[1].replace(/\s+/g,' ')+' '+dm[2]);
+  const hl=t.match(/récupèr\w*[^.]*?(\d+d\d+(?:\s*\+\s*\d+)?)/i);
+  if(hl&&!dm)p.push('Soin '+hl[1]);
+  const sv=t.match(/jet de sauvegarde de (Force|Dextérité|Constitution|Intelligence|Sagesse|Charisme)/i);
+  if(sv)p.push('JS '+SAV[sv[1][0].toUpperCase()+sv[1].slice(1).toLowerCase()]);
+  if(!p.length){let s=t.split(/(?<=[.!?])\s/)[0];if(s.length>95)s=s.slice(0,92).replace(/\s\S*$/,'')+'…';return s}
+  return p.join(' · ');
+}
+const castShort=t=>String(t).split(',')[0].replace(/\s+ou Rituel/i,'');
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#bSpDel'))return;
+  PX.spl=[];calc();autosave();
+});
+// Armes : celles de la page Équipement et les armes magiques harmonisées remplissent les lignes « Attaques » (nom, bonus pour toucher, dégâts)
+const normW=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘]/g,"'");
+function baseChoices(s,W){   // armes de base possibles pour une arme magique, d'après le début de sa description
+  const txt=s.h.replace(/<[^>]+>/g,'');
+  if(s.base){const b=W.filter(w=>w.n===s.base);if(b.length)return b}   // arme magique créée : arme de base choisie
+  if(/b[aâ]ton de combat/i.test(txt))return W.filter(w=>w.n==='Bâton');
+  let head=normW((txt.match(/^[^.]*?\(([^)]*)\)/)||[])[1]||'')+' | '+normW(txt.split('.')[0])+' | '+normW(s.n);
+  const r=[];
+  for(const w of [...W].sort((x,y)=>y.n.length-x.n.length)){   // les noms longs d'abord (« lance d'arçon » avant « lance »)
+    const en=w.en&&!W.some(x=>normW(x.n)===normW(w.en))?w.en:'';   // « Lance » (anglais de lance d'arçon) est aussi un nom français
+    for(const nm of [w.n,en,w.n==='Serpe'?'faucille':''].filter(Boolean)){   // nom français ou anglais (glaive → coutille, faucille → serpe)
+      const re=new RegExp('(^|[^a-z])'+normW(nm).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![a-z])','g');
+      if(re.test(head)){if(!r.includes(w))r.push(w);head=head.replace(re,'$1#')}
+    }
+  }
+  if(r.length)return W.filter(w=>r.includes(w));
+  if(/\barc\b/.test(head))return W.filter(w=>/^arc /.test(normW(w.n)));
+  if(/epee/.test(head))return W.filter(w=>/epee|rapiere|cimeterre/.test(normW(w.n)));
+  if(/hache/.test(head))return W.filter(w=>/hache/.test(normW(w.n)));
+  if(/corps a corps/.test(head))return W.filter(w=>/corps à corps/.test(w.c));
+  return W;
+}
+function magicBonus(s){
+  const txt=s.h.replace(/<[^>]+>/g,'');
+  const c=FXO[s.n]&&!Array.isArray(FXO[s.n])&&PX.oh[s.n];
+  if(c&&/\+(\d)/.test(c))return +c.match(/\+(\d)/)[1];
+  const fa=Array.isArray(s.fx)&&s.fx.find(f=>f.t==='arme');if(fa)return +fa.n||0;
+  const m=txt.match(/\+(\d) aux jets d'attaque et de dégâts/);
+  return m?+m[1]:0;
+}
+function atkLine(name,w,mb,prof){
+  const dmg=(w.h.match(/Dégâts : ([^.]*)\./)||[])[1]||'';
+  const props=(w.h.match(/Propriétés : ([^.]*)\./)||[])[1]||'';
+  const dist=/à distance/.test(w.c),fin=/Finesse/.test(props);
+  const m=CUR.mod,am=dist?m.dex:fin?Math.max(m.for,m.dex):m.for;
+  const hit=am+(prof?CUR.pb:0)+mb,dm=am+mb;
+  const d=dmg.match(/^(\S+)\s+(.*)$/);
+  return [name,sg(hit),d?d[1]+(dm?sg(dm):'')+' '+d[2]:dmg];
+}
+// Import global (bouton « Importer » de la barre) : reprend ce qui a été choisi sur les autres pages
+//  · équipement → inventaire ; objets magiques harmonisés → objets liés, les autres objets sans harmonisation → inventaire
+//  · armure et bouclier de l'équipement → armure portée (CA) ; armes de l'équipement et armes magiques harmonisées → attaques
+//  · sorts du grimoire → zone de sorts, classés par niveau
+document.addEventListener('click',async e=>{
+  if(!e.target.closest('#bImp'))return;
+  Persos.save();calc();
+  const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error(f);return r.json()};
+  let SP,OB;
+  try{[SP,OB]=await Promise.all(['json/vf/spells.json','json/vf/objets.json'].map(get));if(!EQD)EQD=await get('json/vf/equipement.json')}catch(x){alert('Impossible de lire les listes du site (sorts, objets, équipement).');return}
+  const byO={};OB.concat(custom('objets')).forEach(x=>byO[x.n]=x);
+  const ALL=EQD.concat(custom('equipement')),W=ALL.filter(x=>x.t==='Arme'&&x.h);
+  const eq=Persos.part('equipement'),EL=eq&&eq.data&&eq.data.objets||[];
+  const g=Persos.part('grimoire'),SL=g&&g.data&&g.data.sorts||[];
+  const o=Persos.part('objets'),OD=o&&o.data||{},OL=OD.objets||[],H=new Set(OD.harmonises||[]);
+  // Objets magiques
+  const all=OL.map(n=>byO[n]||{n,a:''});
+  const items=all.filter(s=>!s.a||H.has(s.n)).sort((x,y)=>!!y.a-!!x.a);
+  const notH=all.filter(s=>s.a&&!H.has(s.n)).map(s=>s.n);
+  const ins=[0,1,2,3,4].map(i=>el('obj'+i));
+  const stale=ins.filter(x=>{const v=x.value.trim(),s=byO[v];return s&&s.a&&!H.has(v)});   // objets liés qui ne sont plus harmonisés
+  // Armes
+  const C=[];
+  EL.forEach(x=>{const w=W.find(y=>y.n===x.n);if(w)C.push({nom:w.n,opts:[w],mb:0})});
+  harmonises().forEach(n=>{
+    const s=byO[n];if(!s||!s.h)return;
+    if(s.t!=='Arme'&&!/b[aâ]ton de combat/i.test(s.h))return;
+    const opts=baseChoices(s,W);if(opts.length)C.push({nom:n,opts,mb:magicBonus(s),magic:1});
+  });
+  if(!EL.length&&!SL.length&&!OL.length){alert('Rien à importer : choisis d’abord de l’équipement, des objets magiques ou des sorts sur les autres pages.');return}
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;width:min(560px,94vw);box-shadow:0 10px 40px #0008';
+  const H3=t=>`<h4 style="margin:10px 0 4px;font:700 13px system-ui;color:#2a3170">${t}</h4>`;
+  const cb=(attr,label,extra='')=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;flex:1 1 220px"><input type="checkbox" ${attr} checked> ${label}</label>${extra}`;
+  const row=h=>`<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">${h}</div>`;
+  let h='<h3 style="margin:0 0 4px;font:italic 700 18px var(--serif)">Importer dans la fiche</h3><p style="margin:0;color:var(--soft);font-size:12px">Ce qui a été choisi sur les pages Équipement, Objets magiques et Grimoire. Décoche ce que tu ne veux pas importer.</p><div style="max-height:62vh;overflow:auto">';
+  if(EL.length)h+=H3('Équipement')+row(cb('data-s="eq"',EL.length+' objet'+(EL.length>1?'s':'')+' → inventaire (zone Équipement)'));
+  if(items.length||notH.length){
+    h+=H3('Objets magiques')+items.map((s,i)=>row(cb(`data-o="${i}"`,esc(s.n)+(s.a?' → objets liés (harmonisé)':' → inventaire')))).join('');
+    if(notH.length)h+=`<p style="margin:4px 0 0;color:var(--soft);font-size:12px">Non importés car tu n’es pas harmonisé avec eux : ${notH.map(esc).join(', ')}.${stale.length?' Ils seront retirés des objets liés.':''}</p>`;
+  }
+  if(C.length){
+    h+=H3('Armes → attaques')+C.map((c,i)=>row(cb(`data-u="${i}"`,'<b>'+esc(c.nom)+'</b>'+(c.mb?' ('+sg(c.mb)+')':''))
+      +(c.opts.length>1?`<select data-w="${i}" aria-label="Arme de base">${c.opts.map((w,j)=>`<option value="${j}">${esc(w.n)}</option>`).join('')}</select>`:c.magic?`<small>${esc(c.opts[0].n)}</small>`:'')
+      +`<label style="display:flex;gap:4px;align-items:center;font-size:12px"><input type="checkbox" data-p="${i}" checked> maîtrisée</label>`)).join('')
+      +'<p style="margin:4px 0 0;color:var(--soft);font-size:11px">Pour toucher : Force (Dextérité à distance, la meilleure des deux pour Finesse) + maîtrise + bonus magique.</p>';
+  }
+  if(SL.length)h+=H3('Sorts')+row(cb('data-s="sp"',SL.length+' sort'+(SL.length>1?'s':'')+' du grimoire → zone de sorts, par niveau'));
+  h+='</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="ic">Annuler</button><button type="button" id="ik" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Importer</button></div>';
+  dlg.innerHTML=h;
+  document.body.appendChild(dlg);dlg.showModal();
+  const q=x=>dlg.querySelector(x),on=x=>{const c=q(x);return !!(c&&c.checked)};
+  q('#ic').onclick=()=>{dlg.close();dlg.remove()};
+  q('#ik').onclick=()=>{
+    const warn=[],done=[];
+    // Inventaire
+    const inv=el('equip');let lines=inv.value.split('\n');
+    const putInv=(n,qte,replace)=>{const i=lines.findIndex(x=>x.replace(/^\d+×\s*/,'').trim()===n);if(i<0)lines.push(qte+'× '+n);else if(replace)lines[i]=qte+'× '+n};
+    if(on('[data-s="eq"]')){EL.forEach(x=>putInv(x.n,x.qte,true));done.push('équipement')}
+    // Objets magiques
+    stale.forEach(x=>{x.value='';fire(x)});
+    let sk=0;
+    items.forEach((s,i)=>{
+      if(!on(`[data-o="${i}"]`))return;
+      if(s.a){if(ins.some(x=>x.value.trim()===s.n))return;const fr=ins.find(x=>!x.value.trim());if(fr){fr.value=s.n;fire(fr)}else sk++}
+      else putInv(s.n,1,false);
+    });
+    if(items.length)done.push('objets magiques');
+    if(sk)warn.push('Il n’y a que 5 emplacements d’objets liés : '+sk+' objet(s) harmonisé(s) non ajouté(s).');
+    const nv=lines.filter((x,i,a)=>x.trim()||(i>0&&i<a.length-1)).join('\n').replace(/^\n+/,'');
+    if(nv!==inv.value){inv.value=nv;fire(inv)}
+    calc();   // modificateurs à jour avant les armes
+    // Armes
+    const rows=[0,1,2,3,4].map(i=>['n','b','d'].map(k=>el('a'+i+'_'+k)));
+    let ska=0;
+    C.forEach((c,i)=>{
+      if(!on(`[data-u="${i}"]`))return;
+      const ws=q(`[data-w="${i}"]`),w=c.opts[ws?+ws.value:0];
+      const line=atkLine(c.nom,w,c.mb,on(`[data-p="${i}"]`));
+      const r=rows.find(r=>r[0].value.trim()===c.nom)||rows.find(r=>r.every(x=>!x.value.trim()));
+      if(!r){ska++;return}
+      r.forEach((x,k)=>{x.value=line[k];fire(x)});
+    });
+    if(C.length)done.push('armes');
+    if(ska)warn.push('Il n’y a que 5 lignes d’attaque : '+ska+' arme(s) non ajoutée(s).');
+    // Sorts
+    if(on('[data-s="sp"]')){
+      const by={};SP.forEach(s=>by[s.n]=s);
+      const bl=Array.from({length:10},()=>[]);
+      SL.map(n=>by[n]).filter(Boolean).forEach(x=>bl[x.l].push(x.n.split('|')[0]));
+      bl.forEach(a=>a.sort((x,y)=>x.localeCompare(y,'fr')));
+      const sl=bl.map((a,i)=>a.length?(i?'Niveau '+i:'Tours de magie')+' : '+a.join(', '):'').filter(Boolean);
+      const ta=el('sorts'),keep=ta.value.split('\n').filter(x=>!/^(Tours de magie|Niveau \d) : /.test(x));   // remplace les anciennes lignes importées
+      ta.value=sl.concat(keep.filter(x=>x.trim())).join('\n');
+      PX.spl=[];fire(ta);done.push('sorts');
+    }
+    calc();autosave();
+    dlg.close();dlg.remove();
+    if(warn.length)alert(warn.join('\n'));
+    msg(done.length?'Importé : '+done.join(', '):'Rien d’importé');
+  };
+});
+// ---------- Repos ----------
+const lvlNow=()=>Math.min(20,Math.max(1,parseInt(val('niveau'))||1));
+const dvInfo=()=>{const m=val('dvtot').match(/(\d+)\s*d\s*(\d+)/i);const tot=m?+m[1]:lvlNow(),die=m?+m[2]:(CLS[val('clsel')]||8);
+  const r=val('dvrest').trim();return {tot,die,rest:r===''?tot:Math.max(0,Math.min(tot,parseInt(r)||0))}};
+// Ce qu'une ressource récupère au repos court, d'après son texte « repos » : 'all', 1 ou 0
+function shortGain(txt){
+  const t=norm(txt);if(!t.includes('court'))return 0;
+  const n=t.match(/court[^·]*des le niv\. (\d+)|des le niv\. (\d+)[^·]*court/);if(n&&lvlNow()<+(n[1]||n[2]))return 0;
+  return /1 (?:recuperee |de plus )?au repos court/.test(t)?1:'all';
+}
+// Remet une ressource : cases (cochées = dépensées) ou réserve (nombre restant)
+function refill(key,max,mode,gain){
+  if(mode==='reserve'){if(gain==='all')delete RS[key];else{const v=RS[key]===undefined?max:+RS[key];if(v+gain>=max)delete RS[key];else RS[key]=v+gain}}
+  else{let g=gain==='all'?max:gain;for(let j=max-1;j>=0&&g>0;j--)if(RS[key+'_'+j]){delete RS[key+'_'+j];g--}}
+}
+function restoreRes(kind){   // kind : 'court' ou 'long'
+  const cl=findClass(),lvl=lvlNow(),out=[];
+  if(cl)(cl[1].ressources||[]).forEach(r=>{
+    const g=kind==='long'?'all':shortGain(r.repos||'');if(!g)return;
+    const m=maxOf(r.max,lvl,CUR.mod);if(!m)return;
+    refill('r_'+r.id,m,r.mode==='reserve'?'reserve':'cases',g);out.push(r.nom);
+  });
+  POOLS.forEach(r=>{const g=kind==='long'?'all':shortGain(r.repos||'');if(g){refill(r.key,r.max,'reserve',g);out.push(r.nom)}});
+  if(kind==='long')CHG.forEach(r=>{   // objets à charges : la recharge de l'aube est comptée au repos long
+    if(!r.rec||RS[r.key]===undefined)return;
+    const v=Math.min(r.max,Math.max(0,+RS[r.key]||0));
+    let g=r.max;
+    if(r.rec!=='all'){const d=r.rec.match(/^(\d+)(?:d(\d+))?([+-]\d+)?$/);if(!d)return;
+      g=d[2]?Array.from({length:+d[1]},()=>1+Math.floor(Math.random()*+d[2])).reduce((a,b)=>a+b,0):+d[1];g=Math.max(0,g+(+d[3]||0))}
+    refill(r.key,r.max,'reserve',g);out.push(r.n+' +'+Math.min(g,r.max-v)+' charge'+(Math.min(g,r.max-v)>1?'s':''));
+  });
+  return out;
+}
+const setv=(k,v)=>{const e=el(k);if(e){e.value=v;fire(e)}};
+$('#bLong').onclick=()=>{
+  if(!confirm('Repos long : PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés, objets à charges rechargés comme à l’aube. Continuer ?'))return;
+  const mx=parseInt(val('pvmax'));if(!isNaN(mx))setv('pv',mx);
+  setv('pvtemp','');
+  ['ds1','ds2','ds3','df1','df2','df3'].forEach(k=>{const e=el(k);if(e&&e.checked){e.checked=false;fire(e)}});
+  setv('dvrest',dvInfo().tot);
+  Object.keys(RS).forEach(k=>{if(/^(sl\d|pc)_/.test(k))delete RS[k]});   // emplacements de sorts (cases automatiques)
+  for(let i=1;i<=9;i++)if(val('sl'+i+'_u'))setv('sl'+i+'_u','');        // emplacements saisis à la main
+  const R=restoreRes('long');
+  setRS(RS);calc();autosave();
+  msg('Repos long terminé'+(R.length?' · rechargé : '+R.join(', '):''));
+};
+$('#bShort').onclick=()=>{
+  calc();
+  const D=dvInfo(),con=CUR.mod.con||0,pv=parseInt(val('pv')),mx=parseInt(val('pvmax'));
+  const dlg=document.createElement('dialog');
+  dlg.style.cssText='border:0;border-radius:12px;padding:16px 20px;width:min(420px,94vw);box-shadow:0 10px 40px #0008';
+  dlg.innerHTML=`<h3 style="margin:0 0 6px;font:italic 700 18px var(--serif)">Repos court</h3>
+   <p style="margin:0 0 8px;font-size:13px">Dés de vie restants : <b>${D.rest}</b> / ${D.tot} (d${D.die}) · modificateur de Constitution ${sg(con)}<br>PV : <b>${isNaN(pv)?'—':pv}</b>${isNaN(mx)?'':' / '+mx}</p>
+   <label style="display:flex;gap:8px;align-items:center;font-size:13px">Dés à dépenser <input type="number" id="rsn" min="0" max="${D.rest}" value="${D.rest?1:0}" style="width:60px"></label>
+   <p id="rsr" style="margin:8px 0 0;font-size:13px;color:#2e9e5b;min-height:1em"></p>
+   <p style="margin:6px 0 0;font-size:11px;color:#6b7280">Chaque dé rend 1d${D.die} ${sg(con)} PV (au moins 0). Les capacités qui reviennent au repos court sont aussi rechargées (magie de pacte, etc.).</p>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="rsc">Annuler</button><button type="button" id="rsk" style="background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px">Lancer et récupérer</button></div>`;
+  document.body.appendChild(dlg);dlg.showModal();
+  dlg.querySelector('#rsc').onclick=()=>{dlg.close();dlg.remove()};
+  dlg.querySelector('#rsk').onclick=()=>{
+    const n=Math.max(0,Math.min(D.rest,parseInt(dlg.querySelector('#rsn').value)||0));
+    const rolls=Array.from({length:n},()=>1+Math.floor(Math.random()*D.die));
+    const gain=rolls.reduce((t,r)=>t+Math.max(0,r+con),0);
+    if(n){
+      const cur=isNaN(pv)?0:pv,nv=isNaN(mx)?cur+gain:Math.min(mx,cur+gain);
+      setv('pv',nv);setv('dvrest',D.rest-n);
+    }
+    Object.keys(RS).forEach(k=>{if(/^pc_/.test(k))delete RS[k]});   // magie de pacte
+    const R=restoreRes('court');
+    setRS(RS);calc();autosave();
+    dlg.close();dlg.remove();
+    msg((n?'Dés : '+rolls.join(' + ')+' '+(con?'('+sg(con)+' chacun) ':'')+'→ +'+gain+' PV':'Repos court terminé')+(R.length?' · rechargé : '+R.join(', '):''));
+  };
+};
+window.addEventListener('pageshow',e=>{if(e.persisted)calc()});   // retour sur la page : les harmonisations ont pu changer
+
+function onEdit(ev){
+  const t=ev.target,k=t.dataset&&t.dataset.k;
+  if(t.dataset&&t.dataset.r!==undefined){   // case ou réserve de la section « Incantation et capacités »
+    const r=t.dataset.r;
+    if(t.type==='checkbox'){if(t.checked)RS[r]=1;else delete RS[r]}
+    else if(t.value==='')delete RS[r];
+    else RS[r]=Math.max(0,parseInt(t.value)||0);
+    LAST=new WeakMap();
+    autosave();return;
+  }
+  if(t.dataset&&t.dataset.x!==undefined){   // choix d'espèce ou de don
+    const [p,id]=t.dataset.x.split('|');
+    const ch=p==='sp'?PX.sp.ch:p==='bg'?PX.bg.ch:p==='oh'?PX.oh:(PX.dons.find(g=>'d'+g.u===p)||{}).ch;
+    if(!ch)return;
+    ch[id]=t.value;
+    if(t.type==='text'){autosave();return}   // texte libre : pas de recalcul (garde le curseur)
+    calc();autosave();return;
+  }
+  if(k==='nom')Persos.setName(val('nom'));
+  if(k&&k.startsWith('ske_')&&t.checked){const p=el('sk_'+k.slice(4));if(p)p.checked=true}
+  if(k&&k.startsWith('sk_')&&!t.checked){const x=el('ske_'+k.slice(3));if(x)x.checked=false}
+  if(k==='niveau')setDV();
+  if(k==='race'){
+    const E=findEsp(),kk=E?E[0]:'';
+    if(kk!==PX.sp.k){   // autre espèce : les choix repartent de zéro, la vitesse suit si elle n'a pas été modifiée
+      PX.sp={k:kk,ch:{},auto:PX.sp.auto};
+      el('sespece').value='';
+      const v=E?fm(E[1].vit)+' m':'';
+      if(!val('vitesse').trim()||val('vitesse')===PX.sp.auto){el('vitesse').value=v;PX.sp.auto=v}
+    }
+    syncEspece();
+  }
+  if(k==='sespece')syncEspece();
+  if(k==='bgsel'){
+    if(val('bgsel')!==PX.bg.k){PX.bg={k:val('bgsel'),ch:{}};el('historique').value=val('bgsel')}
+  }
+  if(k==='sclasse'){
+    el('sousclasse').value=val('sclasse');
+    const cl=findClass(),sc=cl&&cl[1].sous_classe;
+    if(sc&&el('sclance'))el('sclance').checked=new RegExp(sc.re||'occult|arcanique','i').test(val('sclasse'));   // Chevalier occulte, Escroc arcanique
+  }
+  if(k==='clsel'||k==='classe')LAST=new WeakMap();
+  calc();autosave();
+}
+document.addEventListener('input',onEdit);
+document.addEventListener('change',onEdit);
+
+$('#bSave').onclick=()=>{
+  const nom=(val('nom')||'personnage').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`fiche_${nom}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('Fiche enregistrée dans un fichier .json');
+};
+$('#bLoad').onclick=()=>$('#file').click();
+$('#file').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    apply(JSON.parse(r.result));
+    if(val('nom').trim())Persos.setName(val('nom'));else el('nom').value=Persos.current().nom;
+    autosave();msg('Fiche chargée : '+f.name);
+  }catch(e){msg('Fichier invalide : choisissez un .json créé par cette fiche')}};
+  r.readAsText(f);ev.target.value='';
+};
+
+// Impression : réduit la police des zones de texte trop remplies pour que rien ne soit coupé
+function fit(){document.querySelectorAll('textarea').forEach(t=>{let s=11;t.style.fontSize=s+'px';while(t.scrollHeight>t.clientHeight+1&&s>6){s-=.5;t.style.fontSize=s+'px'}})}
+function unfit(){document.querySelectorAll('textarea').forEach(t=>t.style.fontSize='')}
+addEventListener('beforeprint',fit);addEventListener('afterprint',unfit);
+$('#bPrint').onclick=()=>window.print();
+// Dons du livre + dons créés (Persos.custom()), regroupés à part dans la liste
+let DONB=null;
+function donsIndex(){
+  const mine=Persos.custom().dons.filter(x=>x&&x.id&&x.nom);
+  DOND=DONB.concat(mine);
+  const cats=[];DONB.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
+  const og=(l,a)=>a.length?`<optgroup label="${esc(l)}">${a.map(x=>`<option value="${esc(x.id)}">${esc(x.nom)}</option>`).join('')}</optgroup>`:'';
+  $('#donSel').innerHTML='<option value="">Choisir un don…</option>'+og('Mes créations',mine)+cats.map(c=>og(c,DONB.filter(x=>x.cat===c))).join('');
+}
+function editDon(it){
+  if(!DONB){alert('Les données de dons n’ont pas pu être chargées.');return}
+  const cats=[];DONB.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
+  Custom.edit({kind:'dons',item:it,cats,
+    taken:n=>DOND.some(x=>norm(x.nom)===norm(n)),
+    done:(x,old)=>{
+      if(!x&&old){
+        PX.dons.filter(g=>g.id===old.id).forEach(g=>Object.keys(RS).forEach(k=>{if(k.startsWith('d'+g.u+'_'))delete RS[k]}));
+        PX.dons=PX.dons.filter(g=>g.id!==old.id);
+      }
+      if(x&&!old)PX.dons.push({u:rid(),id:x.id,ch:{}});
+      donsIndex();LAST=new WeakMap();calc();autosave();
+      msg(x?(old?'Don modifié':'Don « '+x.nom+' » créé et ajouté à la fiche'):'Don supprimé');
+    }});
+}
+$('#bDonNew').onclick=()=>editDon(null);
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest&&ev.target.closest('[data-donedit]');
+  if(b)editDon(DOND.find(x=>x.id===b.dataset.donedit));
+});
+$('#bDon').onclick=()=>{
+  const id=$('#donSel').value;
+  if(!id||!DOND)return;
+  PX.dons.push({u:rid(),id,ch:{}});
+  calc();autosave();
+};
+document.addEventListener('click',ev=>{
+  const u=ev.target.dataset&&ev.target.dataset.del;
+  if(!u)return;
+  PX.dons=PX.dons.filter(g=>g.u!==u);
+  Object.keys(RS).forEach(k=>{if(k.startsWith('d'+u+'_'))delete RS[k]});
+  LAST=new WeakMap();calc();autosave();
+});
+
+$('#bReset').onclick=()=>{
+  const p=Persos.current();
+  if(!confirm('Effacer toute la fiche de « '+p.nom+' » ? Pensez à enregistrer un .json avant.'))return;
+  show(null,p);autosave();msg('Fiche vidée');
+};
+
+
+// Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
+async function boot(){
+  const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
+  const [a,b,c,d,e,h,q,r]=await Promise.allSettled(['json/vf/classes.json','json/vf/especes.json','json/vf/dons.json','json/vf/sousclasses.json','json/vf/capacites.json','json/vf/historiques.json','json/vf/equipement.json','json/vf/objets.json'].map(get));
+  if(q.status==='fulfilled')EQD=q.value;
+  if(r.status==='fulfilled')OBD=r.value;
+  if(h.status==='fulfilled'){BGD=h.value;$('#bgsel').innerHTML='<option value="">—</option>'+Object.keys(BGD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+  if(a.status==='fulfilled')CD=a.value;else CDFAIL=true;
+  if(b.status==='fulfilled')ESPD=b.value;
+  if(c.status==='fulfilled')DOND=c.value;
+  if(d.status==='fulfilled')SCD=d.value;
+  if(e.status==='fulfilled')CAPD=e.value;
+  if(ESPD)$('#race').innerHTML='<option value="">Choisir…</option>'+Object.keys(ESPD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if(DOND){DONB=DOND;donsIndex()}
+  Persos.init({
+    part:'fiche',
+    mount:$('#persos'),
+    collect,
+    apply:show,
+    onName:n=>{el('nom').value=n},
+    msg
+  });
+  Persos.save();   // enregistre les valeurs calculées (DERIV) même sans modification
+}
+boot();

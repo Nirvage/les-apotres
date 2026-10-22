@@ -1,0 +1,294 @@
+const SC={'Abjuration':'#2f6fd0','Divination':'#12968f','Enchantement':'#d6458e','Évocation':'#c8402f','Illusion':'#7a4fc4','Invocation':'#d8791a','Nécromancie':'#2e9e5b','Transmutation':'#b8860b'};
+const LC=['#7a4fc4','#2f6fd0','#12968f','#2e9e5b','#b8860b','#d8791a','#c8402f','#d6458e','#8e3a9d','#2a3170'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
+const lvName=l=>l===0?'Tours de magie':'Niveau '+l;
+const lvOne=l=>l===0?'Tour de magie':'Niveau '+l;
+const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
+
+// Les sorts sont lus dans spells.json à l'ouverture de la page
+let DB=[],AUTO=null,CLS={},EMP=null,DOND=[];
+const BYN=new Map();
+const st={prep:new Set(),terrain:'',dons:{},sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+
+function setup(data){
+  DB=data;
+  DB.forEach((s,i)=>{
+    s.i=i;const p=s.n.split('|');s.name=p[0];s.alias=p[1]||'';
+    s.idx=norm(s.n.replace('|',' '));
+    [s.n,p[0],p[1]].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
+  });
+  // Menus de filtres
+  const classes=[...new Set(DB.flatMap(s=>s.c))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const schools=[...new Set(DB.map(s=>s.e))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const opts=(first,arr,f=x=>x)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(f(x))}</option>`).join('');
+  $('#fc').innerHTML=opts('Toutes',classes);
+  $('#fs').innerHTML=opts('Tous',schools);
+  $('#fl').innerHTML=opts('Tous',[0,1,2,3,4,5,6,7,8,9],lvOne);
+}
+
+const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}${s.ed==='2014'?' · sort en version 2014 (règles non mises à jour)':''}</div>`:'';
+const pills=s=>(isAuto(s)?'<span class="pill al">Toujours préparé</span>':st.prep.has(s.n)?'<span class="pill pr">Préparé</span>':'')+(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
+function card(s,remove){
+  const col=SC[s.e]||'#2a3170';
+  return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
+  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`${s.l>0&&!isAuto(s)?`<button class="b pp noprint${st.prep.has(s.n)?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)}">${st.prep.has(s.n)?'★ Préparé':'☆ Préparer'}</button> `:''}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
+}
+
+function filtered(){
+  const q=norm(st.q);
+  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:st.src==='2014'?s.ed==='2014':(!!s.src&&s.ed!=='2014')))&&(!st.only||(st.only==='p'?(st.prep.has(s.n)||isAuto(s)):st.sel.has(s.n))));
+}
+
+// ---- Sorts préparés ----
+const nrm=norm;
+function ficheD(){const f=Persos.part('fiche');return f&&f.data||{}}
+function ctx(){
+  const d=ficheD(),cl=d.clsel||'',sub=d.sclasse||'',lvl=Math.min(20,Math.max(1,parseInt(d.niveau)||1));
+  return {d,cl,sub,lvl,race:d.race||'',lig:d.sespece||''};
+}
+function pickKey(o,k){if(!o||!k)return null;const n=nrm(k);const f=Object.keys(o).find(x=>nrm(x)===n||nrm(x).includes(n)||n.includes(nrm(x)));return f?o[f]:null}
+// Sorts toujours préparés : espèce, classe, sous-classe, terrain
+function autoList(){
+  const c=ctx(),out=[];
+  if(!AUTO)return out;
+  const add=(a,src)=>(a||[]).forEach(e=>out.push({sort:e.sort,niv:e.niv,src,x:e.x}));
+  const E=pickKey(AUTO.especes,c.race);
+  if(E){add(E.base,c.race);const L=pickKey(E.lignages,c.lig);if(L)add(L,c.lig||c.race)}
+  if(c.cl){
+    add(AUTO.classes[c.cl],c.cl);
+    const S=pickKey(AUTO.sousclasses[c.cl],c.sub);if(S)add(S,c.sub);
+    if(c.cl==='Druide'&&/terre/i.test(c.sub)&&st.terrain){const T=AUTO.terrains['Cercle de la Terre'];if(T&&T[st.terrain])add(T[st.terrain],'Terrain : '+st.terrain)}
+  }
+  // Dons : sorts imposés, puis sorts choisis (dans le grimoire, sinon dans le texte saisi sur la fiche)
+  donSlots().forEach(g=>{
+    g.fixe.forEach(n=>out.push({sort:n,niv:1,src:g.nom}));
+    g.choix.forEach(ch=>ch.picks.forEach(n=>{if(n)out.push({sort:n,niv:1,src:g.nom})}));
+  });
+  // Un même sort donné deux fois : on garde la source qui le donne au plus bas niveau
+  const seen=new Map();
+  out.forEach(e=>{const k=nrm(e.sort),o=seen.get(k);if(!o||e.niv<o.niv)seen.set(k,e)});
+  return [...seen.values()];
+}
+// Dons du personnage qui donnent des sorts (sorts_auto.json > dons), avec les emplacements de choix
+function donSlots(){
+  const c=ctx(),D=AUTO&&AUTO.dons,X=c.d.extras;
+  if(!D||!X||!Array.isArray(X.dons))return [];
+  const pb=Math.ceil(c.lvl/4)+1;
+  return X.dons.filter(g=>g&&D[g.id]).map(g=>{
+    const R=D[g.id],ch=g.ch||{},dd=DOND.find(x=>x.id===g.id);
+    const nom=dd?dd.nom:g.id;
+    const lst=R.choix&&R.choix.some(x=>x.liste)?ch.liste||'':'';
+    // Sorts déjà écrits dans le champ texte du don sur la fiche (repris tant que rien n'est choisi ici)
+    const txt=String(ch.s||'').split(/[,;\n+\/]|\bet\b/).map(x=>BYN.get(nrm(x))).filter(Boolean);
+    const choix=(R.choix||[]).map((x,j)=>{
+      const nb=x.nb==='pb'?pb:x.nb,key=g.u+'_'+j;
+      const ok=s=>s.l===x.niv&&(!x.ecoles||x.ecoles.includes(s.e))&&(!x.rituel||s.ri)&&(!x.liste||!lst||s.c.includes(lst));
+      const mine=(st.dons[key]||[]).slice(0,nb);
+      const picks=Array.from({length:nb},(_,k)=>mine[k]!==undefined?mine[k]:'');
+      if(!mine.some(Boolean)){const f=txt.filter(ok);picks.forEach((_,k)=>{if(f[k])picks[k]=f[k].n})}
+      return {key,lbl:x.lbl+(x.liste?(lst?' · liste du '+lst:' · choisis d’abord la liste sur la fiche'):''),nb,ok,picks};
+    });
+    return {u:g.u,nom,fixe:(R.fixe||[]),choix};
+  });
+}
+function autoNames(){
+  const c=ctx(),S=new Set();
+  autoList().forEach(e=>{if(e.niv<=c.lvl){const s=BYN.get(nrm(e.sort));if(s)S.add(s.n)}});
+  return S;
+}
+let AN=new Set();
+const isAuto=s=>AN.has(s.n);
+// Incantation de la classe (ou de la sous-classe pour Guerrier, Roublard, Chasseur de sang si la case est cochée sur la fiche)
+function castInfo(){
+  const c=ctx(),k=CLS[c.cl];if(!k)return null;
+  if(k.prepares)return {type:k.lanceur,prepares:k.prepares,mineurs:k.mineurs};
+  if(k.sous_classe&&c.d.sclance){const s=k.sous_classe;return {type:s.type||'tiers',prepares:s.prepares,mineurs:s.mineurs,emp:s.emp}}
+  return null;
+}
+// Liste de sorts dans laquelle la classe prépare ses sorts (Magicien pour le Chevalier occulte et l'Escroc arcanique, Ensorceleur pour le Guerrier des Arts mystiques)
+function classList(){const c=ctx();return c.cl==='Guerrier'||c.cl==='Roublard'?'Magicien':c.cl==='Moine'?'Ensorceleur':CLS[c.cl]&&CLS[c.cl].prepares?c.cl:''}
+const offList=s=>{const l=classList();return !!l&&!s.c.includes(l)};
+function prepMax(){const k=castInfo();return k?k.prepares[ctx().lvl-1]:null}
+function cantripMax(){const k=castInfo();return k&&k.mineurs?k.mineurs[ctx().lvl-1]:null}
+// Niveau de sort le plus élevé que le personnage peut préparer (selon ses emplacements)
+function maxSpellLvl(){
+  const k=castInfo(),l=ctx().lvl-1;
+  if(!k||!EMP)return null;
+  if(k.type==='pacte'){const r=(k.emp||EMP.pacte)[l];return r&&r[0]?r[1]:0}
+  const r=EMP[k.type]&&EMP[k.type][l];
+  return r?r.length:null;
+}
+const isChosen=s=>st.prep.has(s.n)&&st.sel.has(s.n)&&s.l>0&&!AN.has(s.n);
+const prepCount=()=>DB.filter(isChosen).length;
+const cantripCount=()=>DB.filter(s=>s.l===0&&st.sel.has(s.n)&&!AN.has(s.n)).length;
+// Préparer / retirer un sort, en respectant la limite de la classe et le niveau maximal de sort
+function togglePrep(s){
+  if(st.prep.has(s.n)&&st.sel.has(s.n)){st.prep.delete(s.n);renderAll();return}
+  const max=prepMax(),ml=maxSpellLvl();
+  if(max!=null&&prepCount()>=max){msg('Limite atteinte ('+max+' sorts préparés) : retire d’abord un sort préparé');return}
+  if(ml!=null&&s.l>ml){msg(ml?'Tu ne peux préparer que des sorts jusqu’au niveau '+ml+' pour l’instant':'Pas encore d’emplacement de sort à ce niveau de personnage');return}
+  st.prep.add(s.n);st.sel.add(s.n);renderAll();
+  if(offList(s))msg('Attention : '+s.name+' n’est pas dans la liste de sorts du '+classList());
+}
+function renderPrep(){
+  AN=autoNames();
+  const c=ctx(),au=autoList(),max=prepMax(),ml=maxSpellLvl(),cm=cantripMax(),nc=cantripCount();
+  const nb=prepCount(),ds=donSlots().filter(g=>g.choix.length);
+  const who=[c.cl&&(c.cl+(c.sub?' ('+c.sub+')':'')+' niv. '+c.lvl),c.race&&(c.race+(c.lig?' · '+c.lig:''))].filter(Boolean).join(' — ');
+  const terr=c.cl==='Druide'&&/terre/i.test(c.sub)&&AUTO?`<label>Terrain du Cercle de la Terre <select id="terr" class="noprint"><option value="">— choisir —</option>${Object.keys(AUTO.terrains['Cercle de la Terre']).map(t=>`<option value="${t}"${t===st.terrain?' selected':''}>${t}</option>`).join('')}</select></label>`:'';
+  const chosen=DB.filter(isChosen).sort((a,b)=>a.l-b.l||a.name.localeCompare(b.name,'fr'));
+  const missing=au.filter(e=>e.niv<=c.lvl&&BYN.get(nrm(e.sort))&&!st.sel.has(BYN.get(nrm(e.sort)).n)).length;
+  const donH=ds.length?`<div class="noprint"><div style="margin-top:6px"><b>Sorts choisis grâce aux dons</b> (toujours préparés)</div>${ds.map(g=>g.choix.map(x=>{
+    const opts=DB.filter(x.ok).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+    return `<div class="dch"><small>${esc(g.nom)} — ${esc(x.lbl)}</small><div class="dsel">${x.picks.map((v,k)=>`<select data-don="${x.key}" data-k="${k}" data-nb="${x.nb}" aria-label="${esc(g.nom)} : choix ${k+1}"><option value="">— choisir —</option>${opts.map(s=>`<option value="${esc(s.n)}"${s.n===v?' selected':''}>${esc(s.name)}</option>`).join('')}</select>`).join('')}</div></div>`}).join('')).join('')}</div>`:'';
+  const lim=[max!=null?'jusqu’à '+max+' sorts préparés':'',ml!=null?(ml?'sorts de niveau 1 à '+ml:'pas encore d’emplacement de sort'):''].filter(Boolean).join(', ');
+  $('#prep').innerHTML=`<h2>Sorts préparés <span class="cnt${max!=null&&nb>max?' over':''}" title="Sorts préparés au choix">${nb}${max!=null?' / '+max:''}</span>${cm?`<span class="cnt${nc>cm?' over':''}" title="Sorts mineurs (tours de magie) de la classe">mineurs ${nc} / ${cm}</span>`:''}</h2>
+  <p class="ctx">${who?esc(who)+(lim?' · '+lim:''):'Aucun personnage renseigné dans la fiche : choisis classe, espèce, dons et niveau pour voir les sorts toujours préparés et le nombre de sorts à préparer.'}${max==null&&c.cl?' · pas de sorts préparés pour cette classe/sous-classe (pour Guerrier, Roublard ou Chasseur de sang, coche la case d’incantation sur la fiche)':''}${max!=null&&nb>max?' · <b style="color:#c8402f">limite dépassée : retire des sorts préparés (tu peux changer ta liste à chaque repos long)</b>':''}</p>
+  ${terr}
+  ${au.length?`<div><b>Toujours préparés</b> (classe, sous-classe, espèce, dons : ne comptent pas dans la limite)</div><div class="al">${au.map(e=>{const s=BYN.get(nrm(e.sort)),off=e.niv>c.lvl;return `<span class="ch${off?' off':''}${s?'':' nf'}" title="${off?'Disponible au niveau '+e.niv:''}">${esc(s?s.name:e.sort)}<small>${esc(e.src)}${e.niv>1?' · niv. '+e.niv:''}${s?'':' · hors liste'}</small></span>`}).join('')}</div>
+  ${missing?`<button class="b noprint" id="bAuto">Ajouter les ${missing} sort${missing>1?'s':''} manquant${missing>1?'s':''} au grimoire</button>`:''}`:''}
+  ${donH}
+  <div style="margin-top:6px"><b>Préparés au choix</b></div>
+  <div class="al">${chosen.length?chosen.map(s=>`<button type="button" class="ch chb${offList(s)?' nf':''}" data-act="prep" data-i="${s.i}" title="Ne plus préparer">${esc(s.name)}<span class="noprint" aria-hidden="true"> ✕</span><span class="sr"> (retirer)</span><small>niv. ${s.l}${offList(s)?' · hors liste du '+esc(classList()):''}</small></button>`).join(''):'<span style="color:var(--soft)">Aucun. Clique sur « ☆ Préparer » dans la liste des sorts ou dans les fiches ci-dessous.</span>'}</div>`;
+}
+function renderList(){
+  AN=autoNames();
+  const r=filtered();
+  const max=prepMax();
+  $('#cnt').textContent=r.length+' sort'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans le grimoire · '+prepCount()+(max!=null?' / '+max:'')+' préparé'+(prepCount()>1?'s':'');
+  $('#list').innerHTML=r.length?r.map(s=>{
+    const on=st.sel.has(s.n),op=st.open.has(s.n),col=SC[s.e]||'#2a3170';
+    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
+    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${s.l>0&&!isAuto(s)?`<button class="b pp${st.prep.has(s.n)&&on?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)&&on}" title="${on?'':'Ajoute aussi le sort au grimoire'}">${st.prep.has(s.n)&&on?'★ Préparé':'☆ Préparer'}</button>`:''}<button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
+  }).join(''):'<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
+}
+function renderBook(){
+  renderPrep();
+  const by=Array.from({length:10},()=>[]);
+  DB.forEach(s=>{if(st.sel.has(s.n))by[s.l].push(s)});
+  $('#tabs').innerHTML=by.map((a,l)=>`<button class="tab" role="tab" style="--c:${LC[l]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${l===0?'Tours de magie':'Niv. '+l}<span>${a.length}</span></button>`).join('');
+  $('#levels').innerHTML=by.map((a,l)=>`<section class="lvl${l===st.tab?' on':''}${a.length?'':' empty'}" style="--c:${LC[l]}"><h2>${lvName(l)} <span>(${a.length})</span></h2>${a.length?`<div class="cards">${a.map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun sort à ce niveau. Utilise « Choisir les sorts » pour en ajouter.</div>'}</section>`).join('');
+  $('#sum').textContent=st.sel.size?st.sel.size+' sort'+(st.sel.size>1?'s':'')+' sélectionné'+(st.sel.size>1?'s':''):'Aucun sort sélectionné';
+  $('#bBook').textContent='Mon grimoire ('+st.sel.size+')';
+}
+function renderAll(){renderList();renderBook();autosave()}
+
+// Données du personnage (sauvegarde .json et enregistrement dans le navigateur)
+function collect(){
+  return {version:1,type:'grimoire-dnd-5e',data:{
+    titre:$('#titre').value,
+    sorts:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
+    prepares:DB.filter(s=>st.prep.has(s.n)&&st.sel.has(s.n)).map(s=>s.n),
+    terrain:st.terrain,
+    dons:st.dons,
+    filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
+}
+function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
+function apply(o){
+  const d=o&&o.data;
+  if(!d||!Array.isArray(d.sorts))throw new Error('format');
+  st.sel.clear();let unknown=0;
+  d.sorts.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
+  const f=d.filtres||{};
+  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=(f.only==='p')?'p':f.only?'1':'';
+  st.prep.clear();(d.prepares||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.prep.add(s.n)});st.terrain=d.terrain||'';st.dons=d.dons&&typeof d.dons==='object'?d.dons:{};
+  syncInputs();renderAll();
+  return unknown;
+}
+function blank(){
+  st.sel.clear();st.prep.clear();st.terrain='';st.dons={};st.q=st.cls=st.sch=st.lvl=st.only='';
+  syncInputs();renderAll();
+}
+// Affiche le grimoire d'un personnage (obj vaut null pour un personnage vierge)
+function show(obj){
+  st.open.clear();st.tab=0;
+  if(obj)apply(obj);else blank();
+}
+function autosave(){Persos.save()}
+
+// Événements
+document.addEventListener('click',e=>{
+  if(e.target.id==='bAuto'){const n=autoList().filter(x=>x.niv<=ctx().lvl).map(x=>BYN.get(nrm(x.sort))).filter(Boolean);n.forEach(s=>st.sel.add(s.n));renderAll();msg(n.length+' sort(s) ajouté(s) au grimoire');return}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,s=DB[+b.dataset.i];
+  if(a==='tog'){if(st.sel.has(s.n)){st.sel.delete(s.n);st.prep.delete(s.n)}else st.sel.add(s.n);renderAll()}
+  else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
+  else if(a==='rm'){st.sel.delete(s.n);st.prep.delete(s.n);renderAll()}
+  else if(a==='prep')togglePrep(s);
+  else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
+  else if(a==='mode')setMode(b.dataset.m);
+});
+function setMode(m){
+  document.body.dataset.mode=m;
+  document.querySelectorAll('[data-act=mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m));
+  if(m==='book'){
+    const cnt=l=>DB.some(s=>s.l===l&&st.sel.has(s.n));
+    if(!cnt(st.tab)){const f=[0,1,2,3,4,5,6,7,8,9].find(cnt);if(f!==undefined){st.tab=f;renderBook()}}
+  }
+  scrollTo(0,0);
+}
+$('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
+[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
+$('#titre').addEventListener('input',autosave);
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='terr'){st.terrain=t.value;renderAll()}
+  else if(t.dataset.don){
+    // Choix des sorts d'un don : enregistrés dans le grimoire, et ajoutés au grimoire pour avoir leur fiche
+    const k=t.dataset.don,a=Array.from({length:+t.dataset.nb},(_,i)=>(st.dons[k]||[])[i]||'');
+    document.querySelectorAll(`[data-don="${k}"]`).forEach(x=>{a[+x.dataset.k]=x.value});
+    st.dons[k]=a;if(t.value)st.sel.add(t.value);renderAll();
+  }
+});
+$('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
+
+$('#bSave').onclick=()=>{
+  const nom=($('#titre').value||Persos.current().nom||'grimoire').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
+  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`grimoire_${nom}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('Grimoire enregistré dans un fichier .json');
+};
+$('#bLoad').onclick=()=>$('#file').click();
+$('#file').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const u=apply(JSON.parse(r.result));
+    msg('Grimoire chargé : '+st.sel.size+' sort'+(st.sel.size>1?'s':'')+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
+  }catch(e){msg('Fichier invalide : choisis un .json créé par cette page')}};
+  r.readAsText(f);ev.target.value='';
+};
+$('#bPrint').onclick=()=>{
+  if(!st.sel.size){msg('Ajoute d’abord des sorts à ton grimoire');return}
+  window.print();
+};
+$('#bClear').onclick=()=>{
+  if(!st.sel.size)return;
+  if(!confirm('Retirer tous les sorts du grimoire de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
+  st.sel.clear();st.prep.clear();renderAll();msg('Grimoire vidé');
+};
+
+async function boot(){
+  let data;
+  try{
+    const r=await fetch('json/vf/spells.json');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    data=await r.json();
+  }catch(e){
+    $('#cnt').textContent='';
+    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste des sorts (spells.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
+    return;
+  }
+  setup(data);
+  try{AUTO=await (await fetch('json/vf/sorts_auto.json')).json()}catch(e){AUTO=null}
+  try{const j=await (await fetch('json/vf/classes.json')).json();CLS=j.classes||{};EMP=j.emplacements||null}catch(e){CLS={}}
+  try{DOND=await (await fetch('json/vf/dons.json')).json()}catch(e){DOND=[]}
+  Persos.init({part:'grimoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
+}
+boot();

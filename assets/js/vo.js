@@ -6,15 +6,15 @@
    Le reste des livres n'est pas libre de droits : la fenêtre donne alors le nom anglais et un lien de recherche
    sur D&D Beyond, la plateforme officielle.
 
-   Les données (vo_*.json) sont générées à partir des données 5etools et lues à la première ouverture.
+   Les données (json/vo/*.json) sont générées à partir des données 5etools et lues à la première ouverture.
    Usage dans une page : VO.btn('sorts', nom) renvoie le HTML du bouton ; un clic n'importe où suffit. */
 (function(){
 'use strict';
 
 var FILES={
-  sorts:'vo_sorts.json',objets:'vo_objets.json',equipement:'vo_equipement.json',monstres:'vo_monstres.json',
-  familiers:'vo_familiers.json',dons:'vo_dons.json',classes:'vo_classes.json',especes:'vo_especes.json',
-  historiques:'vo_historiques.json',etats:'vo_etats.json'
+  sorts:'json/vo/sorts.json',objets:'json/vo/objets.json',equipement:'json/vo/equipement.json',monstres:'json/vo/monstres.json',
+  familiers:'json/vo/familiers.json',dons:'json/vo/dons.json',classes:'json/vo/classes.json',especes:'json/vo/especes.json',
+  historiques:'json/vo/historiques.json',etats:'json/vo/etats.json'
 };
 var SRD={
   '52':'This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.',
@@ -29,7 +29,7 @@ function load(k){
     .then(function(d){DATA[k]=d;return d}).catch(function(e){LOAD[k]=null;throw e});
   return LOAD[k];
 }
-// vo_classes.json regroupe trois tables : classes, capacites, sous
+// json/vo/classes.json regroupe trois tables : classes, capacites, sous
 function find(d,k,id){
   if(k==='classes'){
     var p=id.split('§');

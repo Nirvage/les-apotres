@@ -5,30 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Espace du MJ</title>
-<link rel="stylesheet" href="style.css?v=20261014c">
-<style>
-.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
-.intro{padding:14px 20px 16px;font-size:14px;line-height:1.5}
-.intro h1{margin:0 0 4px;font:italic 700 26px var(--serif);color:#2a3170}
-.intro p{margin:4px 0;color:var(--soft)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:16px;font-size:15px;line-height:1.5}
-.card{--c:#2f6fd0;display:flex;flex-direction:column;gap:8px;background:#fff;border:2px solid var(--c);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:0 6px 28px #0006;transition:transform .15s,box-shadow .15s}
-.card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:0 10px 32px #0008;outline:3px solid var(--gold);outline-offset:2px}
-.card h3{margin:0;padding:10px 16px;background:var(--c);color:#fff;font:italic 700 20px var(--serif)}
-.card p{margin:0;padding:6px 16px 0;color:var(--soft);flex:1}
-.card .go{margin:6px 16px 16px;align-self:flex-start;background:var(--c);color:#fff;font-weight:600;border-radius:7px;padding:7px 14px}
-.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
-.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
-@media screen and (max-width:700px){
- .wrap{padding:0 8px;margin-top:10px}
- .intro{padding:12px 14px}
- .intro h1{font-size:22px}
- .cards{grid-template-columns:minmax(0,1fr);gap:14px}
-}
-@media (prefers-reduced-motion:reduce){.card{transition:none}}
-</style>
-<script src="theme.js?v=20261020a"></script>
-<script src="vo.js?v=20261022b"></script>
+<link rel="stylesheet" href="assets/css/style.css?v=20261014c">
+<link rel="stylesheet" href="assets/css/pages/mj.css?v=20261022r">
+<script src="assets/js/theme.js?v=20261020a"></script>
+<script src="assets/js/vo.js?v=20261022b"></script>
 </head>
 <body>
 <div class="top">
@@ -90,18 +70,9 @@
 </nav>
 </div>
 </div>
-<script src="persos.js?v=20261015a"></script>
-<script>
-const $=s=>document.querySelector(s);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-// La page n'est visible que si le personnage actif s'appelle « mj »
-function render(){
-  const c=Persos.current(),mj=!!c&&c.nom.trim().toLowerCase()==='mj';
-  $('#lock').hidden=mj;$('#mj').hidden=!mj;
-}
-Persos.init({part:'espacemj',mount:$('#persos'),msg,collect:()=>null,apply:render,onName:render});
-</script>
-<script src="recherche.js?v=20261022d"></script>
-<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
+<script src="assets/js/persos.js?v=20261015a"></script>
+<script src="assets/js/pages/mj.js?v=20261022r"></script>
+<script src="assets/js/recherche.js?v=20261022d"></script>
+<script src="assets/js/sw-register.js?v=20261022r"></script>
 </body>
 </html>

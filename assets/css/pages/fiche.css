@@ -1,0 +1,193 @@
+@page{size:A4;margin:0}
+body{font-size:12px;line-height:1.3}
+
+/* Une page = une feuille A4 : les marges sont dans la page elle-même */
+.page{width:210mm;height:296mm;margin:16px auto;padding:8mm;background:#fff;border-radius:6px;box-shadow:0 4px 24px #0005;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+input,textarea,select{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;width:100%;padding:2px;min-width:0}
+textarea{display:block;background:#fff;border:1px solid var(--line);border-radius:5px;resize:none;padding:5px;line-height:1.4;flex:1 1 0;min-height:12mm}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{display:none}
+small,.lbl{display:block;font-size:10.5px;color:var(--soft)}
+
+/* En-tête */
+.hero{flex:none;font:italic 700 14px var(--serif)}
+.hero input{color:#fff;border-bottom:1px solid #ffffff66}
+.hero small{color:#d9defa}
+.hero .nom{font:italic 700 26px var(--serif);border-bottom:2px solid var(--gold);padding:0 2px 2px}
+.idg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;margin-top:6px}
+.cl{display:flex;gap:6px;align-items:flex-end}
+.hero select{width:auto;max-width:48%;color:#fff;background:#ffffff26;border:1px solid #ffffff66;border-radius:5px;padding:2px 4px;font-size:11px}
+.hero select option{color:var(--ink)}
+
+/* Grille principale */
+.main{display:grid;grid-template-columns:1fr 72mm;gap:8px;align-items:stretch;flex:none}
+.abcols{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stack{display:flex;flex-direction:column;gap:6px}
+.abil{display:flex;flex-direction:column;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,#fff);break-inside:avoid}
+.abil header{display:flex;align-items:center;gap:6px;background:var(--c);color:#fff;padding:4px 8px}
+.abil .nm{font:italic 700 14px var(--serif);flex:1}
+.abil .sc{width:42px;text-align:center;font-weight:700;color:#fff;background:#ffffff30;border:0;border-radius:5px;padding:1px}
+.spt{width:100%;border-collapse:collapse;font-size:11px}.spt th,.spt td{border-bottom:1px solid #d5d8ee;padding:2px 5px;text-align:left;vertical-align:top}.spt th{background:#eceefb;color:#2a3170;font-size:10px}.spt td:first-child,.spt td:last-child,.spt th:last-child{text-align:center;white-space:nowrap}.spt tr{break-inside:avoid;page-break-inside:avoid}
+.abil .fin{font:700 12px system-ui;color:#fff;background:#00000040;border-radius:5px;padding:2px 5px;white-space:nowrap}
+.abil .mod{min-width:34px;text-align:center;font:700 17px var(--serif);background:#fff;color:var(--c);border-radius:50%;padding:3px 0}
+.abil .body{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:3px 8px 4px}
+.row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:12px}
+.row .v{width:26px;text-align:right;font-weight:700;color:var(--c);font-variant-numeric:tabular-nums}
+.row .t{flex:1}
+.row.sv{border-bottom:1px dashed var(--c);font-weight:600}
+.row .sp{width:15px;flex:none}
+
+/* Cases : maîtrise (rond) et expertise (losange) */
+input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:13px;height:13px;padding:0;margin:0;border:2px solid var(--c,#3b4fd0);border-radius:50%;background:#fff;cursor:pointer}
+input[type=checkbox]:checked{background:var(--c,#3b4fd0)}
+input[type=checkbox].e{width:11px;height:11px;border-radius:2px;border-color:var(--gold);transform:rotate(45deg);margin:0 2px}
+input[type=checkbox].e:checked{background:var(--gold)}
+input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Cartes */
+.col{display:flex;flex-direction:column;gap:6px;min-height:0}
+.card{display:flex;flex-direction:column;border:1.5px solid var(--c);border-radius:9px;overflow:hidden;background:#fff;break-inside:avoid;min-height:0}
+.card>h2{margin:0;background:var(--c);color:#fff;font:italic 700 13px var(--serif);padding:3px 10px;flex:none}
+.card .in{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:6px 8px;background:color-mix(in srgb,var(--c) 5%,#fff)}
+.card textarea{border-color:color-mix(in srgb,var(--c) 40%,#fff)}
+.fl{display:flex;flex-direction:column;flex:1;min-height:0}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile{border-top:4px solid var(--c);border-radius:6px;background:color-mix(in srgb,var(--c) 10%,#fff);text-align:center;padding:3px 3px 4px}
+.tile .lbl{color:var(--c);font-weight:600}
+.tile input,.tile .calc{text-align:center;font:700 19px var(--serif);border:0;padding:0}
+.calc{display:block}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rest{grid-column:1/-1;display:flex;gap:6px}
+.rest button{flex:1;border:1px solid var(--c);color:var(--c);background:#fff;border-radius:6px;padding:3px 4px;font:600 11px system-ui,sans-serif;cursor:pointer}
+.rest button:hover{background:var(--c);color:#fff}
+.resthint{grid-column:1/-1;font-size:10px;line-height:1.25;color:var(--soft)}
+.resthint b{color:var(--c);font-weight:600}
+.big input{font:700 18px var(--serif);text-align:center}
+.dots{display:flex;gap:6px;align-items:center;font-size:11px}
+.dots span:first-child{width:62px;color:var(--soft)}
+.atk{display:grid;grid-template-columns:2fr 1fr 2fr;gap:5px;align-items:end}
+.atk.h{font-size:10.5px;color:var(--soft)}
+#atks{flex:1;display:flex;flex-direction:column;gap:3px}
+#atks .atk{flex:1;min-height:6mm}
+.coins{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;text-align:center}
+.coins input{text-align:center;border:1px solid var(--line);border-radius:4px}
+.settings{width:210mm;margin:16px auto 0;padding:8px 8mm 10px}
+.settings summary{cursor:pointer;font:italic 700 15px var(--serif);color:#2a3170}
+.settings summary span{font:12px system-ui,sans-serif;color:var(--soft)}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin-top:8px}
+.sgrid .w2{grid-column:span 2}
+.sgrid .imp{grid-column:1/-1;justify-self:start;background:#2a3170;color:#fff;border:0;border-radius:6px;padding:6px 14px;font:600 13px system-ui,sans-serif;cursor:pointer}
+.sgrid input,.sgrid select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:#fff}
+.settings p{margin:8px 0 0;font-size:11px;color:var(--soft)}
+.objs{gap:4px}
+.prof{font-size:11px;line-height:1.35;margin-bottom:3px}
+.prof b{color:var(--c)}
+.langs{display:flex;flex-wrap:wrap;gap:3px;font-size:11px;min-height:5mm}
+.langs span{background:color-mix(in srgb,var(--c) 14%,#fff);border:1px solid color-mix(in srgb,var(--c) 40%,#fff);border-radius:999px;padding:0 7px}
+.langs i{color:var(--soft)}
+.langp{font-size:11px;margin-top:3px}
+.langp summary{cursor:pointer;color:var(--c);font-weight:600}
+#langPick{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1px 8px;margin-top:4px}
+#langPick small{grid-column:1/-1;color:var(--soft);margin-top:3px}
+#langPick label{display:flex;gap:4px;align-items:center}
+.objs input{flex:none;height:6.5mm;background:#fff;border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+.bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:1;min-height:0}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
+.slot{display:flex;align-items:center;gap:4px}
+.slot b{flex:1;font:italic 700 12px var(--serif);color:var(--c)}
+.slot input:not([type=checkbox]){width:44px;text-align:center;border:1px solid var(--line);border-radius:4px}
+
+/* Incantation et capacités selon la classe */
+[hidden]{display:none!important}
+.mgbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:11px;color:var(--soft)}
+.mgbar label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.mgbar .sp{flex:1}
+.mgbar button{font-size:11px;padding:3px 10px;border:1.5px solid var(--c);border-radius:6px;background:#fff;color:var(--c);font-weight:600;cursor:pointer}
+.mgbar button:hover{background:color-mix(in srgb,var(--c) 10%,#fff)}
+.mgnote{font-size:11px;color:var(--soft)}
+.tiles.t5{grid-template-columns:repeat(5,1fr)}
+.sec{display:flex;gap:8px;align-items:baseline;font:italic 700 12px var(--serif);color:var(--c);margin-top:2px}
+.sec span{font:10.5px system-ui,sans-serif;color:var(--soft)}
+.slot .bx{display:flex;gap:4px;flex-wrap:wrap}
+#slotsAuto .slot b{flex:none;min-width:52px}
+#slotsAuto .slot.pact b{min-width:0}
+.slot.pact{grid-column:1/-1}
+.mgnone{grid-column:1/-1;font-size:11px;color:var(--soft)}
+.itiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(30mm,1fr));gap:6px}
+.itiles .tile .calc{font-size:15px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.rs{display:flex;flex-direction:column;gap:1px}
+.rs .rh{display:flex;align-items:center;flex-wrap:wrap;gap:3px 8px}
+.rs b{flex:none;font:italic 700 12px var(--serif);color:var(--c)}
+.rs .bx{display:flex;gap:4px;flex-wrap:wrap}
+.rs small{font-size:10px;line-height:1.2}
+.pool{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--soft)}
+.pool input{width:46px;text-align:center;font-weight:700;border:1px solid var(--line);border-radius:4px}
+
+/* Page 3 : espèce, sous-classe, dons */
+#pg3,#pg4{height:auto;min-height:296mm;overflow:visible}
+.xcols{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.xcol{display:flex;flex-direction:column;gap:8px}
+.xl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:11px}
+.xl b{font-family:var(--serif);font-style:italic}
+.xl .fut{color:var(--soft);opacity:.7}
+.xh{font-size:11px;color:var(--soft);margin:0}
+.chs{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0}
+.ch{display:block;min-width:30mm;flex:1}
+.ch select,.ch input{border:1px solid var(--line);border-radius:4px;background:#fff;font-size:11px}
+.chn{font-size:10.5px;color:var(--soft);margin:0 0 2px}
+.don{border:1px solid var(--line);border-radius:6px;background:#fff;padding:4px 6px;display:flex;flex-direction:column;gap:2px;break-inside:avoid}
+.don .dh{display:flex;gap:8px;align-items:baseline}
+.don .dh b{font:italic 700 12px var(--serif);color:var(--c)}
+.don .dh span{flex:1;font-size:10px;color:var(--soft)}
+.don .dh button{flex:none;white-space:nowrap}
+.don p{margin:0;font-size:11px;white-space:pre-line}
+.xbar{display:flex;gap:6px}
+.xbar select{border:1px solid var(--line);border-radius:5px;background:#fff;padding:3px}
+.xbar button,.don button{font-size:11px;padding:3px 10px;border:1.5px solid var(--c);border-radius:6px;background:#fff;color:var(--c);font-weight:600;cursor:pointer}
+.fxs{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:11px}
+.fxs b{font-weight:600}
+.v.fx{text-decoration:underline dotted}
+@media screen and (max-width:860px){
+ #pg3,#pg4{min-height:0}
+ .xcols{grid-template-columns:1fr}
+ .page{width:auto;height:auto;margin:10px;padding:12px;overflow:visible}
+ .main,.bottom,.abcols,.idg,.slots,.rgrid{grid-template-columns:1fr}
+ .tiles.t5{grid-template-columns:repeat(3,1fr)}
+ .bottom textarea{min-height:40mm}
+ .settings{width:auto;margin:10px 10px 0;padding:8px 12px 10px}
+ .sgrid{grid-template-columns:1fr 1fr}
+ input[type=checkbox]{width:18px;height:18px}
+ input[type=checkbox].e{width:15px;height:15px}
+ .row{padding:4px 0;gap:7px}
+ .coins{grid-template-columns:repeat(3,1fr)}
+}
+.mrow{display:flex;gap:6px;align-items:flex-start;font-size:10.5px;line-height:1.3;padding:3px 0;border-top:1px dashed var(--line);cursor:pointer}
+.mrow[hidden]{display:none}
+.mrow.on{background:color-mix(in srgb,#8e1f3a 7%,#fff)}
+.mrow small{color:var(--soft)}
+.mrow input{margin-top:2px;flex:none}
+.mrow.og{cursor:default}
+@media print{
+.mrow:not(.on){display:none!important}
+ body{font-size:11px}
+ .page{margin:0;box-shadow:none;border-radius:0}
+ /* Marges haut/bas portées par la feuille : elles se répètent sur chaque feuille,
+    y compris quand un bloc (ex. Capacités de classe) passe sur la suivante */
+ @page{margin:8mm 0}
+ .page{padding-top:0;padding-bottom:0}
+ .page:not(#pg3):not(#pg4){height:280mm}
+ .page+.page{break-before:page}
+ #pg3.empty,#pg4.empty{display:none}
+ /* Les capacités de classe suivent directement la page 3 au lieu de démarrer une nouvelle feuille */
+ #pg3,#pg4{min-height:0}
+ #pg3:not(.empty)+#pg4{break-before:auto;margin-top:8px}
+ /* Pages 3 et 4 : un bloc n'est pas coupé entre deux feuilles s'il tient sur une seule,
+    et la marge de la feuille est reprise sur chaque feuille de la suite */
+ #pg3,#pg4{-webkit-box-decoration-break:clone;box-decoration-break:clone}
+ #pg3 .xcol{display:block}
+ #pg3 .xcol>*+*{margin-top:8px}
+ #pg3 .card,#pg4 .card,.don,.mrow,.xl li,.fxs>*{break-inside:avoid;page-break-inside:avoid}
+ .card h2{break-after:avoid;page-break-after:avoid}
+}

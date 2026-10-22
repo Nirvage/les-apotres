@@ -1,0 +1,317 @@
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const sg=n=>(n<0?'−':'+')+Math.abs(n);
+const fm=n=>(Math.round(n*10)/10).toLocaleString('fr-FR');
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const mod=v=>Math.floor(((parseInt(v)||10)-10)/2);
+const num=(id,d)=>{const v=parseInt($(id).value);return isNaN(v)?d:v};
+
+// Maîtrises d'armes et d'armures par classe (règles 2024, comme sur la fiche)
+const MART=['Barbare','Chasseur de sang','Guerrier','Paladin','Rôdeur'];
+const ARP={
+  'Artificier':['légères','intermédiaires','boucliers'],'Barbare':['légères','intermédiaires','boucliers'],'Barde':['légères'],
+  'Chasseur de sang':['légères','intermédiaires'],'Clerc':['légères','intermédiaires','boucliers'],'Druide':['légères','boucliers'],
+  'Ensorceleur':[],'Guerrier':['légères','intermédiaires','lourdes','boucliers'],'Magicien':[],'Moine':[],'Occultiste':['légères'],
+  'Paladin':['légères','intermédiaires','lourdes','boucliers'],'Rôdeur':['légères','intermédiaires','boucliers'],'Roublard':['légères']
+};
+const EXTRA=['Barbare','Chasseur de sang','Guerrier','Moine','Paladin','Rôdeur'];
+const attacksFor=(cl,n)=>cl==='Guerrier'?(n>=20?4:n>=11?3:n>=5?2:1):EXTRA.includes(cl)&&n>=5?2:1;
+const STYLES=['archerie','duel','deux_mains','defense'];
+Object.keys(ARP).forEach(c=>$('#cl').insertAdjacentHTML('beforeend',`<option>${esc(c)}</option>`));
+
+/* ---------- Lecture des données ---------- */
+const splitProps=s=>s.split(/,\s*(?![^()]*\))/).map(x=>x.trim()).filter(x=>x&&x!=='aucune');
+function parseWeapon(x){
+  const m=/Dégâts\s*:\s*(?:(\d+)d(\d+)|(\d+))\s+([^.]+?)\.\s*Propriétés\s*:\s*([^.]*?)\.\s*Maîtrise\s*:\s*([^.<]+)/.exec(x.h||'');
+  if(!m)return null;
+  const props=splitProps(m[5]),has=p=>props.some(q=>q.startsWith(p));
+  const pv=props.find(q=>q.startsWith('Polyvalente')),vd=pv&&/(\d+)d(\d+)/.exec(pv);
+  const rg=props.find(q=>/^(Lancer|Munitions)/.test(q)),rv=rg&&/\(([^)]+)\)/.exec(rg);
+  const c=x.c||'',dist=/distance/.test(c);
+  let md='';
+  const mp=(x.h||'').split('<b>Maîtrise ')[1];
+  if(mp)md=(mp.split('</b> (')[1]||'').replace(/\)\s*Utilisable.*$/,'').replace(/<[^>]+>/g,'');
+  return {
+    k:'w',n:x.n,en:x.en||'',c,cat:/guerre/.test(c)?'g':'c',dist,
+    dn:m[1]?+m[1]:0,dd:m[2]?+m[2]:0,flat:m[3]?+m[3]:0,typ:m[4].trim(),
+    vn:vd?+vd[1]:0,vdd:vd?+vd[2]:0,props,mast:m[6].trim(),md,
+    fin:has('Finesse'),light:has('Légère'),two:has('À deux mains'),reach:has('Allonge'),thrown:has('Lancer'),
+    rng:rv?rv[1]:'',kg:x.kg||0,po:x.po||0,p:x.p||'',c_:x.c_
+  };
+}
+function parseArmor(x){
+  const h=x.h||'',c=x.c||'';
+  if(/Bouclier/.test(c))return null;
+  const m=/Classe d’armure\s*:\s*(\d+)(\s*\+\s*mod\. de Dex(?:\s*\(max\.\s*\+(\d+)\))?)?/.exec(h);
+  if(!m)return null;
+  const s=/Force\s+(\d+)/.exec(h),on=/Enfiler\s*:\s*([^;]+);\s*retirer\s*:\s*([^.]+)/.exec(h);
+  const ty=/lourde/.test(c)?'h':/intermédiaire/.test(c)?'i':'l';
+  return {k:'a',n:x.n,en:x.en||'',c,ty,base:+m[1],dex:m[2]?(m[3]?+m[3]:99):0,str:s?+s[1]:0,disc:/Désavantage aux tests de Discrétion/.test(h),
+    don:on?on[1].trim()+' / '+on[2].trim():'',kg:x.kg||0,po:x.po||0,p:x.p||'',c_:x.c_};
+}
+let W=[],A=[];
+
+/* ---------- Personnage ---------- */
+let S={};   // état courant (valeurs du formulaire)
+function fromSheet(){
+  const f=Persos.part('fiche'),d=f&&f.data||{},dv=d.derive||{};
+  const tot=dv.tot||{};
+  const ab=k=>tot[k]||parseInt(d['ab_'+k])||10;
+  const cl=dv.cl||(Object.keys(ARP).find(c=>norm(d.classe).startsWith(norm(c)))||'');
+  const niv=dv.niv||Math.min(20,Math.max(1,parseInt(d.niveau)||1));
+  $('#cl').value=cl;$('#niv').value=niv;
+  ['for','dex','con','sag'].forEach(k=>$('#a_'+k).value=ab(k));
+  $('#natk').value=attacksFor(cl,niv);
+  const dons=(d.extras&&d.extras.dons||[]).map(g=>g.id);
+  STYLES.forEach(s=>$('#o_'+s).checked=dons.includes(s));
+  const eq=Persos.part('equipement'),own=(eq&&eq.data&&eq.data.objets||[]).map(o=>o.n);
+  S.own=new Set(own);
+  S.arProf=dv.ar&&dv.ar.length?dv.ar:null;   // maîtrises d'armures calculées par la fiche (classe + dons)
+  const shield=own.some(n=>/^Bouclier/.test(n));
+  $('#o_bouc').checked=shield&&(!cl||(S.arProf||ARP[cl]||[]).includes('boucliers'));
+  const nom=(Persos.current&&Persos.list().find(p=>p.actif)||{}).nom||'';
+  $('#srcTxt').textContent=f?'Valeurs reprises de la fiche'+(nom?' de « '+nom+' »':'')+' ; tu peux les modifier ici pour comparer (rien n’est enregistré).':'Aucune fiche remplie : saisis tes valeurs ou ouvre la fiche de personnage.';
+}
+function fillPersos(){
+  $('#perso').innerHTML=Persos.list().map(p=>`<option value="${esc(p.id)}"${p.actif?' selected':''}>${esc(p.nom||'Sans nom')}</option>`).join('');
+}
+$('#perso').addEventListener('change',e=>{Persos.activate(e.target.value);fromSheet();render()});
+$('#reload').addEventListener('click',()=>{fromSheet();render()});
+
+function readState(){
+  const cl=$('#cl').value,niv=Math.min(20,Math.max(1,num('#niv',1)));
+  S.cl=cl;S.niv=niv;S.pb=Math.ceil(niv/4)+1;
+  S.m={};['for','dex','con','sag'].forEach(k=>S.m[k]=mod($('#a_'+k).value));
+  S.str=num('#a_for',10);
+  S.tca=num('#tca',15);S.natk=Math.max(1,num('#natk',1));
+  S.sh=$('#o_bouc').checked;
+  STYLES.forEach(s=>S[s]=$('#o_'+s).checked);
+  S.ar=cl?(S.arProf&&S.arProfCl===cl?S.arProf:ARP[cl]||[]):null;
+}
+
+/* ---------- Armes ---------- */
+function wProf(w){
+  if(!S.cl||w.cat==='c')return true;
+  if(MART.includes(S.cl))return true;
+  if(S.cl==='Moine')return w.light;
+  if(S.cl==='Roublard')return w.light||w.fin;
+  return false;
+}
+const avgDie=(d,gwf)=>gwf?(d*(d+1)/2+3)/d:(d+1)/2;   // Arme à deux mains : les 1 et 2 comptent comme des 3
+function wCalc(w){
+  const ab=w.dist?S.m.dex:w.fin?Math.max(S.m.for,S.m.dex):S.m.for;
+  const abk=w.dist?'Dex':w.fin?(S.m.dex>S.m.for?'Dex':'For'):'For';
+  const prof=wProf(w);
+  const hit=ab+(prof?S.pb:0)+(w.dist&&S.archerie?2:0);
+  // Prises possibles : une main ou deux mains
+  const grips=[];
+  if(!w.two)grips.push({h:1,n:w.dn,d:w.dd});
+  if((w.two&&!S.sh)||(w.vn&&!S.sh))grips.push({h:2,n:w.vn||w.dn,d:w.vdd||w.dd});
+  const inc=!grips.length;   // À deux mains avec un bouclier
+  if(inc)grips.push({h:2,n:w.dn,d:w.dd});
+  const p=Math.min(.95,Math.max(.05,(21+hit-S.tca)/20));
+  let best=null;
+  for(const g of grips){
+    const gwf=S.deux_mains&&g.h===2&&!w.dist;
+    const dice=g.n*avgDie(g.d,gwf);
+    const flat=w.flat+ab+(S.duel&&g.h===1&&!w.dist?2:0);
+    const perHit=Math.max(1,dice+flat);
+    const exp=p*perHit+.05*dice;
+    if(!best||exp>best.exp)best={...g,dice,flat,perHit,exp,gwf};
+  }
+  return {ab,abk,prof,hit,p,inc,...best,round:best.exp*S.natk};
+}
+const dmgTxt=w=>(w.dn?w.dn+'d'+w.dd:w.flat)+(w.vn?' ('+w.vn+'d'+w.vdd+')':'');
+const rngTxt=w=>w.dist?w.rng:(w.reach?'3 m':'1,5 m')+(w.thrown?' ; lancer '+w.rng:'');
+
+const WCOLS=[
+  ['pick','',null],
+  ['n','Arme',r=>norm(r.w.n)],
+  ['dmg','Dégâts',r=>r.w.dn*(r.w.dd+1)/2+r.w.flat,'hm'],
+  ['hit','Toucher',r=>r.c.hit,'n'],
+  ['ph','Par coup',r=>r.c.perHit,'n'],
+  ['exp','Par attaque',r=>r.c.exp,'n'],
+  ['rd','Par tour',r=>r.c.round,'n'],
+  ['ma','Maîtrise d’arme',r=>r.w.mast],
+  ['pr','Propriétés',r=>r.w.props.join(),'hm'],
+  ['rg','Portée',r=>parseFloat(r.w.rng)||(r.w.reach?3:1.5),'hm'],
+  ['kg','Poids',r=>r.w.kg,'n hm'],
+  ['po','Prix',r=>r.w.po,'n hm']
+];
+let wSort={k:'rd',dir:-1},aSort={k:'ca',dir:-1};
+const picked={w:new Set(),a:new Set()};
+function renderW(){
+  const q=norm($('#wq').value),cat=$('#wcat').value,rg=$('#wrng').value,op=$('#wprof').checked,ow=$('#wown').checked;
+  let R=W.map(w=>({w,c:wCalc(w)}));
+  const all=R;
+  R=R.filter(({w,c})=>(!cat||w.cat===cat)&&(!rg||(rg==='d')===w.dist)&&(!op||c.prof)&&(!ow||S.own.has(w.n))
+    &&(!q||norm(w.n+' '+w.en+' '+w.props.join(' ')+' '+w.mast+' '+w.typ).includes(q)));
+  sortRows(R,WCOLS,wSort);
+  const ok=R.filter(r=>!r.c.inc&&r.c.prof),bestV=ok.length?Math.max(...ok.map(r=>r.c.round)):null;
+  $('#wcnt').textContent=R.length+' arme'+(R.length>1?'s':'')+' · cible CA '+S.tca+' · '+S.natk+' attaque'+(S.natk>1?'s':'')+' par action · bonus de maîtrise '+sg(S.pb);
+  $('#wt').innerHTML=head(WCOLS,wSort)+'<tbody>'+R.map(({w,c})=>{
+    const tags=[];
+    if(S.own.has(w.n))tags.push('<span class="tag in">Dans l’équipement</span>');
+    if(!c.prof)tags.push('<span class="tag no">Non maîtrisée</span>');
+    if(c.inc)tags.push('<span class="tag wa">Impossible avec un bouclier</span>');
+    if(w.c_)tags.push('<span class="tag in">Création</span>');
+    const grip=w.vn?(c.h===2?'à deux mains':'à une main'):'';
+    const why=[c.abk+' '+sg(c.ab),c.prof?'maîtrise '+sg(S.pb):'',w.dist&&S.archerie?'Archerie +2':''].filter(Boolean).join(', ');
+    const dmgWhy=fm(c.dice)+' (dés'+(c.gwf?', style Arme à deux mains':'')+') '+(c.flat<0?'− '+(-c.flat):'+ '+c.flat)+(S.duel&&c.h===1&&!w.dist?' (dont Duel +2)':'');
+    const cls=[!c.prof||c.inc?'off':'',bestV!=null&&!c.inc&&c.prof&&Math.abs(c.round-bestV)<1e-9?'best':''].join(' ');
+    return `<tr class="${cls}"><td class="pick"><input type="checkbox" data-pk="w" value="${esc(w.n)}" aria-label="Comparer ${esc(w.n)}"${picked.w.has(w.n)?' checked':''}></td>
+<td><span class="nm">${esc(w.n)}</span><div class="sub">${w.cat==='g'?'Guerre':'Courante'} · ${w.dist?'distance':'corps à corps'}${grip?' · '+grip:''}</div>${tags.join('')}</td>
+<td class="hm">${esc(dmgTxt(w))}<div class="sub">${esc(w.typ)}</div></td>
+<td class="n" title="${esc(why)}">${sg(c.hit)}<div class="sub">${Math.round(c.p*100)} %</div></td>
+<td class="n" title="${esc(dmgWhy)}">${fm(c.perHit)}</td>
+<td class="n">${fm(c.exp)}</td>
+<td class="n big">${fm(c.round)}</td>
+<td><span class="ms" title="${esc(w.md)}">${esc(w.mast)}</span></td>
+<td class="hm">${esc(w.props.join(', ')||'—')}</td>
+<td class="hm">${esc(rngTxt(w))}</td>
+<td class="n hm">${fm(w.kg)} kg</td>
+<td class="n hm">${esc(w.p)}</td></tr>`}).join('')+'</tbody>';
+  compareBox('w',all.filter(r=>picked.w.has(r.w.n)),[
+    ['Dégâts',r=>dmgTxt(r.w)+' '+r.w.typ,null],
+    ['Toucher',r=>sg(r.c.hit)+' ('+Math.round(r.c.p*100)+' %)',r=>r.c.hit],
+    ['Par coup',r=>fm(r.c.perHit),r=>r.c.perHit],
+    ['Par attaque',r=>fm(r.c.exp),r=>r.c.exp],
+    ['Par tour',r=>fm(r.c.round),r=>r.c.round],
+    ['Maîtrise d’arme',r=>r.w.mast,null],
+    ['Portée',r=>rngTxt(r.w),null],
+    ['Poids',r=>fm(r.w.kg)+' kg',r=>-r.w.kg],
+    ['Prix',r=>r.w.p,r=>-r.w.po]
+  ],r=>r.w.n,r=>[!r.c.prof?'non maîtrisée':'',r.c.inc?'impossible avec un bouclier':''].filter(Boolean).join(', '));
+}
+
+/* ---------- Armures ---------- */
+const TYN={s:'Sans armure',l:'Armure légère',i:'Armure intermédiaire',h:'Armure lourde'};
+const TYP={l:'légères',i:'intermédiaires',h:'lourdes'};
+function armorsList(){
+  const L=[{k:'a',n:'Sans armure',ty:'s',base:10,dex:99,kg:0,po:0,p:'—',don:'',str:0,disc:false,sub:'10 + Dex'}];
+  if(S.cl==='Barbare')L.push({k:'a',n:'Défense sans armure (Barbare)',ty:'s',base:10,dex:99,plus:['con','Con'],kg:0,po:0,p:'—',don:'',str:0,disc:false,shOk:true});
+  if(S.cl==='Moine')L.push({k:'a',n:'Défense sans armure (Moine)',ty:'s',base:10,dex:99,plus:['sag','Sag'],kg:0,po:0,p:'—',don:'',str:0,disc:false,noSh:true});
+  L.push({k:'a',n:'Armure du mage (sort)',ty:'s',base:13,dex:99,kg:0,po:0,p:'—',don:'',str:0,disc:false,spell:true});
+  return L.concat(A);
+}
+function aCalc(a){
+  const dx=Math.min(a.dex,S.m.dex);
+  const prof=a.ty==='s'||!S.ar||S.ar.includes(TYP[a.ty]);
+  const shProf=!S.ar||S.ar.includes('boucliers');
+  const sh=S.sh&&!a.noSh?2:0;
+  const def=S.defense&&a.ty!=='s'?1:0;
+  const plus=a.plus?S.m[a.plus[0]]:0;
+  const ca=a.base+dx+plus+sh+def;
+  const parts=[String(a.base)];
+  if(a.dex)parts.push('Dex '+sg(dx)+(a.dex<99&&S.m.dex>a.dex?' (max.)':''));
+  if(a.plus)parts.push(a.plus[1]+' '+sg(plus));
+  if(sh)parts.push('bouclier +2');
+  if(def)parts.push('Défense +1');
+  const slow=a.str&&S.str<a.str;
+  return {ca,parts,prof,shProf,slow};
+}
+const ACOLS=[
+  ['pick','',null],
+  ['n','Armure',r=>norm(r.a.n)],
+  ['ca','CA obtenue',r=>r.c.ca,'n'],
+  ['dt','Calcul',r=>r.a.base],
+  ['fo','Force',r=>r.a.str,'n'],
+  ['di','Discrétion',r=>r.a.disc?1:0],
+  ['kg','Poids',r=>r.a.kg,'n hm'],
+  ['po','Prix',r=>r.a.po,'n hm'],
+  ['on','Enfiler / retirer',r=>r.a.ty,'hm']
+];
+function renderA(){
+  const q=norm($('#aq').value),cat=$('#acat').value,op=$('#aprof').checked,nd=$('#adisc').checked;
+  const all=armorsList().map(a=>({a,c:aCalc(a)}));
+  const R=all.filter(({a,c})=>(!cat||a.ty===cat)&&(!op||c.prof)&&(!nd||!a.disc)&&(!q||norm(a.n+' '+a.en).includes(q)));
+  sortRows(R,ACOLS,aSort);
+  const ok=all.filter(r=>r.c.prof&&!r.a.spell&&!r.c.slow),bestV=ok.length?Math.max(...ok.map(r=>r.c.ca)):null;
+  $('#acnt').textContent=R.length+' option'+(R.length>1?'s':'')+' · Dextérité '+sg(S.m.dex)+(S.sh?' · avec bouclier':'')+(S.sh&&!all[0].c.shProf?' (non maîtrisé)':'');
+  $('#at').innerHTML=head(ACOLS,aSort)+'<tbody>'+R.map(({a,c})=>{
+    const tags=[];
+    if(S.own.has(a.n))tags.push('<span class="tag in">Dans l’équipement</span>');
+    if(!c.prof)tags.push('<span class="tag no">Non maîtrisée</span>');
+    if(c.slow)tags.push('<span class="tag wa">Vitesse −3 m</span>');
+    if(a.spell)tags.push('<span class="tag in">Sort, 8 h, sans armure</span>');
+    if(a.noSh&&S.sh)tags.push('<span class="tag wa">Sans bouclier</span>');
+    if(a.c_)tags.push('<span class="tag in">Création</span>');
+    const cls=[!c.prof?'off':'',bestV!=null&&c.prof&&!a.spell&&!c.slow&&c.ca===bestV?'best':''].join(' ');
+    return `<tr class="${cls}"><td class="pick"><input type="checkbox" data-pk="a" value="${esc(a.n)}" aria-label="Comparer ${esc(a.n)}"${picked.a.has(a.n)?' checked':''}></td>
+<td><span class="nm">${esc(a.n)}</span><div class="sub">${esc(TYN[a.ty])}</div>${tags.join('')}</td>
+<td class="n big">${c.ca}</td>
+<td>${esc(c.parts.join(' + '))}</td>
+<td class="n">${a.str?(c.slow?'<b style="color:#a8321f">'+a.str+'</b>':a.str):'—'}</td>
+<td>${a.disc?'<span class="tag wa">Désavantage</span>':'—'}</td>
+<td class="n hm">${a.kg?fm(a.kg)+' kg':'—'}</td>
+<td class="n hm">${esc(a.p)}</td>
+<td class="hm">${esc(a.don||'—')}</td></tr>`}).join('')+'</tbody>';
+  compareBox('a',all.filter(r=>picked.a.has(r.a.n)),[
+    ['CA obtenue',r=>String(r.c.ca),r=>r.c.ca],
+    ['Type',r=>TYN[r.a.ty],null],
+    ['Force requise',r=>r.a.str?String(r.a.str):'—',null],
+    ['Discrétion',r=>r.a.disc?'désavantage':'normale',r=>r.a.disc?0:1],
+    ['Poids',r=>r.a.kg?fm(r.a.kg)+' kg':'—',r=>-r.a.kg],
+    ['Prix',r=>r.a.p,r=>-r.a.po],
+    ['Enfiler / retirer',r=>r.a.don||'—',null]
+  ],r=>r.a.n,r=>[!r.c.prof?'non maîtrisée':'',r.c.slow?'Vitesse −3 m':''].filter(Boolean).join(', '));
+}
+
+/* ---------- Commun ---------- */
+function head(cols,st){
+  return '<thead><tr>'+cols.map(([k,l,f,cl])=>`<th${cl?` class="${cl}"`:''}${f?` data-s="${k}" tabindex="0"`:''}${st.k===k?` aria-sort="${st.dir<0?'descending':'ascending'}"`:''}>${esc(l)}</th>`).join('')+'</tr></thead>';
+}
+// Les options inutilisables (non maîtrisées, impossibles avec un bouclier) passent en fin de liste
+const offRow=r=>!r.c.prof||r.c.inc?1:0;
+function sortRows(R,cols,st){
+  const f=(cols.find(c=>c[0]===st.k)||[])[2];if(!f)return;
+  R.sort((x,y)=>{const a=f(x),b=f(y);return offRow(x)-offRow(y)||(typeof a==='string'?a.localeCompare(b,'fr'):a-b)*st.dir});
+}
+function compareBox(k,R,rows,name,warn){
+  const box=$('#'+k+'cmp');
+  if(!R.length){box.innerHTML='';return}
+  const order=[...picked[k]];R.sort((a,b)=>order.indexOf(name(a))-order.indexOf(name(b)));
+  box.innerHTML=`<div class="cmpbox"><h3><span>Comparaison (${R.length})</span><button type="button" class="b" data-clr="${k}">Tout décocher</button></h3><div class="cgrid">`+R.map(r=>{
+    const w=warn(r);
+    return `<div class="cc"><b class="t">${esc(name(r))}</b>${w?`<span class="tag no">${esc(w)}</span>`:''}<dl>`+rows.map(([l,t,v])=>{
+      const top=v&&R.length>1&&R.every(o=>v(o)<=v(r))&&R.some(o=>v(o)<v(r));
+      return `<dt>${esc(l)}</dt><dd${top?' class="top"':''}>${esc(t(r))}</dd>`}).join('')+'</dl></div>'}).join('')+'</div></div>';
+}
+function render(){readState();renderW();renderA()}
+
+document.addEventListener('click',e=>{
+  const th=e.target.closest('th[data-s]');
+  if(th){const st=th.closest('#wt')?wSort:aSort,k=th.dataset.s;st.dir=st.k===k?-st.dir:(['n','ma','dt','pr','on'].includes(k)?1:-1);st.k=k;render();return}
+  const c=e.target.closest('[data-clr]');
+  if(c){picked[c.dataset.clr].clear();render()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('th[data-s]'))e.target.click()});
+document.addEventListener('change',e=>{
+  const p=e.target.closest('[data-pk]');
+  if(p){const s=picked[p.dataset.pk];if(p.checked){s.add(p.value);if(s.size>4)s.delete(s.values().next().value)}else s.delete(p.value);render();return}
+  if(e.target.id==='cl'){S.arProfCl=null;$('#natk').value=attacksFor($('#cl').value,num('#niv',1))}
+  if(e.target.id==='niv')$('#natk').value=attacksFor($('#cl').value,num('#niv',1));
+  if(e.target.id==='tca')try{localStorage.setItem('cmp_ca',$('#tca').value)}catch(_){}
+  if(e.target.closest('.panel,.view'))render();
+});
+document.addEventListener('input',e=>{if(e.target.matches('#wq,#aq'))render()});
+['w','a'].forEach(k=>$('#t_'+k).addEventListener('click',()=>{
+  ['w','a'].forEach(j=>{$('#t_'+j).setAttribute('aria-selected',j===k);$('#v_'+j).hidden=j!==k});
+  try{localStorage.setItem('cmp_tab',k)}catch(_){}
+}));
+
+(async()=>{
+  try{const t=localStorage.getItem('cmp_tab');if(t==='a')$('#t_a').click()}catch(_){}
+  let ca='15';try{ca=localStorage.getItem('cmp_ca')||ca}catch(_){}
+  $('#tca').value=ca;
+  fillPersos();fromSheet();S.arProfCl=$('#cl').value;
+  let base=[];
+  try{base=await (await fetch('json/vf/equipement.json')).json()}catch(_){$('#wcnt').textContent='Impossible de charger equipement.json (ouvre le site par un serveur web).'}
+  let mine=[];try{mine=Persos.custom().equipement||[]}catch(_){}
+  const items=base.concat(mine.filter(x=>x&&x.n));
+  W=items.filter(x=>x.t==='Arme').map(parseWeapon).filter(Boolean);
+  A=items.filter(x=>x.t==='Armure').map(parseArmor).filter(Boolean);
+  render();
+})();
+addEventListener('storage',e=>{if(e.key==='dnd_persos_v1'){fillPersos();fromSheet();S.arProfCl=$('#cl').value;render()}});

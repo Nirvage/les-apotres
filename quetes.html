@@ -5,69 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Quêtes du MJ</title>
-<link rel="stylesheet" href="style.css?v=20261014c">
-<style>
-@page{size:A4;margin:12mm}
-.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
-.intro{padding:14px 20px 16px;font-size:14px;line-height:1.5}
-.intro h1{margin:0 0 4px;font:italic 700 26px var(--serif);color:#2a3170}
-.intro p{margin:4px 0;color:var(--soft)}
-.qbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:12px}
-.qbar input{flex:1 1 220px;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:7px}
-.qbar select{padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:#fff}
-.fk{display:flex;flex-wrap:wrap;gap:6px}
-.f{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font-size:13px}
-.f[aria-pressed=true]{background:#2a3170;border-color:#2a3170;color:#fff}
-.cnt{color:var(--soft);font-size:12.5px}
-.rand{padding:8px 14px;border:0;border-radius:8px;background:#2a3170;color:#fff;font-weight:600;cursor:pointer;font-size:13px}
-.rand:hover{filter:brightness(1.2)}
-.tiers{margin-top:16px;display:flex;flex-direction:column;gap:16px}
-.tier{padding:0 0 16px;overflow:hidden}
-.tier>h2{margin:0;padding:9px 18px;background:var(--k);color:#fff;font:italic 700 20px var(--serif)}
-.tier>h2 small{font:400 13px var(--sans);opacity:.9;margin-left:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:12px 18px 0}
-.q{border:1px solid var(--line);border-top:4px solid var(--k);border-radius:9px;padding:10px 13px 12px;background:#fbfbff;display:flex;flex-direction:column;gap:6px;break-inside:avoid;page-break-inside:avoid}
-.q.faite{opacity:.6}
-.q.flash{outline:3px solid var(--gold);outline-offset:2px}
-.q h3{margin:0;font:italic 700 17px var(--serif);color:#2a3170}
-.tags{display:flex;flex-wrap:wrap;gap:4px}
-.tags span{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;background:#eceefb;color:#2a3170}
-.tags .lv{background:var(--k);color:#fff}
-.q p{margin:0;font-size:13px;line-height:1.5}
-.q p b{color:#2a3170}
-.q ul{margin:0;padding-left:18px;font-size:13px;line-height:1.45}
-.q li+li{margin-top:2px}
-.po{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;padding:6px 10px;border-radius:7px;background:#fff6dc;border:1px solid #f0d78c;font-size:13px}
-.po b{font-size:15px;color:#7a5600}
-.po .bn{flex:1 1 100%;color:var(--soft);font-size:12.5px}
-.st{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:4px;font-size:12px;color:var(--soft)}
-.st select{padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px}
-.k1{--k:#2e9e5b}.k2{--k:#2f6fd0}.k3{--k:#7a4fc4}.k4{--k:#c8402f}
-.empty{padding:14px 20px;color:var(--soft)}
-.lock{padding:30px 20px;text-align:center;color:var(--soft);font-size:15px}
-.lock b{display:block;font:italic 700 22px var(--serif);color:#2a3170;margin-bottom:6px}
-@media screen and (max-width:700px){
- .wrap{padding:0 8px;margin-top:10px}
- .intro{padding:12px 14px}
- .intro h1{font-size:22px}
- .grid{grid-template-columns:minmax(0,1fr);padding:10px 10px 0}
- .qbar input,.qbar select,.fk{flex:1 1 100%}
- .f{flex:1 1 auto;min-height:36px}
- .rand{flex:1 1 100%;min-height:42px}
- .q p,.q ul{font-size:14px}
- .st select{min-height:34px}
-}
-@media print{
- .qbar,.st,.intro .noprint{display:none!important}
- .wrap{max-width:none;margin:0;padding:0}
- .panel{box-shadow:none}
- .grid{grid-template-columns:1fr 1fr}
- .q{background:#fff}
- .tier+.tier{break-before:page}
-}
-</style>
-<script src="theme.js?v=20261020a"></script>
-<script src="vo.js?v=20261022b"></script>
+<link rel="stylesheet" href="assets/css/style.css?v=20261014c">
+<link rel="stylesheet" href="assets/css/pages/quetes.css?v=20261022r">
+<script src="assets/js/theme.js?v=20261020a"></script>
+<script src="assets/js/vo.js?v=20261022b"></script>
 </head>
 <body>
 <div class="top">
@@ -103,90 +44,9 @@
 <div class="tiers" id="tiers"></div>
 </div>
 </div>
-<script src="persos.js?v=20261015a"></script>
-<script>
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-const nb=n=>n.toLocaleString('fr-FR');
-const TIERS={1:'Niveaux 1 à 4',2:'Niveaux 5 à 10',3:'Niveaux 11 à 16',4:'Niveaux 17 à 20'};
-const TN={1:'Héros locaux',2:'Héros du royaume',3:'Maîtres du royaume',4:'Maîtres du monde'};
-const ST={libre:'Pas encore jouée',prevue:'Prévue',cours:'En cours',faite:'Terminée'};
-const GROUPE=5;
-const PRIX=[['légendaire',200000],['très rare',40000],['rare',4000],['peu courant',400]];
-// Ce que la part d'un aventurier permet d'acheter, en objets magiques
-function achat(pp){
-  const r=PRIX.find(x=>pp>=x[1]*.75);
-  if(!r)return 'de quoi s’équiper, pas encore un objet peu courant';
-  const n=Math.max(1,Math.round(pp/r[1]*2)/2);
-  return 'environ '+String(n).replace('.',',')+' objet'+(n>1?'s':'')+' '+r[0]+(n>1?'s':'')+' chacun';
-}
-let QS=[],suivi={},filt={t:'',ty:'',st:'',q:''};
-// La page n'est visible que si le personnage actif s'appelle « mj »
-const estMJ=()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'};
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-const minNiv=q=>parseInt(q.niv,10);
-
-function carte(q){
-  const s=suivi[q.id]||'libre',pp=Math.floor(q.po/GROUPE);
-  return `<article class="q k${q.tier}${s==='faite'?' faite':''}" id="${q.id}">
-<h3>${esc(q.t)}</h3>
-<div class="tags"><span class="lv">Niveau ${esc(q.niv)}</span><span>${esc(q.type)}</span><span>${esc(q.lieu)}</span></div>
-<p><b>Accroche.</b> ${esc(q.acc)}</p>
-<p><b>Objectif.</b> ${esc(q.obj)}</p>
-<div><p><b>Complications</b></p><ul>${q.comp.map(c=>'<li>'+esc(c)+'</li>').join('')}</ul></div>
-<div class="po"><span>Récompense : <b>${nb(q.po)} PO</b> pour le groupe</span><span>soit <b>${nb(pp)} PO</b> par aventurier</span><span class="bn">Équivaut à ${achat(pp)}</span>${q.bonus?'<span class="bn">En plus : '+esc(q.bonus)+'</span>':''}</div>
-<label class="st">Suivi <select data-id="${q.id}">${Object.keys(ST).map(k=>`<option value="${k}"${k===s?' selected':''}>${ST[k]}</option>`).join('')}</select></label>
-</article>`;
-}
-function visibles(){
-  const w=norm(filt.q.trim());
-  return QS.filter(q=>(!filt.t||q.tier==filt.t)&&(!filt.ty||q.type===filt.ty)&&(!filt.st||(suivi[q.id]||'libre')===filt.st)
-    &&(!w||norm([q.t,q.type,q.lieu,q.acc,q.obj,q.comp.join(' '),q.bonus||''].join(' ')).includes(w)));
-}
-function render(){
-  const mj=estMJ();
-  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#bPrint').hidden=!mj;
-  if(!mj||!QS.length)return;
-  const v=visibles();
-  $('#cnt').textContent=v.length+' quête'+(v.length>1?'s':'');
-  $('#tiers').innerHTML=v.length?[1,2,3,4].map(t=>{
-    const l=v.filter(q=>q.tier===t);if(!l.length)return '';
-    return `<section class="panel tier k${t}"><h2>${TIERS[t]}<small>${TN[t]} · ${l.length} quête${l.length>1?'s':''}</small></h2><div class="grid">${l.map(carte).join('')}</div></section>`;
-  }).join(''):'<section class="panel empty">Aucune quête ne correspond à ces filtres.</section>';
-}
-$('#ft').onclick=e=>{const b=e.target.closest('.f');if(!b)return;filt.t=b.dataset.t;$$('#ft .f').forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
-$('#fty').onchange=e=>{filt.ty=e.target.value;render()};
-$('#fst').onchange=e=>{filt.st=e.target.value;render()};
-$('#q').oninput=e=>{filt.q=e.target.value;render()};
-$('#tiers').addEventListener('change',e=>{
-  const id=e.target.dataset.id;if(!id)return;
-  if(e.target.value==='libre')delete suivi[id];else suivi[id]=e.target.value;
-  Persos.save();msg('Suivi enregistré : '+ST[e.target.value]);
-  e.target.closest('.q').classList.toggle('faite',e.target.value==='faite');
-});
-$('#bRand').onclick=()=>{
-  const v=visibles().filter(q=>suivi[q.id]!=='faite');
-  if(!v.length){msg('Aucune quête disponible avec ces filtres');return}
-  const a=new Uint32Array(1);crypto.getRandomValues(a);const q=v[a[0]%v.length];
-  const el=document.getElementById(q.id);if(!el)return;
-  el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'center'});
-  $$('.q.flash').forEach(x=>x.classList.remove('flash'));el.classList.add('flash');
-  msg('Quête tirée : « '+q.t+' »');
-};
-$('#bPrint').onclick=()=>window.print();
-
-Persos.init({part:'quetes',mount:$('#persos'),msg,
-  collect:()=>({version:1,type:'quetes-dnd-5e',data:{suivi}}),
-  apply:o=>{suivi=o&&o.data&&o.data.suivi&&typeof o.data.suivi==='object'?o.data.suivi:{};render()},
-  onName:render});
-fetch('quetes.json').then(r=>r.json()).then(d=>{
-  QS=d.sort((a,b)=>a.tier-b.tier||minNiv(a)-minNiv(b)||a.po-b.po);
-  [...new Set(QS.map(q=>q.type))].sort((a,b)=>a.localeCompare(b,'fr')).forEach(t=>$('#fty').add(new Option(t,t)));
-  render();
-}).catch(()=>{$('#tiers').innerHTML='<section class="panel empty">Impossible de charger les quêtes.</section>'});
-</script>
-<script src="recherche.js?v=20261022d"></script>
-<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
+<script src="assets/js/persos.js?v=20261015a"></script>
+<script src="assets/js/pages/quetes.js?v=20261022r"></script>
+<script src="assets/js/recherche.js?v=20261022d"></script>
+<script src="assets/js/sw-register.js?v=20261022r"></script>
 </body>
 </html>

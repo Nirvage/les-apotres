@@ -43,7 +43,7 @@ function block(m){
 var DB=null,BYN={};
 function load(){
   if(DB)return Promise.resolve(DB);
-  return fetch('bestiaire.json?v=20261019a').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
+  return fetch('json/vf/bestiaire.json?v=20261019a').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
     DB=d;d.forEach(function(m,i){m.i=i;m.idx=norm(m.n+' '+m.en+' '+m.typ);BYN[m.n]=m});return d;
   });
 }

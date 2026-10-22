@@ -5,47 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Guide du débutant D&amp;D 5e</title>
-<link rel="stylesheet" href="style.css?v=20261014c">
-<style>
-@page{size:A4;margin:12mm}
-.wrap{max-width:1000px;margin:16px auto;padding:0 12px;display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start}
-nav.toc{position:sticky;top:64px;background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:10px 12px;font-size:12.5px}
-nav.toc b{display:block;font:italic 700 15px var(--serif);color:#2a3170;margin-bottom:6px}
-nav.toc a{display:block;padding:3px 0;color:var(--ink);text-decoration:none}
-nav.toc a:hover{color:#2f6fd0;text-decoration:underline}
-main.doc{background:#fff;border-radius:10px;border-top:4px solid var(--gold);box-shadow:0 4px 24px #0005;padding:18px 24px 26px;font-size:14px;line-height:1.55}
-.doc h1{margin:0 0 4px;font:italic 700 28px var(--serif);color:#2a3170}
-.doc .lead{margin:0 0 14px;color:var(--soft)}
-.doc h2{margin:26px 0 8px;font:italic 700 20px var(--serif);color:#fff;background:var(--c,#2a3170);padding:5px 12px;border-radius:7px;scroll-margin-top:70px}
-.doc h3{margin:14px 0 4px;font:italic 700 15px var(--serif);color:#2a3170}
-.doc p{margin:6px 0}
-.doc ul,.doc ol{margin:6px 0 6px 20px;padding:0}
-.doc li{margin:2px 0}
-.tip{background:#eef6ff;border-left:4px solid #2f6fd0;border-radius:6px;padding:7px 12px;margin:10px 0}
-.warn{background:#fff6e5;border-left:4px solid #d8791a;border-radius:6px;padding:7px 12px;margin:10px 0}
-.doc table{border-collapse:collapse;margin:8px 0;font-size:13px}
-.doc th,.doc td{border:1px solid var(--line);padding:3px 9px;text-align:left}
-.doc th{background:#eceefb;color:#2a3170}
-.doc td.c,.doc th.c{text-align:center}
-.dice{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.dice span{background:#2a3170;color:#fff;border-radius:8px;padding:4px 11px;font-weight:700}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
-code{background:#eceefb;border-radius:4px;padding:0 4px}
-@media screen and (max-width:760px){
- .wrap{grid-template-columns:minmax(0,1fr);margin:10px auto;padding:0 8px;gap:10px}
- nav.toc{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
- nav.toc b{grid-column:1/-1}
- nav.toc a{padding:6px 0}
- main.doc{padding:14px 14px 20px;font-size:15px}
- .doc h1{font-size:24px}
- .doc h2{font-size:18px}
- .doc table{display:block;overflow-x:auto;max-width:100%}
- .two{grid-template-columns:1fr}
-}
-@media print{body{background:#fff}.top,nav.toc{display:none}.wrap{display:block;margin:0;padding:0;max-width:none}main.doc{box-shadow:none;border-top:0;padding:0;font-size:11px}.doc h2{break-after:avoid;page-break-after:avoid}.doc table,.tip,.warn{break-inside:avoid;page-break-inside:avoid}}
-</style>
-<script src="theme.js?v=20261020a"></script>
-<script src="vo.js?v=20261022b"></script>
+<link rel="stylesheet" href="assets/css/style.css?v=20261014c">
+<link rel="stylesheet" href="assets/css/pages/guide.css?v=20261022r">
+<script src="assets/js/theme.js?v=20261020a"></script>
+<script src="assets/js/vo.js?v=20261022b"></script>
 </head>
 <body>
 <div class="top">
@@ -297,8 +260,8 @@ code{background:#eceefb;border-radius:4px;padding:0 4px}
 </ul>
 </main>
 </div>
-<script>document.getElementById('bPrint').onclick=()=>window.print();</script>
-<script src="recherche.js?v=20261022d"></script>
-<script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
+<script src="assets/js/pages/guide.js?v=20261022r"></script>
+<script src="assets/js/recherche.js?v=20261022d"></script>
+<script src="assets/js/sw-register.js?v=20261022r"></script>
 </body>
 </html>

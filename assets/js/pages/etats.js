@@ -1,0 +1,122 @@
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const slug=s=>norm(s).replace(/[^a-z]+/g,'-');
+const L=(n,l=n)=>`<a href="#${slug(n)}">${l}</a>`;
+// Étiquettes de filtre
+const T={v0:'Vitesse 0',neu:'Neutralisé',av:'Avantage contre toi',dat:'Désavantage à tes attaques',fd:'Échec For/Dex',crit:'Critique au contact'};
+// Chaque état : nom, autres noms (recherche), couleur, étiquettes, résumé, effets, fin,
+// colonnes du tableau [vitesse, actions, tes attaques, attaques contre toi, sauvegardes]
+const C=[
+ {n:'À terre',a:'renversé couché par terre prone',k:'#8a5a2b',t:['dat'],s:'Tu es au sol, renversé ou couché volontairement.',e:[
+  'Pour bouger, tu dois <b>ramper</b> (chaque mètre coûte un mètre de plus) ou te relever.',
+  'Te relever coûte <b>la moitié de ta Vitesse</b> et met fin à l’état. Impossible si ta Vitesse est à 0.',
+  'Tu as le <b>désavantage</b> à tes jets d’attaque.',
+  'Les attaques contre toi ont l’<b>avantage</b> si l’attaquant est à 1,5 m, le <b>désavantage</b> s’il est plus loin.'],
+  f:'Fin : te relever à ton tour. Se jeter à terre est gratuit.',m:['ramper','','désavantage','avantage à 1,5 m, désavantage au-delà','']},
+ {n:'Agrippé',a:'empoigné saisi lutte grapple',k:'#b0632a',t:['v0','dat'],s:'Une créature, un tentacule ou un effet te tient.',e:[
+  'Ta Vitesse est de <b>0</b> et ne peut pas augmenter.',
+  'Tu as le <b>désavantage</b> à tes attaques contre toute cible autre que celle qui t’agrippe.',
+  'L’agrippeur peut te traîner ou te porter quand il se déplace, mais chaque mètre lui coûte un mètre de plus (sauf si tu es Très petit ou deux tailles plus petit que lui).'],
+  f:'Fin : à ton tour, action pour un test de Force (Athlétisme) ou de Dextérité (Acrobaties) contre le DD de l’agrippeur (8 + son mod. de Force + son bonus de maîtrise). L’état cesse aussi si l’agrippeur est '+L('Neutralisé','neutralisé')+' ou si un effet vous éloigne l’un de l’autre hors de son allonge.',m:['0','','désavantage (sauf contre l’agrippeur)','','']},
+ {n:'Assourdi',a:'sourd',k:'#6b7280',t:[],s:'Tu n’entends plus rien.',e:[
+  'Tu <b>rates automatiquement</b> tout test de caractéristique qui demande d’entendre.',
+  'Tu n’entends pas les paroles ni les composantes verbales des sorts, et les effets qui exigent d’entendre (certains ordres, sorts d’enchantement) peuvent ne pas fonctionner sur toi.'],
+  f:'Fin : selon l’effet (durée, sort comme Restauration partielle).',m:['','rate les tests liés à l’ouïe','','','']},
+ {n:'Aveuglé',a:'aveugle cécité ne voit pas ténèbres',k:'#3a3a52',t:['dat','av'],s:'Tu ne vois plus rien.',e:[
+  'Tu <b>rates automatiquement</b> tout test de caractéristique qui demande de voir.',
+  'Tu as le <b>désavantage</b> à tes jets d’attaque.',
+  'Les attaques contre toi ont l’<b>avantage</b>.'],
+  f:'Fin : selon l’effet. Une zone fortement obscurcie (ténèbres) te rend en pratique aveuglé pour y voir, sauf vision dans le noir ou vision aveugle.',m:['','rate les tests liés à la vue','désavantage','avantage','']},
+ {n:'Charmé',a:'charme envoûté',k:'#d6458e',t:[],s:'Une créature t’a ensorcelé et tu la vois comme un ami.',e:[
+  'Tu ne peux pas attaquer ton charmeur ni le cibler avec une capacité ou un effet magique nuisible.',
+  'Ton charmeur a l’<b>avantage</b> à ses tests de caractéristique pour interagir socialement avec toi.'],
+  f:'Fin : selon l’effet. Souvent quand le charmeur ou ses alliés te font du mal, ou par un nouveau jet de sauvegarde.',m:['','ne peut pas nuire au charmeur','pas contre le charmeur','','']},
+ {n:'Effrayé',a:'peur terreur effroi frightened',k:'#7a4fc4',t:['dat'],s:'Tu as peur d’une créature ou d’une chose (la source).',e:[
+  'Tant que tu vois la source de ta peur, tu as le <b>désavantage</b> à tes tests de caractéristique et à tes jets d’attaque.',
+  'Tu ne peux pas te rapprocher <b>volontairement</b> de la source.'],
+  f:'Fin : selon l’effet, souvent un jet de sauvegarde de Sagesse à la fin de chacun de tes tours. Se mettre hors de vue de la source évite le désavantage.',m:['pas vers la source','tests à désavantage (source en vue)','désavantage (source en vue)','','']},
+ {n:'Empoisonné',a:'poison intoxiqué malade',k:'#2e9e5b',t:['dat'],s:'Un poison, une maladie ou un venin t’affaiblit.',e:[
+  'Tu as le <b>désavantage</b> à tes jets d’attaque et à tes tests de caractéristique.'],
+  f:'Fin : selon l’effet (durée, jet de sauvegarde, antidote, Restauration partielle).',m:['','tests à désavantage','désavantage','','']},
+ {n:'Entravé',a:'ligoté immobilisé filet toile restrained',k:'#8b1e3f',t:['v0','dat','av'],s:'Tu es pris dans un filet, une toile, des lianes ou des chaînes.',e:[
+  'Ta Vitesse est de <b>0</b> et ne peut pas augmenter.',
+  'Tu as le <b>désavantage</b> à tes jets d’attaque.',
+  'Les attaques contre toi ont l’<b>avantage</b>.',
+  'Tu as le <b>désavantage</b> à tes jets de sauvegarde de Dextérité.'],
+  f:'Fin : selon l’effet. Un filet se défait avec un test de Force DD 10 (action) ou en lui infligeant 5 dégâts tranchants.',m:['0','','désavantage','avantage','désavantage en Dex']},
+ {n:'Épuisement',a:'fatigue épuisé exhaustion niveaux',k:'#5c4a1e',t:['dat'],s:'Fatigue, faim, soif, froid, marche forcée : l’épuisement se compte en niveaux, de 1 à 6, et se cumule.',e:[
+  'Chaque niveau retire <b>2</b> à tous tes tests d20 : jets d’attaque, tests de caractéristique et jets de sauvegarde (−2 au niveau 1, −4 au niveau 2…).',
+  'Chaque niveau retire <b>1,5 m</b> à ta Vitesse.',
+  'Au niveau <b>6</b>, tu meurs.'],
+  f:'Fin : chaque repos long retire un niveau (si tu as mangé et bu). Restauration supérieure en retire aussi un.',m:['−1,5 m par niveau','tests −2 par niveau','−2 par niveau','','−2 par niveau']},
+ {n:'Étourdi',a:'sonné assommé stunned',k:'#d8791a',t:['neu','av','fd'],s:'Un choc, un sort ou un coup puissant te laisse hébété.',e:[
+  'Tu es '+L('Neutralisé','neutralisé')+' : ni action, ni action bonus, ni réaction.',
+  'Tu <b>rates automatiquement</b> tes jets de sauvegarde de Force et de Dextérité.',
+  'Les attaques contre toi ont l’<b>avantage</b>.'],
+  f:'Fin : selon l’effet, souvent à la fin de ton prochain tour ou par un jet de sauvegarde.',m:['','aucune (neutralisé)','','avantage','échec For et Dex']},
+ {n:'Inconscient',a:'évanoui endormi sommeil 0 pv mourant ko',k:'#3d5a80',t:['v0','neu','av','fd','crit'],s:'Tu es sans connaissance : endormi, assommé ou à 0 point de vie.',e:[
+  'Tu es '+L('Neutralisé','neutralisé')+' et '+L('À terre','à terre')+', et tu lâches ce que tu tiens. Quand l’état prend fin, tu restes à terre.',
+  'Ta Vitesse est de <b>0</b>.',
+  'Tu ne perçois rien de ce qui t’entoure.',
+  'Tu <b>rates automatiquement</b> tes jets de sauvegarde de Force et de Dextérité.',
+  'Les attaques contre toi ont l’<b>avantage</b>, et tout coup porté par un attaquant à 1,5 m est un <b>coup critique</b>.'],
+  f:'Fin : selon la cause. À 0 PV, n’importe quel soin te réveille. Un dormeur se réveille s’il subit des dégâts ou si quelqu’un le secoue (action).',m:['0','aucune','','avantage, critique à 1,5 m','échec For et Dex']},
+ {n:'Invisible',a:'caché invisibilité hidden',k:'#12968f',t:[],s:'On ne te voit pas : sort d’invisibilité, ou action Se cacher réussie.',e:[
+  '<b>Surprise</b> : si tu es invisible quand tu lances l’initiative, tu as l’avantage.',
+  '<b>Dissimulé</b> : tu n’es pas affecté par les effets qui exigent que la cible soit vue, sauf si leur auteur te voit d’une autre façon. Ce que tu portes est invisible aussi.',
+  'Tes jets d’attaque ont l’<b>avantage</b>, et les attaques contre toi le <b>désavantage</b>. Rien de tout ça si la créature peut te voir (vision véritable, sort Détection de l’invisibilité…).'],
+  f:'Fin : selon le sort (souvent dès que tu attaques ou lances un sort). Caché avec Se cacher : dès que tu fais du bruit, attaques, lances un sort à composante verbale ou qu’on te trouve.',m:['','','avantage','désavantage','']},
+ {n:'Neutralisé',a:'incapable hors de combat incapacitated',k:'#4a4f6a',t:['neu'],s:'Tu ne peux plus agir. Plusieurs états l’incluent (étourdi, paralysé, pétrifié, inconscient).',e:[
+  'Tu ne peux faire <b>ni action, ni action bonus, ni réaction</b>.',
+  'Ta <b>concentration</b> est rompue.',
+  'Tu ne peux pas parler.',
+  'Si tu es neutralisé quand tu lances l’initiative, tu as le désavantage.'],
+  f:'Fin : selon l’effet qui l’a causé.',m:['','aucune, ne peut pas parler','','','']},
+ {n:'Paralysé',a:'paralysie immobile figé',k:'#c8402f',t:['v0','neu','av','fd','crit'],s:'Ton corps ne répond plus (poison, sort Immobiliser un humanoïde, goule…).',e:[
+  'Tu es '+L('Neutralisé','neutralisé')+'.',
+  'Ta Vitesse est de <b>0</b> et ne peut pas augmenter.',
+  'Tu <b>rates automatiquement</b> tes jets de sauvegarde de Force et de Dextérité.',
+  'Les attaques contre toi ont l’<b>avantage</b>, et tout coup porté par un attaquant à 1,5 m est un <b>coup critique</b>.'],
+  f:'Fin : selon l’effet, souvent un jet de sauvegarde à la fin de chacun de tes tours.',m:['0','aucune','','avantage, critique à 1,5 m','échec For et Dex']},
+ {n:'Pétrifié',a:'pierre statue changé en pierre',k:'#7d7d7d',t:['v0','neu','av','fd'],s:'Tu es changé en pierre (ou autre matière inerte), avec ce que tu portes.',e:[
+  'Ton poids est multiplié par dix et tu ne vieillis plus.',
+  'Tu es '+L('Neutralisé','neutralisé')+' et ta Vitesse est de <b>0</b>.',
+  'Les attaques contre toi ont l’<b>avantage</b>.',
+  'Tu <b>rates automatiquement</b> tes jets de sauvegarde de Force et de Dextérité.',
+  'Tu as la <b>résistance</b> à tous les dégâts et l’<b>immunité</b> contre l’état '+L('Empoisonné','empoisonné')+'.'],
+  f:'Fin : Restauration supérieure ou un effet équivalent.',m:['0','aucune','','avantage','échec For et Dex ; résistance à tous les dégâts']}
+];
+// Situations proches qui ne sont pas des états
+const X=[
+ ['Mourant (0 PV)','Tu es '+L('Inconscient','inconscient')+' et tu fais un jet contre la mort au début de chacun de tes tours. Voir <a href="combat.html#degats">Dégâts, soins et mort</a>.'],
+ ['Stable','À 0 PV mais hors de danger : plus de jets contre la mort. Tu restes inconscient et regagnes 1 PV au bout de 1d4 heures.'],
+ ['Surpris','Pas un état : si tu es pris au dépourvu au début du combat, tu as le désavantage à l’initiative.'],
+ ['Concentré','Pas un état non plus : un seul sort à concentration à la fois ; rompue si tu es neutralisé ou si tu rates ta sauvegarde de Constitution après des dégâts.'],
+ ['Hors de vue','Attaquer une créature que tu ne vois pas : désavantage. Être attaqué par une créature qui ne te voit pas : elle a le désavantage.']
+];
+$('#tags').innerHTML=Object.entries(T).map(([k,v])=>`<button type="button" data-t="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
+$('#mat').innerHTML=C.map(c=>`<tr data-id="${slug(c.n)}"><td><a href="#${slug(c.n)}">${esc(c.n)}</a></td>${c.m.map(x=>`<td class="${/^(0|aucune|échec|rate)/.test(x)?'o':''}">${esc(x||'–')}</td>`).join('')}</tr>`).join('');
+$('#grid').innerHTML=C.map(c=>`<section class="panel box" id="${slug(c.n)}" style="--k:${c.k}"><h2>${esc(c.n)}${VO.btn('etats',c.n,c.n)}</h2>
+<p class="sum">${esc(c.s)}</p><ul>${c.e.map(x=>'<li>'+x+'</li>').join('')}</ul><p class="fin">${c.f}</p>
+${c.t.length?'<div class="tg">'+c.t.map(k=>'<span>'+esc(T[k])+'</span>').join('')+'</div>':''}</section>`).join('')
+ +`<section class="panel box" id="autres" style="--k:#2a3170"><h2>Situations proches</h2>${X.map(r=>`<div class="r"><b>${esc(r[0])}</b><div>${r[1]}</div></div>`).join('')}</section>`
+ +'<section class="panel empty" id="none" hidden>Aucun état ne correspond.</section>';
+let tag='';
+const filtre=()=>{
+  const w=norm($('#q').value.trim());let n=0;
+  C.forEach(c=>{
+    const ok=(!tag||c.t.includes(tag))&&(!w||norm(c.n+' '+c.a+' '+c.s+' '+c.e.join(' ')+' '+c.f).includes(w));
+    const id=slug(c.n);document.getElementById(id).hidden=!ok;
+    $(`#mat tr[data-id="${id}"]`).classList.toggle('hide',!ok);n+=ok;
+  });
+  const x=$('#autres');x.hidden=!!tag||(!!w&&!norm(x.textContent).includes(w));
+  $('#none').hidden=!!n||!x.hidden;
+};
+$('#q').oninput=filtre;
+$('#tags').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  tag=tag===b.dataset.t?'':b.dataset.t;
+  $$('#tags button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===tag));filtre()};
+$('#bPrint').onclick=()=>window.print();
+// Contenu généré après le chargement : on rejoint l'ancre demandée (#a-terre…)
+if(location.hash){const t=document.getElementById(decodeURIComponent(location.hash.slice(1)));if(t)t.scrollIntoView()}

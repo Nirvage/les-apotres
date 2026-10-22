@@ -1,0 +1,101 @@
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+// Lien vers un état de la page Les états (l : texte affiché si différent)
+const E=(n,l=n)=>`<a href="etats.html#${n.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]+/g,'-')}">${l}</a>`;
+// Chaque section : id, titre court (sommaire), titre, couleur, note, règles [nom, texte HTML]
+const S=[
+ {id:'deroule',c:'Déroulement',t:'Déroulement d’un combat',k:'#2a3170',rows:[
+  ['Surprise','Une créature prise au dépourvu quand le combat commence lance son initiative avec le <b>désavantage</b>.'],
+  ['Initiative','Chacun fait un test de Dextérité (d20 + modificateur de Dex + bonus éventuels). On joue du plus haut au plus bas. En cas d’égalité, le MJ départage ses monstres et les joueurs s’entendent entre eux. L’ordre reste le même tout le combat.'],
+  ['Round','Environ <b>6 secondes</b>. Chaque combattant joue un tour par round, puis un nouveau round commence.'],
+  ['Fin du combat','Quand un camp est vaincu, s’enfuit ou se rend.']]},
+ {id:'tour',c:'Ton tour',t:'Ton tour',k:'#2f6fd0',note:'À ton tour, tu peux te déplacer et faire une action, dans l’ordre que tu veux. Le reste est facultatif.',rows:[
+  ['Déplacement','Jusqu’à ta Vitesse (souvent 9 m). Tu peux le fractionner : avancer, attaquer, puis repartir.'],
+  ['Une action','Attaquer, Foncer, Magie, Esquiver… (voir « Les actions »).'],
+  ['Une action bonus','Seulement si une capacité, un sort ou un objet t’en donne une. Une seule par tour.'],
+  ['Une interaction gratuite','Avec un objet ou un élément du décor : ouvrir une porte, ramasser un objet, sortir une potion du sac. Une deuxième demande l’action Utiliser un objet. Dégainer ou rengainer une arme se fait gratuitement pendant chaque attaque de l’action Attaquer.'],
+  ['Parler','Quelques mots ou un cri, gratuitement, même hors de ton tour.'],
+  ['Une réaction','Une par round, à ton tour ou à celui d’un autre (voir « Réactions »). Elle revient au début de ton tour.']]},
+ {id:'actions',c:'Actions',t:'Les actions',k:'#8e3a9d',rows:[
+  ['Attaquer','Une attaque avec une arme ou à mains nues. L’Attaque supplémentaire (guerrier, paladin, rôdeur…) en donne plus. Les attaques à mains nues permettent aussi d’<b>agripper</b> ou de <b>pousser</b> (voir « Attaquer »).'],
+  ['Magie','Lancer un sort dont le temps d’incantation est d’une action, utiliser un objet magique ou une capacité magique.'],
+  ['Foncer','Tu gagnes un déplacement supplémentaire égal à ta Vitesse pour ce tour.'],
+  ['Se désengager','Ton déplacement ne provoque pas d’attaques d’opportunité jusqu’à la fin du tour.'],
+  ['Esquiver','Jusqu’au début de ton prochain tour : les attaques contre toi ont le désavantage (si tu vois l’attaquant) et tu as l’avantage aux jets de sauvegarde de Dextérité. Perdu si tu es '+E('Neutralisé')+' ou si ta Vitesse tombe à 0.'],
+  ['Aider','Au choix : un allié a l’avantage à son prochain test avec une compétence ou un outil que tu maîtrises ; ou tu distrais un ennemi à 1,5 m de toi et le prochain jet d’attaque d’un allié contre lui a l’avantage. Dans les deux cas, avant le début de ton prochain tour.'],
+  ['Se cacher','Test de Dextérité (Discrétion) DD 15, en étant hors de vue des ennemis : dans une zone à visibilité nulle ou derrière un abri au moins important (trois-quarts). Réussite : tu as l’état '+E('Invisible')+' et ton résultat devient le DD pour te repérer. Ça prend fin si tu fais du bruit, attaques, lances un sort à composante verbale ou si on te trouve.'],
+  ['Influencer','Test de Charisme (Persuasion, Tromperie, Intimidation, Représentation) ou de Sagesse (Dressage) pour changer l’attitude d’une créature.'],
+  ['Chercher','Test de Sagesse (Perception, Intuition, Médecine, Survie) pour repérer une créature cachée, un indice, l’état d’un blessé…'],
+  ['Étudier','Test d’Intelligence (Arcanes, Histoire, Investigation, Nature, Religion) pour se souvenir ou analyser quelque chose.'],
+  ['Utiliser un objet','Activer un objet non magique (trousse de soins, piège, outil) ou faire une deuxième interaction avec un objet. Boire une potion de soins est une action bonus en 2024.'],
+  ['Se tenir prêt','Tu choisis un déclencheur que tu peux percevoir et une action (ou un déplacement). Quand le déclencheur survient, tu réagis avec ta réaction, ou tu laisses passer. Un sort préparé est lancé tout de suite, retenu par ta concentration et libéré avec ta réaction.']]},
+ {id:'reactions',c:'Réactions',t:'Actions bonus et réactions',k:'#c8402f',rows:[
+  ['Action bonus','Uniquement quand une règle la donne : combat à deux armes, sort à 1 action bonus, Ruse (roublard), Rage (barbare), boire une potion… Si tu n’en as pas, tu n’en fais pas.'],
+  ['Réaction','Une réponse instantanée à un déclencheur : attaque d’opportunité, sort <i>Bouclier</i> ou <i>Contresort</i>, action préparée. Une seule par round ; elle se recharge au début de ton tour. Si elle interrompt quelqu’un, il reprend son tour juste après.'],
+  ['Attaque d’opportunité','Quand une créature que tu vois <b>quitte ton allonge</b> en utilisant son déplacement, son action, son action bonus ou sa réaction, tu peux utiliser ta réaction pour lui porter <b>une attaque au corps à corps</b> (arme ou mains nues), juste avant qu’elle sorte.'],
+  ['Pas d’attaque d’opportunité si…','<ul><li>la créature a fait l’action Se désengager ;</li><li>elle se téléporte ;</li><li>elle est déplacée sans utiliser son propre mouvement ni son action (poussée, projetée, emportée) ;</li><li>elle se déplace en restant dans ton allonge.</li></ul>'],
+  ['Allonge','1,5 m pour la plupart des armes et des créatures de taille Moyenne, 3 m avec une arme qui a la propriété Allonge.']]},
+ {id:'abri',c:'Abri',t:'Abri (couvert)',k:'#12968f',note:'Murs, arbres, créatures, meubles : un obstacle entre toi et l’attaquant te protège. Seul le meilleur abri compte, ils ne s’additionnent pas.',rows:[
+  ['Abri partiel (demi)','La moitié du corps est cachée (muret, autre créature, gros meuble) : <b>+2</b> à la CA et aux jets de sauvegarde de Dextérité.'],
+  ['Abri important (trois-quarts)','Les trois-quarts du corps sont cachés (meurtrière, gros tronc) : <b>+5</b> à la CA et aux jets de sauvegarde de Dextérité.'],
+  ['Abri total','Entièrement caché : tu ne peux pas être ciblé directement par une attaque ou un sort, mais un effet de zone peut t’atteindre.']]},
+ {id:'attaque',c:'Attaquer',t:'Attaquer',k:'#d8791a',rows:[
+  ['Jet d’attaque','d20 + modificateur de caractéristique + bonus de maîtrise (si tu maîtrises l’arme). Si le total est <b>égal ou supérieur à la CA</b>, l’attaque touche.'],
+  ['Quelle caractéristique ?','Force au corps à corps, Dextérité à distance. Arme à Finesse : au choix. Sort : ta caractéristique d’incantation.'],
+  ['20 naturel : coup critique','L’attaque touche toujours. Lance <b>deux fois</b> tous les dés de dégâts de l’attaque (dés de l’arme, Attaque sournoise, Châtiment…), puis ajoute les modificateurs une seule fois.'],
+  ['1 naturel','L’attaque rate toujours.'],
+  ['Avantage et désavantage','Lance deux d20 et garde le meilleur (avantage) ou le pire (désavantage). Plusieurs avantages ne se cumulent pas ; si tu as à la fois l’avantage et le désavantage, ils s’annulent.'],
+  ['Cible ou attaquant invisible','Attaquer une créature que tu ne vois pas : désavantage. Attaquer sans être vu : avantage. Si tu vises une case vide, tu rates.'],
+  ['Attaque à distance','Au-delà de la portée normale : désavantage ; au-delà de la portée longue : impossible. Désavantage aussi si un ennemi qui te voit (et n’est pas '+E('Neutralisé')+') se trouve à 1,5 m de toi.'],
+  ['Attaque à mains nues','Au choix : <b>dégâts</b> (1 + modificateur de Force, contondant) ; <b>agripper</b> (la cible devient '+E('Agrippé')+') ; ou <b>pousser</b> (la cible recule de 1,5 m ou tombe '+E('À terre')+'). Pour agripper ou pousser, la cible fait un jet de sauvegarde de Force ou de Dextérité (à son choix) contre DD 8 + mod. de Force + bonus de maîtrise ; elle ne doit pas dépasser ta taille de plus d’une catégorie, et agripper demande une main libre.'],
+  ['Combat à deux armes','Après avoir attaqué avec une arme Légère pendant l’action Attaquer, tu peux attaquer avec une autre arme Légère tenue dans l’autre main en action bonus. Pas de modificateur aux dégâts de cette attaque, sauf s’il est négatif.'],
+  ['Arme improvisée','Chaise, bouteille, torche : 1d4 dégâts, sans bonus de maîtrise (sauf si elle ressemble à une arme que tu maîtrises).'],
+  ['Bottes d’arme (maîtrise)','Si ta classe te permet d’utiliser la botte d’une arme :<ul><li><b>Affaiblir</b> : sur un toucher, la cible a le désavantage à sa prochaine attaque avant ton prochain tour.</li><li><b>Entailler</b> : l’attaque supplémentaire d’arme Légère se fait dans l’action Attaquer au lieu de l’action bonus (1 fois par tour).</li><li><b>Érafler</b> : si l’attaque rate, la cible subit quand même ton modificateur de caractéristique en dégâts.</li><li><b>Fendre</b> : après un toucher au corps à corps, attaque une deuxième créature à 1,5 m de la première (1 fois par tour, sans modificateur aux dégâts).</li><li><b>Harceler</b> : sur un toucher, avantage à ta prochaine attaque contre cette cible avant la fin de ton prochain tour.</li><li><b>Ralentir</b> : sur un toucher, la Vitesse de la cible baisse de 3 m jusqu’à ton prochain tour.</li><li><b>Renverser</b> : sur un toucher, jet de sauvegarde de Constitution ou la cible tombe '+E('À terre')+'.</li><li><b>Repousser</b> : sur un toucher, tu repousses la cible de 3 m (taille Grande ou moins).</li></ul>']]},
+ {id:'deplacement',c:'Se déplacer',t:'Se déplacer',k:'#2e9e5b',rows:[
+  ['Fractionner','Tu peux répartir ton déplacement avant, entre et après tes attaques. Si tu as plusieurs vitesses (marche, vol, nage), retire de la nouvelle ce que tu as déjà parcouru.'],
+  ['Terrain difficile','Broussailles, gravats, escaliers, neige, espace d’une autre créature : chaque mètre coûte <b>un mètre de plus</b>.'],
+  ['Grimper, nager, ramper','Chaque mètre coûte un mètre de plus (deux de plus si le terrain est aussi difficile), sauf si tu as une vitesse d’escalade ou de nage.'],
+  ['Se jeter à terre, se relever','Se mettre '+E('À terre')+' ne coûte rien. Se relever coûte <b>la moitié de ta Vitesse</b>. Impossible si ta Vitesse est à 0.'],
+  ['Sauter','En longueur, avec 3 m d’élan : 30 cm par point de Force. En hauteur, avec 3 m d’élan : 90 cm + 30 cm par point de modificateur de Force. Sans élan, la moitié. Chaque mètre sauté se paye en déplacement.'],
+  ['Traverser une créature','Tu peux traverser l’espace d’un allié, d’une créature Neutralisée, d’une créature Très petite ou de deux tailles d’écart avec toi. Cet espace compte comme terrain difficile, sauf pour un allié ou une créature Très petite. Tu ne peux pas y finir ton déplacement.'],
+  ['Taille et espace occupé','Très petite : 75 cm. Petite et Moyenne : 1,5 m (une case). Grande : 3 m (2×2 cases). Très grande : 4,5 m (3×3). Gigantesque : 6 m (4×4).'],
+  ['Chute','1d6 dégâts contondants par tranche de 3 m (20d6 maximum). Tu atterris '+E('À terre')+' si tu subis des dégâts.']]},
+ {id:'degats',c:'Dégâts et mort',t:'Dégâts, soins et mort',k:'#7a2a2a',rows:[
+  ['Résistance, vulnérabilité, immunité','Résistance : dégâts de ce type divisés par deux (arrondi à l’inférieur). Vulnérabilité : doublés. Immunité : aucun dégât. Plusieurs résistances au même type ne se cumulent pas.'],
+  ['Points de vie temporaires','Ils encaissent les dégâts en premier. Ils ne se cumulent pas (garde la plus grande réserve), ne se soignent pas et disparaissent après un repos long.'],
+  ['Tomber à 0 PV','Tu tombes '+E('Inconscient')+'. Mort instantanée si les dégâts qui restent après être passé à 0 sont égaux ou supérieurs à ton maximum de PV.'],
+  ['Jets contre la mort','Au début de chacun de tes tours à 0 PV, lance un d20 : <b>10 ou plus</b> = réussite, moins = échec. <b>3 réussites</b> : tu es stable. <b>3 échecs</b> : tu meurs. Un 1 naturel compte pour deux échecs ; un 20 naturel te rend 1 PV.'],
+  ['Dégâts à 0 PV','Chaque coup reçu à 0 PV compte pour un échec, deux si c’est un coup critique. Si les dégâts égalent ou dépassent ton maximum de PV, tu meurs.'],
+  ['Stabiliser','Action Utiliser un objet avec une trousse de soins, ou test de Sagesse (Médecine) DD 10 avec l’action Aider. Une créature stable reste inconsciente à 0 PV et regagne 1 PV au bout de 1d4 heures.'],
+  ['Être soigné','N’importe quel soin ramène une créature à 0 PV à la conscience et efface ses jets contre la mort.'],
+  ['Assommer','Quand tu fais tomber une créature à 0 PV avec une attaque au corps à corps, tu peux choisir de la laisser à 1 PV, '+E('Inconscient','inconsciente')+', au lieu de la tuer.']]},
+ {id:'sorts',c:'Sorts',t:'Lancer des sorts en combat',k:'#7a4fc4',rows:[
+  ['Concentration','Un seul sort à concentration à la fois. Elle prend fin si tu en lances un autre, si tu es '+E('Neutralisé')+' ou si tu meurs. Quand tu subis des dégâts : jet de sauvegarde de Constitution, DD 10 ou la moitié des dégâts subis (le plus élevé, 30 au maximum).'],
+  ['Un emplacement par tour','Tu ne peux dépenser qu’un seul emplacement de sort par tour. Un tour de magie (sans emplacement) reste possible en plus.'],
+  ['Attaque de sort','Même règles qu’une attaque d’arme : critique sur 20, désavantage à distance si un ennemi est à 1,5 m, abri qui compte.'],
+  ['Composantes','Verbale : il faut pouvoir parler (pas bâillonné, pas dans un <i>Silence</i>). Somatique : une main libre (ou celle qui tient le focaliseur). Matérielle : une sacoche ou un focaliseur, sauf si un coût est indiqué.'],
+  ['Sort de zone','Pas de jet d’attaque : chaque créature dans la zone fait un jet de sauvegarde. L’abri total bloque la zone.']]},
+ {id:'special',c:'Cas particuliers',t:'Cas particuliers',k:'#5c4a1e',rows:[
+  ['Visibilité','Zone légèrement obscurcie (pénombre, brume légère) : désavantage aux tests de Perception basés sur la vue. Zone fortement obscurcie (ténèbres, brouillard épais) : tu es en pratique '+E('Aveuglé')+' pour y voir.'],
+  ['Combat monté','Monter ou descendre coûte la moitié de ta Vitesse. Une monture que tu contrôles ne peut que Foncer, Se désengager ou Esquiver, et agit à ton initiative. Si on te pousse ou si la monture tombe, jet de sauvegarde de Dextérité DD 10 ou chute '+E('À terre')+'.'],
+  ['Combat sous l’eau','Au corps à corps, désavantage sauf avec une dague, une javeline, une épée courte, une lance ou un trident (ou une vitesse de nage). À distance, l’attaque rate au-delà de la portée normale et a le désavantage en deçà, sauf arbalète, filet ou arme lancée comme une javeline. Les créatures immergées ont la résistance au feu.'],
+  ['Retenir son souffle','1 + modificateur de Constitution minutes (30 secondes minimum). Ensuite, tu tiens un nombre de rounds égal à ce modificateur (1 minimum), puis tu tombes à 0 PV.']]}
+];
+$('#toc').innerHTML=S.map(s=>`<a href="#${s.id}">${esc(s.c)}</a>`).join('');
+$('#grid').innerHTML=S.map(s=>`<section class="panel box" id="${s.id}" style="--k:${s.k}"><h2>${esc(s.t)}</h2>${s.note?'<p>'+esc(s.note)+'</p>':''}
+${s.rows.map(r=>`<div class="r"><b>${esc(r[0])}</b><div>${r[1]}</div></div>`).join('')}</section>`).join('')
+ +'<section class="panel empty" id="none" hidden>Rien ne correspond à cette recherche.</section>';
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const filtre=v=>{
+  const w=norm(v.trim());let n=0;
+  $$('.box').forEach(b=>{
+    const all=!w||norm(b.querySelector('h2').textContent).includes(w);let k=0;
+    b.querySelectorAll('.r').forEach(r=>{const ok=all||norm(r.textContent).includes(w);r.classList.toggle('hide',!ok);k+=ok});
+    b.hidden=!k;n+=k;
+  });
+  $('#none').hidden=!!n;
+};
+$('#q').oninput=e=>filtre(e.target.value);
+$('#bPrint').onclick=()=>window.print();
+// Contenu généré après le chargement : on rejoint l'ancre demandée (#a-terre…)
+if(location.hash){const t=document.getElementById(decodeURIComponent(location.hash.slice(1)));if(t)t.scrollIntoView()}

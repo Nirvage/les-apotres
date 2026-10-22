@@ -1,0 +1,6 @@
+.wrap{max-width:560px;margin:16px auto;padding:0 12px;display:flex;flex-direction:column;gap:12px}
+.wrap .dz{min-height:60vh}
+.aide{background:#fff;border-radius:10px;box-shadow:0 4px 24px #0005;padding:10px 14px;font-size:13px}
+.aide h2{margin:0 0 4px;font:italic 700 15px var(--serif);color:#2a3170}
+.aide ul{margin:0;padding-left:18px}
+.aide code{background:#eceefb;border-radius:4px;padding:0 4px}

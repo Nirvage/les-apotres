@@ -4,11 +4,11 @@
 // sans réseau, on sert la dernière copie enregistrée.
 // Les pages et données sont découvertes en parcourant les liens depuis l'accueil :
 // pas de liste de fichiers à tenir à jour quand une page est ajoutée.
-const CACHE = 'apotres-v1';
+const CACHE = 'apotres-v2';
 const META = '__sw_meta__/derniere-copie';
 const RECOPIE = 6 * 3600 * 1000;   // nouvelle copie complète au plus toutes les 6 h
 const DELAI = 4000;               // réseau trop lent : on sert la copie au bout de 4 s
-const FICHIER = /(?:^|[\s'"(=,])((?:\.\/)?[\w.-]+\.(?:html|json|js|css))(\?v=[\w.-]*)?(?=['")\s>])/g;
+const FICHIER = /(?:^|[\s'"(=,])((?:\.\/)?[\w.\/-]+\.(?:html|json|js|css))(\?v=[\w.-]*)?(?=['")\s>])/g;
 
 const base = new URL('./', self.location).href;
 const local = u => u.startsWith(base) && !u.includes('/__sw_meta__/');
@@ -21,7 +21,8 @@ async function ranger(cache, req, res) {
   await cache.put(req, res);
 }
 
-// Copie complète du site : accueil, puis chaque page, script, feuille de style et fichier JSON cité
+// Copie complète du site : accueil, puis chaque page, script (assets/js), feuille de style (assets/css)
+// et fichier JSON (json/vf, json/vo) cité
 async function copier() {
   const cache = await caches.open(CACHE);
   const vus = new Set(), file = [base];
@@ -36,7 +37,9 @@ async function copier() {
     if (!/\.(json)$/.test(new URL(url).pathname)) {
       const txt = await res.text();
       for (const m of txt.matchAll(FICHIER)) {
-        const u = new URL(m[1] + (m[2] || ''), url).href;
+        // chemins relatifs à la racine du site : toutes les pages y sont, et les scripts
+        // (assets/js/…) citent leurs fichiers par rapport à la page qui les charge
+        const u = new URL(m[1] + (m[2] || ''), base).href;
         if (local(u) && !vus.has(u)) file.push(u);
       }
     }

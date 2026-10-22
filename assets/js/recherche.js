@@ -50,9 +50,9 @@ function add(out,o){
 
 function build(){
   if(loading)return loading;
-  var files=['spells.json','objets.json','equipement.json','bestiaire.json','familiers.json','dons.json','especes.json','especes_infos.json',
-    'capacites.json','sousclasses.json','historiques.json','quetes.json','classes_infos.json'];
-  loading=Promise.all(files.map(get).concat([getText('etats.html'),getText('combat.html'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
+  var files=['json/vf/spells.json','json/vf/objets.json','json/vf/equipement.json','json/vf/bestiaire.json','json/vf/familiers.json','json/vf/dons.json','json/vf/especes.json','json/vf/especes_infos.json',
+    'json/vf/capacites.json','json/vf/sousclasses.json','json/vf/historiques.json','json/vf/quetes.json','json/vf/classes_infos.json'];
+  loading=Promise.all(files.map(get).concat([getText('assets/js/pages/etats.js'),getText('assets/js/pages/combat.js'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
     var out=[];
     var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11],ci=r[12]||{};
     var clsLien=function(cl,n){return 'classes.html#'+encodeURIComponent(cl)+(n?'/'+encodeURIComponent(n):'')};
@@ -134,7 +134,7 @@ function build(){
   return loading;
 }
 
-// Règles : lues dans le texte des pages (les états et le combat sont des listes dans leur script)
+// Règles : lues dans le texte des pages (les états et le combat sont des listes dans leur script, assets/js/pages/etats.js et combat.js)
 function regles(out,etats,combat,guide){
   var slug=function(s){return norm(s).replace(/[^a-z]+/g,'-')};
   var str="'((?:[^'\\\\]|\\\\.)*)'";
