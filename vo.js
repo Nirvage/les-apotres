@@ -74,6 +74,18 @@ function ui(){
   document.body.appendChild(dlg);
 }
 
+// Page VO d'AideDD : règles 2024 (« 5.5 ») pour les livres 2024, sinon pages 2014.
+// Les adresses reprennent le nom anglais : minuscules, tout le reste devient « - » (Heward's Handy Haversack → heward-s-handy-haversack)
+var AIDEDD={sorts:['spell/','dnd/sorts.php?vo='],objets:['magic-item/','dnd/om.php?vo='],monstres:['monster/','dnd/monstres.php?vo='],
+  familiers:['monster/','dnd/monstres.php?vo='],dons:['feat/','dnd/dons.php?vo=']};
+function aidedd(k,o){
+  var p=AIDEDD[k];
+  if(!p||o.i||!o.s)return '';
+  var slug=String(o.n).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  var v24=/Player's Handbook \(2024\)|Dungeon Master's Guide \(2024\)|Monster Manual \(2025\)/.test(o.s);
+  return 'https://www.aidedd.org/'+p[v24?0:1]+slug;
+}
+
 function show(k,id,fr){
   ui();
   title.textContent='Version originale';sub.textContent=fr||'';body.innerHTML='<p class="vo-sub">Chargement…</p>';
@@ -94,7 +106,8 @@ function show(k,id,fr){
     }else{
       if(o.f&&o.f.length)h+='<p class="vo-sub">Capacités (noms et niveaux du livre d’origine)</p><p lang="en">'+o.f.map(function(x){return 'Level '+x[0]+': '+esc(x[1])}).join('<br>')+'</p>';
       h+='<div class="vo-note">Le texte anglais de cet élément n’est pas sous licence libre (hors SRD), il ne peut donc pas être reproduit ici. '
-        +(o.x?'Il se trouve dans le livre indiqué ci-dessus.':'<a href="https://www.dndbeyond.com/search?q='+encodeURIComponent(o.n)+'" target="_blank" rel="noopener">Lire la version originale sur D&amp;D Beyond</a> (livre requis pour le contenu payant).')+'</div>';
+        +(o.x?'Il se trouve dans le livre indiqué ci-dessus.':aidedd(k,o)?'<a href="'+aidedd(k,o)+'" target="_blank" rel="noopener">Lire la version originale sur AideDD</a>.'
+          :'<a href="https://www.dndbeyond.com/search?q='+encodeURIComponent(o.n)+'" target="_blank" rel="noopener">Lire la version originale sur D&amp;D Beyond</a> (livre requis pour le contenu payant).')+'</div>';
     }
     body.innerHTML=h;body.scrollTop=0;
   }).catch(function(){

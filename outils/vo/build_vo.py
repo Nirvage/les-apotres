@@ -549,7 +549,8 @@ def build_feats():
         if not x:
             STATS['dons-absent'] += 1; continue
         lic = lic_of(x)
-        res[d['id']] = out(srd_name(x) if lic else x['name'], x['source'], feat_html(x) if lic else None, lic)
+        res[d['id']] = out(srd_name(x) if lic else x['name'], x['source'], feat_html(x) if lic else None, lic, False,
+                           {'i': 1} if 'EI' in x.get('featureType', []) else None)
         STATS['dons-srd' if lic else 'dons-nom'] += 1
     return res
 
