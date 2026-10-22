@@ -187,7 +187,16 @@ function progression(cl,k){
  const scLv=[...new Set(DB.filter(o=>o.cl===cl).flatMap(o=>o.feats.map(f=>f.niv)))];
  const cols=[];
  (d.infos||[]).forEach(x=>{if(Array.isArray(x.val))cols.push([x.nom,x.val])});
- (d.ressources||[]).forEach(x=>{if(Array.isArray(x.max))cols.push([x.nom,x.max])});
+ // Les ressources « Nom · niv. N » (Arcanum mystique) tiennent dans une seule colonne : niveaux de sort disponibles
+ const grp={};
+ (d.ressources||[]).forEach(x=>{
+  if(!Array.isArray(x.max))return;
+  const m=/^(.+?) · niv\. (\d+)$/.exec(x.nom);
+  if(!m)return cols.push([x.nom,x.max]);
+  if(!grp[m[1]])cols.push([m[1],grp[m[1]]=Array(20).fill('')]);
+  x.max.forEach((v,i)=>{if(v)grp[m[1]][i]+=(grp[m[1]][i]?', ':'niv. ')+m[2]});
+ });
+ Object.values(grp).forEach(a=>a.forEach((v,i)=>{if(!v)a[i]='—'}));
  if(d.mineurs)cols.push(['Sorts mineurs',d.mineurs]);
  if(d.prepares)cols.push(['Sorts préparés',d.prepares]);
  const emp=d.lanceur&&EMP[d.lanceur];
