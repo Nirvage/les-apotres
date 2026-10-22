@@ -62,6 +62,8 @@ select,input[type=text],input[type=number]{padding:6px 8px;border:1px solid var(
 .done a{padding:9px 16px;border-radius:7px;background:#2a3170;color:#fff;text-decoration:none;font-weight:600}
 .done a.primary{background:var(--gold);color:#201700}
 .dice{font-size:12px;color:var(--soft)}
+h3.sub{margin:18px 0 2px;font:italic 700 18px var(--serif);color:#2a3170;border-top:1px solid var(--line);padding-top:12px}
+.opts+.lbl{margin-top:-4px}
 @media (max-width:520px){.opts{grid-template-columns:1fr 1fr}.rec{grid-template-columns:1fr}.rec dd{margin-bottom:6px}}
 </style>
 <script src="theme.js?v=20261020a"></script>
@@ -151,9 +153,9 @@ const ALIGN=['Loyal Bon','Neutre Bon','Chaotique Bon','Loyal Neutre','Neutre','C
 const STD=[15,14,13,12,10,8];
 const COST={8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
 
-let ESP=null,BG=null,DON=null;
+let ESP=null,BG=null,DON=null,SCD=null,CLD=null;
 const DRAFT='dnd_creation_brouillon';
-const blank=()=>({step:0,max:0,cl:'',bg:'',bgch:{mode:'+2 / +1'},feat:{},esp:'',lig:'',spch:{},hfeat:'',hfeatch:{},
+const blank=()=>({step:0,max:0,niv:1,sc:'',asi:{},cl:'',bg:'',bgch:{mode:'+2 / +1'},feat:{},esp:'',lig:'',spch:{},hfeat:'',hfeatch:{},
   meth:'std',pool:STD.slice(),as:{for:0,dex:1,con:2,int:3,sag:4,cha:5},pb:{for:8,dex:8,con:8,int:8,sag:8,cha:8},rolls:null,
   sk:[],ex:[],eq:0,bgeq:'po',instr:'Luth',langs:[],nom:'',align:'',done:false});
 let S=blank();
@@ -164,6 +166,21 @@ const STEPS=[['Classe',stClass],['Historique',stBg],['Espèce',stEsp],['Caracté
 
 /* ---------- Calculs ---------- */
 const C=()=>CL[S.cl];
+const N=()=>Math.min(20,Math.max(1,parseInt(S.niv)||1));
+const subs=()=>SCD&&SCD[S.cl]?Object.keys(SCD[S.cl]):[];
+// Niveaux qui donnent un don (Amélioration de caractéristique ou autre don général ; faveur épique au niveau 19)
+function asiLv(){
+  const l=[4,8,12,16,19];
+  if(S.cl==='Guerrier')l.push(6,14);
+  if(S.cl==='Roublard')l.push(10);
+  return l.filter(n=>n<=N()).sort((a,b)=>a-b);
+}
+// Don choisi à un niveau donné, et ses choix (par défaut : +2 dans la caractéristique principale)
+function asiAt(lv){
+  const id=S.asi[lv]||'asi',d=don(id);
+  const p=(C()||{p:['for']}).p[0];
+  return [d,S['ac'+lv]||(id==='asi'?{a:p,b:p}:{})];
+}
 const B=()=>BG&&BG[S.bg];
 const E=()=>ESP&&ESP[S.esp];
 const lig=()=>{const e=E();return e&&e.lignage?e.lignage.opts.find(o=>o.v===S.lig):null};
@@ -183,6 +200,7 @@ function bonus(){
   }
   const e=E();
   if(e)[...e.fx,...((lig()||{}).fx||[])].forEach(f=>{if(f.t==='carac')add(f.v||S.spch[f.c],f.n||1)});
+  feats().forEach(([d,ch])=>(d.fx||[]).forEach(f=>{if(f.t==='carac')add(f.v||ch[f.c],f.n||1)}));
   return o;
 }
 function finals(){const b=base(),x=bonus(),o={};ABK.forEach(k=>o[k]=Math.min(20,b[k]+(x[k]||0)));return o}
@@ -200,14 +218,17 @@ function feats(){
   const r=[],b=B();
   if(b&&don(b.don))r.push([don(b.don),Object.assign({},b.don_ch||{},S.feat)]);
   if(S.esp==='Humain'&&don(S.hfeat))r.push([don(S.hfeat),S.hfeatch]);
+  asiLv().forEach(lv=>{const a=asiAt(lv);if(a[0])r.push(a)});
   return r;
 }
 function hp(){
   const c=C(),f=finals();if(!c)return 0;
-  let n=c.d+md(f.con);
+  // niveau 1 : dé maximal ; niveaux suivants : valeur moyenne fixe (moitié du dé + 1)
+  const lv=N(),con=md(f.con);
+  let n=c.d+con+(lv-1)*Math.max(1,c.d/2+1+con);
   const e=E();
-  if(e)[...e.fx,...((lig()||{}).fx||[])].forEach(x=>{if(x.t==='pv_niv')n+=x.n});
-  feats().forEach(([d])=>(d.fx||[]).forEach(x=>{if(x.t==='pv_niv')n+=x.n}));
+  if(e)[...e.fx,...((lig()||{}).fx||[])].forEach(x=>{if(x.t==='pv_niv')n+=x.n*lv});
+  feats().forEach(([d])=>(d.fx||[]).forEach(x=>{if(x.t==='pv_niv')n+=x.n*lv}));
   return Math.max(1,n);
 }
 function pbSpent(){return ABK.reduce((t,k)=>t+COST[S.pb[k]],0)}
@@ -250,13 +271,16 @@ function featBox(d,path,ch){
 
 function stClass(){
   const c=C();
-  let h=`<h2>1. Choisis ta classe</h2><p class="lead">La classe décide de ce que fait ton personnage en aventure : combattre, lancer des sorts, se faufiler… Elle donne les dés de vie, les jets de sauvegarde maîtrisés et une partie des compétences.</p><div class="opts">`;
+  let h=`<h2>1. Choisis ton niveau et ta classe</h2><p class="lead">La classe décide de ce que fait ton personnage en aventure : combattre, lancer des sorts, se faufiler… Elle donne les dés de vie, les jets de sauvegarde maîtrisés et une partie des compétences.</p>
+   <div class="chs"><label style="flex:0 1 180px;min-width:140px"><small>Niveau de départ</small><select data-set="niv">${Array.from({length:20},(_,i)=>`<option value="${i+1}"${i+1===N()?' selected':''}>Niveau ${i+1}</option>`).join('')}</select></label></div>
+   ${N()>1?'<p class="lbl">Les points de vie des niveaux après le premier utilisent la valeur moyenne du dé de vie. Les dons gagnés en montant de niveau se choisissent à l’étape Caractéristiques.</p>':''}<div class="opts">`;
   h+=Object.entries(CL).map(([n,d])=>optBtn(S.cl===n,'cl',n,n,'d'+d.d+' · '+d.p.map(k=>ABN[k]).join(' / '))).join('')+'</div>';
   if(c)h+=`<div class="box"><h3>${esc(S.cl)}</h3><p>${esc(c.txt)}</p><ul>
    <li><b>Caractéristique principale :</b> ${c.p.map(k=>ABN[k]).join(', ')}</li>
-   <li><b>Dé de vie :</b> d${c.d} (au niveau 1 : ${c.d} + modificateur de Constitution points de vie)</li>
+   <li><b>Dé de vie :</b> d${c.d} (au niveau 1 : ${c.d} + modificateur de Constitution points de vie ; ensuite ${c.d/2+1} + modificateur de Constitution par niveau)</li>
    <li><b>Jets de sauvegarde :</b> ${c.sv.map(k=>ABN[k]).join(' et ')}</li>
    <li><b>Compétences :</b> ${c.n} au choix ${c.sk===ALL?'parmi toutes':'parmi '+c.sk.join(', ')}</li>${c.exp?`<li><b>Expertise :</b> ${c.exp} compétences maîtrisées au choix</li>`:''}</ul></div>`;
+  if(c&&N()>=3&&subs().length)h+=`<div class="box"><h3>Sous-classe (niveau 3)</h3><p>Ton personnage a atteint le niveau 3 : choisis sa sous-classe. Ses capacités s’afficheront sur la fiche.</p><div class="chs"><label><small>Sous-classe de ${esc(S.cl)}</small>${sel('sc',subs().sort((a,b)=>a.localeCompare(b)),S.sc,'Choisir…')}</label></div></div>`;
   return h;
 }
 function stBg(){
@@ -278,26 +302,33 @@ function stBg(){
 function stEsp(){
   const e=E(),l=lig();
   let h=`<h2>3. Choisis ton espèce</h2><p class="lead">L’espèce donne la taille, la vitesse et des traits (vision dans le noir, résistances, magie innée…). Dans les règles 2024 elle ne modifie pas les caractéristiques.</p>`;
-  const names=Object.keys(ESP),main=names.filter(n=>ESP[n].src==='Manuel des joueurs 2024'||!ESP[n].src);
-  h+=`<div class="opts">${main.map(n=>optBtn(S.esp===n,'esp',n,n,ESP[n].taille+' · '+fm(ESP[n].vit)+' m')).join('')}</div>`;
-  const other=names.filter(n=>!main.includes(n));
-  if(other.length)h+=`<label class="lbl">Autres espèces (suppléments) ${sel('esp',other.map(n=>[n,n+' — '+(ESP[n].src||'')]),other.includes(S.esp)?S.esp:'','Choisir…')}</label>`;
+  // Détail de l'espèce choisie, affiché juste sous le groupe qui la contient
+  let det='';
   if(e){
-    h+=`<div class="box"><h3>${esc(S.esp)}</h3><p>Taille : ${esc(e.taille)} · Vitesse : ${fm(e.vit)} m${e.src?' · '+esc(e.src):''}</p><ul>${e.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`;
-    if(e.lignage)h+=`<div class="chs"><label><small>${esc(e.lignage.lbl)}</small>${sel('lig',e.lignage.opts.map(o=>o.v),S.lig,'Choisir…')}</label></div>${l?`<p>${esc(l.txt||'')}</p>`:''}`;
-    if(e.choix.length)h+=`<div class="chs">${e.choix.map(c=>chHTML('spch',c,S.spch[c.id])).join('')}</div>`;
-    h+='</div>';
+    det+=`<div class="box"><h3>${esc(S.esp)}</h3><p>Taille : ${esc(e.taille)} · Vitesse : ${fm(e.vit)} m${e.src?' · '+esc(e.src):''}</p><ul>${e.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`;
+    if(e.lignage)det+=`<div class="chs"><label><small>${esc(e.lignage.lbl)}</small>${sel('lig',e.lignage.opts.map(o=>o.v),S.lig,'Choisir…')}</label></div>${l?`<p>${esc(l.txt||'')}</p>`:''}`;
+    if(e.choix.length)det+=`<div class="chs">${e.choix.map(c=>chHTML('spch',c,S.spch[c.id])).join('')}</div>`;
+    det+='</div>';
     if(S.esp==='Humain'){
       const orig=(DON||[]).filter(x=>x.cat==='Origine');
-      h+=`<div class="box"><h3>Polyvalent : un don d’origine en plus</h3><div class="chs"><label><small>Don d’origine</small>${sel('hfeat',orig.map(x=>[x.id,x.nom]),S.hfeat,'Choisir…')}</label></div></div>`;
-      if(don(S.hfeat))h+=featBox(don(S.hfeat),'hfeatch',S.hfeatch);
+      det+=`<div class="box"><h3>Polyvalent : un don d’origine en plus</h3><div class="chs"><label><small>Don d’origine</small>${sel('hfeat',orig.map(x=>[x.id,x.nom]),S.hfeat,'Choisir…')}</label></div></div>`;
+      if(don(S.hfeat))det+=featBox(don(S.hfeat),'hfeatch',S.hfeatch);
     }
+  }
+  const grid=l2=>`<div class="opts">${l2.map(n=>optBtn(S.esp===n,'esp',n,n,ESP[n].taille+' · '+fm(ESP[n].vit)+' m')).join('')}</div>`+(l2.includes(S.esp)?det:'');
+  const names=Object.keys(ESP),main=names.filter(n=>ESP[n].src==='Manuel des joueurs 2024'||!ESP[n].src);
+  h+=grid(main);
+  const other=names.filter(n=>!main.includes(n));
+  if(other.length){
+    h+=`<h3 class="sub">Autres espèces (suppléments)</h3>`;
+    const by={};other.forEach(n=>(by[ESP[n].src]=by[ESP[n].src]||[]).push(n));
+    Object.entries(by).forEach(([src,l2])=>{h+=`<p class="lbl">${esc(src)}</p>`+grid(l2.sort((x,y)=>x.localeCompare(y)))});
   }
   return h;
 }
 function stAb(){
   const b=base(),x=bonus(),f=finals();
-  let h=`<h2>4. Détermine tes caractéristiques</h2><p class="lead">Choisis une méthode, puis répartis les valeurs. Les bonus de l’historique s’ajoutent ensuite (maximum 20).</p>
+  let h=`<h2>4. Détermine tes caractéristiques</h2><p class="lead">Choisis une méthode, puis répartis les valeurs. Les bonus de l’historique et des dons s’ajoutent ensuite (maximum 20).</p>
    <div class="seg">${[['std','Tableau standard'],['pb','Achat de points'],['roll','Jets de dés']].map(([m,t])=>`<button type="button" data-act="meth" data-v="${m}" aria-pressed="${S.meth===m}">${t}</button>`).join('')}</div>`;
   if(S.meth==='std')h+='<p class="lbl">Répartis 15, 14, 13, 12, 10 et 8. Choisir une valeur déjà prise échange les deux caractéristiques.</p>';
   if(S.meth==='pb'){const sp=pbSpent();h+=`<p class="pts${sp>27?' bad':''}">Points dépensés : ${sp} / 27${sp>27?' (trop !)':''}</p><p class="lbl">Chaque valeur va de 8 à 15. Coût : 9→1, 10→2, 11→3, 12→4, 13→5, 14→7, 15→9 points.</p>`;}
@@ -311,7 +342,16 @@ function stAb(){
     else ctl=`<div class="ctl"><select data-as="${k}" aria-label="${n}">${pool.map((v,i)=>`<option value="${i}"${S.as[k]===i?' selected':''}>${v}</option>`).join('')}</select></div>`;
     return `<div class="ab" style="--c:${c}"><div class="n">${n}</div>${ctl}<div class="fin">${x[k]?`${b[k]} ${sg(x[k])} → `:''}<b>${f[k]}</b> (${sg(md(f[k]))})</div></div>`;
   }).join('')+'</div>';
-  if(C())h+=`<p class="lbl" style="margin-top:10px">Points de vie au niveau 1 : <b>${hp()}</b></p>`;
+  const L=asiLv();
+  if(C()&&L.length){
+    h+=`<h3 class="sub">Dons gagnés en montant de niveau</h3><p class="lbl">À chacun de ces niveaux, prends une Amélioration de caractéristique (+2 à une, ou +1 à deux) ou un autre don général. Au niveau 19, une faveur épique est conseillée. Le maximum reste 20.</p>`;
+    const opt=lv=>(DON||[]).filter(x=>x.cat==='Général'||(lv>=19&&x.cat==='Faveur épique')).map(x=>[x.id,x.nom+(x.cat==='Faveur épique'?' (faveur épique)':'')]);
+    L.forEach(lv=>{
+      const [d,ch]=asiAt(lv);
+      h+=`<div class="box"><h3>Niveau ${lv}</h3><div class="chs"><label><small>Don</small>${sel('asi.'+lv,opt(lv),S.asi[lv]||'asi')}</label>${d?d.choix.map(c=>chHTML('ac'+lv,c,ch[c.id])).join(''):''}</div>${d&&d.id!=='asi'?`<p style="white-space:pre-line">${d.pre?'<i>Prérequis : '+esc(d.pre)+'</i>\n':''}${esc(d.desc)}</p>`:''}</div>`;
+    });
+  }
+  if(C())h+=`<p class="lbl" style="margin-top:10px">Points de vie au niveau ${N()} : <b>${hp()}</b></p>`;
   return h;
 }
 function stSk(){
@@ -351,6 +391,7 @@ function missing(){
   if(!c)m.push('la classe');
   if(!b)m.push('l’historique');
   if(!e)m.push('l’espèce');
+  if(c&&N()>=3&&subs().length&&!S.sc)m.push('la sous-classe');
   if(e&&e.lignage&&!S.lig)m.push(e.lignage.lbl.toLowerCase());
   if(e)e.choix.filter(x=>x.t!=='texte'&&!S.spch[x.id]).forEach(x=>m.push(x.lbl.toLowerCase()+' (espèce)'));
   if(S.esp==='Humain'&&!don(S.hfeat))m.push('le don d’origine de l’humain');
@@ -368,7 +409,7 @@ function stEnd(){
    <div class="chs"><label><small>Nom du personnage</small><input type="text" data-set="nom" value="${esc(S.nom)}" placeholder="Nom"></label><label><small>Alignement</small>${sel('align',ALIGN,S.align)}</label></div>`;
   if(m.length)h+=`<p class="warn">À compléter (facultatif, tu peux aussi le faire sur la fiche) : ${m.map(esc).join(', ')}.</p>`;
   h+=`<dl class="rec">
-   <dt>Classe</dt><dd>${c?esc(S.cl)+' niveau 1 (d'+c.d+')':'—'}</dd>
+   <dt>Classe</dt><dd>${c?esc(S.cl)+' niveau '+N()+' (d'+c.d+')'+(S.sc&&N()>=3?' · '+esc(S.sc):''):'—'}</dd>
    <dt>Historique</dt><dd>${b?esc(S.bg):'—'}</dd>
    <dt>Espèce</dt><dd>${e?esc(S.esp)+(l?' ('+esc(l.v)+')':''):'—'}</dd>
    <dt>Caractéristiques</dt><dd>${AB.map(([k,n])=>n.slice(0,3)+' '+f[k]+' ('+sg(md(f[k]))+')').join(' · ')}</dd>
@@ -394,10 +435,15 @@ function go(i){S.step=Math.max(0,Math.min(STEPS.length-1,i));S.max=Math.max(S.ma
 /* ---------- Création ---------- */
 function build(){
   const c=C(),b=B(),e=E(),l=lig(),f=base(),nom=S.nom.trim()||(S.esp&&S.cl?S.cl+' '+S.esp.toLowerCase():'');
-  const d={nom,niveau:'1',alignement:S.align};
+  const d={nom,niveau:String(N()),alignement:S.align};
   ABK.forEach(k=>d['ab_'+k]=String(f[k]));
   if(c){
-    d.clsel=d.classe=S.cl;d.dvtot='1d'+c.d;d.dvrest='1';
+    d.clsel=d.classe=S.cl;d.dvtot=N()+'d'+c.d;d.dvrest=String(N());
+    if(N()>=3&&S.sc&&subs().includes(S.sc)){
+      d.sclasse=d.sousclasse=S.sc;
+      const sc=CLD&&CLD.classes[S.cl]&&CLD.classes[S.cl].sous_classe;   // tiers-lanceurs (Chevalier occulte, Arnaqueur arcanique…)
+      if(sc&&new RegExp(sc.re||'occult|arcanique','i').test(S.sc))d.sclance=true;
+    }
     d.pvmax=d.pv=String(hp());
     c.sv.forEach(k=>d['sv_'+k]=true);
     S.sk.forEach(n=>d['sk_'+SKN.indexOf(n)]=true);
@@ -418,6 +464,7 @@ function build(){
     if(don(b.don))dons.push({u:rid(),id:b.don,ch:Object.assign({},b.don_ch||{},S.feat),bg:1});
   }
   if(S.esp==='Humain'&&don(S.hfeat))dons.push({u:rid(),id:S.hfeat,ch:Object.assign({},S.hfeatch)});
+  asiLv().forEach(lv=>{const [x,ch]=asiAt(lv);if(x)dons.push({u:rid(),id:x.id,ch:Object.assign({},ch)})});
   d.langs=['Commun',...S.langs].join(', ');
   // Équipement : lot de classe + or ; le lot de l'historique est noté
   const items=new Map();let po=0;
@@ -443,7 +490,7 @@ function create(){
   S.done=true;
   const caster=['Barde','Clerc','Druide','Ensorceleur','Magicien','Occultiste','Artificier','Paladin','Rôdeur'].includes(S.cl);
   $('#steps').innerHTML='';
-  $('#main').innerHTML=`<div class="done"><h2>« ${esc(p.nom)} » est prêt !</h2><p class="lead">Le personnage est créé et sélectionné. Sur la fiche, ouvre les Paramètres pour choisir les options restantes (sous-classe plus tard, choix des dons).</p>
+  $('#main').innerHTML=`<div class="done"><h2>« ${esc(p.nom)} » est prêt !</h2><p class="lead">Le personnage est créé et sélectionné. Sur la fiche, ouvre les Paramètres pour ajuster les options restantes${N()<3?' (la sous-classe se choisit au niveau 3)':''}.</p>
    <div class="links"><a class="primary" href="fiche.html">Ouvrir la fiche</a>${caster?'<a href="grimoire.html">Choisir les sorts</a>':''}<a href="equipement.html">Voir l’équipement</a><a href="histoire.html">Écrire son histoire</a></div>
    <p style="margin-top:16px"><button type="button" class="opt" style="display:inline-block" data-act="again"><b>Créer un autre personnage</b></button></p></div>`;
 }
@@ -451,13 +498,15 @@ function create(){
 /* ---------- Événements ---------- */
 function setPath(path,v){
   const [a,b]=path.split('.');
+  const m=/^ac(\d+)$/.exec(a);
+  if(m&&!S[a])S[a]=Object.assign({},asiAt(+m[1])[1]);   // garde les choix proposés par défaut
   if(b){S[a]=S[a]||{};S[a][b]=v}else S[a]=v;
 }
 document.addEventListener('click',ev=>{
   const g=ev.target.closest('[data-go]');if(g){go(+g.dataset.go);return}
   const t=ev.target.closest('[data-act]');if(!t)return;
   const a=t.dataset.act,v=t.dataset.v;
-  if(a==='cl'){if(S.cl!==v){S.cl=v;S.sk=[];S.ex=[];S.eq=0;stdSuggest();bgDefaults()}}
+  if(a==='cl'){if(S.cl!==v){S.cl=v;S.sc='';S.sk=[];S.ex=[];S.eq=0;stdSuggest();bgDefaults()}}
   else if(a==='bg'){if(S.bg!==v){S.bg=v;S.feat={};S.bgch={mode:S.bgch.mode||'+2 / +1'};bgDefaults()}}
   else if(a==='esp'){if(S.esp!==v){S.esp=v;S.lig='';S.spch={}}}
   else if(a==='mode'){S.bgch.mode=v;bgDefaults()}
@@ -487,6 +536,7 @@ document.addEventListener('change',ev=>{
     if(t.dataset.set==='esp'){S.lig='';S.spch={}}
     if(t.dataset.set==='bgch.a2')bgDefaults();
     if(t.dataset.set==='hfeat')S.hfeatch={};
+    if(t.dataset.set.startsWith('asi.'))delete S['ac'+t.dataset.set.slice(4)];
     if(t.type==='text'){keep();return}   // texte libre : pas de rendu (garde le curseur)
     render();return;
   }
@@ -506,7 +556,7 @@ $('#bRestart').onclick=()=>{if(!confirm('Tout recommencer depuis le début ?'))r
 
 (async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  try{[ESP,BG,DON]=await Promise.all([get('especes.json'),get('historiques.json'),get('dons.json')])}
+  try{[ESP,BG,DON,SCD,CLD]=await Promise.all([get('especes.json'),get('historiques.json'),get('dons.json'),get('sousclasses.json'),get('classes.json')])}
   catch(e){$('#main').innerHTML='<p class="warn">Impossible de charger les données (ouvre le site via un serveur web).</p>';return}
   if(!CL[S.cl])S.cl='';if(!BG[S.bg])S.bg='';if(!ESP[S.esp])S.esp='';
   render();
