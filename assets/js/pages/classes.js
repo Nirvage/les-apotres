@@ -1,167 +1,306 @@
-const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const br=s=>esc(s).replace(/\n/g,'<br>');
-const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
-const CPLX=['','Simple','Intermédiaire','Exigeante'];
-const dots=n=>'●'.repeat(n)+'○'.repeat(3-n);
-const PB=n=>2+Math.floor((n-1)/4);
-// Couleur des pastilles de source
-const GC={'2024':'#2a3170','2014':'#b0632a','ps':'#12968f','tiers':'#8e3a9d'};
-// Une ligne par niveau dans les listes « niv. 3 … ; niv. 5 … »
-const lvlLines=s=>String(s).replace(/ ; (?=niv\. ?\d)/g,'\n');
+const COMPLEXITY_LABELS = ['', 'Simple', 'Intermédiaire', 'Exigeante'];
+const SOURCE_GROUP_COLORS = { '2024': '#2a3170', '2014': '#b0632a', 'ps': '#12968f', 'tiers': '#8e3a9d' };
+const DEFAULT_CLASS_COLOR = '#2a3170';
+const DEFAULT_FILTERS = { q: '', r: '', s: '', c: '' };
+const FILTER_INPUTS = [['#fq', 'q', 'input'], ['#fr', 'r', 'change'], ['#fs', 's', 'change'], ['#fc', 'c', 'change']];
 
-let INFO=null,SC={},CAP={},CLD={},EMP={},DB=[],CL=[];
-const st={q:'',r:'',s:'',c:'',open:new Set()};
+let classInfo = null;
+let subclassesByClass = {};
+let featuresByClass = {};
+let classDataByName = {};
+let spellSlotsByCasterType = {};
+let subclasses = [];
+let classNames = [];
+const filters = Object.assign({}, DEFAULT_FILTERS);
+const openSubclassKeys = new Set();
 
-// Source d'une sous-classe : classes_infos.json, sinon la mention en tête de sa première capacité
-function source(cl,n,sc){
- const i=(INFO.sous[cl]||{})[n];
- if(i&&INFO.sources[i.src])return {l:INFO.sources[i.src][0],g:INFO.sources[i.src][1]};
- const d=((sc.feats||[])[0]||{}).desc||'';
- let m=/Sous-classe (?:homebrew )?de ([^.]+?) \(([^,)]+)(?:, contenu tiers)?\)/.exec(d);
- if(m)return {l:m[1]+' ('+m[2]+')',g:/contenu tiers/.test(d)?'tiers':'ps'};
- if(/Plane Shift/.test(d))return {l:'Plane Shift',g:'ps'};
- return {l:'',g:''};
+const withLineBreaks = text => escapeHtml(text).replace(/\n/g, '<br>');
+const complexityDots = level => '●'.repeat(level) + '○'.repeat(3 - level);
+const proficiencyBonus = level => 2 + Math.floor((level - 1) / 4);
+const oneLevelPerLine = text => String(text).replace(/ ; (?=niv\. ?\d)/g, '\n');
+const plural = count => count > 1 ? 's' : '';
+const classColor = className => (classInfo.classes[className] || {}).c || DEFAULT_CLASS_COLOR;
+
+function subclassSource(className, subclassName, subclass) {
+  const info = (classInfo.sous[className] || {})[subclassName];
+  if (info && classInfo.sources[info.src]) return { l: classInfo.sources[info.src][0], g: classInfo.sources[info.src][1] };
+  const firstFeatureText = ((subclass.feats || [])[0] || {}).desc || '';
+  const mention = /Sous-classe (?:homebrew )?de ([^.]+?) \(([^,)]+)(?:, contenu tiers)?\)/.exec(firstFeatureText);
+  if (mention) return { l: mention[1] + ' (' + mention[2] + ')', g: /contenu tiers/.test(firstFeatureText) ? 'tiers' : 'ps' };
+  if (/Plane Shift/.test(firstFeatureText)) return { l: 'Plane Shift', g: 'ps' };
+  return { l: '', g: '' };
 }
-function build(){
- CL=Object.keys(INFO.classes).filter(c=>SC[c]||CAP[c]);
- Object.keys(SC).forEach(c=>{if(!CL.includes(c)&&CAP[c])CL.push(c)});
- CL.sort((a,b)=>a.localeCompare(b,'fr'));
- DB=[];
- CL.forEach(cl=>{
-  Object.entries(SC[cl]||{}).forEach(([n,sc])=>{
-   const i=(INFO.sous[cl]||{})[n]||{};
-   const src=source(cl,n,sc);
-   const feats=sc.feats||[];
-   DB.push({cl,n,sc,i,src,feats,r:i.r||[],c:i.c||0,
-    idx:norm([n,cl,i.t||'',src.l,feats.map(f=>f.nom+' '+f.desc).join(' ')].join(' ')),
-    nidx:norm(n+' '+(i.t||'')+' '+feats.map(f=>f.nom).join(' '))});
+
+function listClassNames() {
+  const names = Object.keys(classInfo.classes).filter(name => subclassesByClass[name] || featuresByClass[name]);
+  Object.keys(subclassesByClass).forEach(name => { if (!names.includes(name) && featuresByClass[name]) names.push(name); });
+  return names.sort((first, second) => first.localeCompare(second, 'fr'));
+}
+
+function subclassEntry(className, subclassName, subclass) {
+  const info = (classInfo.sous[className] || {})[subclassName] || {};
+  const source = subclassSource(className, subclassName, subclass);
+  const features = subclass.feats || [];
+  return {
+    cl: className, n: subclassName, sc: subclass, i: info, src: source, feats: features, r: info.r || [], c: info.c || 0,
+    idx: normalizeText([subclassName, className, info.t || '', source.l, features.map(feature => feature.nom + ' ' + feature.desc).join(' ')].join(' '))
+  };
+}
+
+function fillFilterOptions() {
+  const allRoles = [...Object.values(classInfo.classes).flatMap(info => info.role || []), ...subclasses.flatMap(entry => entry.r)];
+  const roles = [...new Set(allRoles)].sort((first, second) => first.localeCompare(second, 'fr'));
+  $('#fr').innerHTML = '<option value="">Tous</option>' + roles.map(role => `<option>${escapeHtml(role)}</option>`).join('');
+  $('#fs').innerHTML = '<option value="">Toutes</option>' + Object.entries(classInfo.groupes).map(([key, label]) => `<option value="${key}">${escapeHtml(label)}</option>`).join('');
+  $('#fc').innerHTML = '<option value="">Toutes</option>' + [1, 2, 3].map(level => `<option value="${level}">${COMPLEXITY_LABELS[level]}</option>`).join('');
+}
+
+function buildClassesAndSubclasses() {
+  classNames = listClassNames();
+  subclasses = [];
+  classNames.forEach(className => {
+    Object.entries(subclassesByClass[className] || {}).forEach(([subclassName, subclass]) => subclasses.push(subclassEntry(className, subclassName, subclass)));
   });
- });
- const roles=[...new Set([...Object.values(INFO.classes).flatMap(c=>c.role||[]),...DB.flatMap(o=>o.r)])].sort((a,b)=>a.localeCompare(b,'fr'));
- $('#fr').innerHTML='<option value="">Tous</option>'+roles.map(r=>`<option>${esc(r)}</option>`).join('');
- $('#fs').innerHTML='<option value="">Toutes</option>'+Object.entries(INFO.groupes).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
- $('#fc').innerHTML='<option value="">Toutes</option>'+[1,2,3].map(n=>`<option value="${n}">${CPLX[n]}</option>`).join('');
-}
-const subOk=o=>(!st.r||o.r.includes(st.r))&&(!st.s||o.src.g===st.s)&&(!st.c||o.c===+st.c);
-function classOk(cl){
- const k=INFO.classes[cl]||{};
- const q=norm(st.q);
- const own=(!st.r||(k.role||[]).includes(st.r))&&(!st.c||k.cplx===+st.c);
- const qOk=!q||norm(cl+' '+(k.pitch||'')+' '+(k.jeu||'')).includes(q)||(CAP[cl]||[]).some(f=>norm(f.nom).includes(q));
- return (own&&qOk&&!st.s)||DB.some(o=>o.cl===cl&&subOk(o)&&(!q||o.idx.includes(q)));
-}
-function subFiltered(cl){
- const q=norm(st.q);
- return DB.filter(o=>(!cl||o.cl===cl)&&subOk(o)&&(!q||o.idx.includes(q)||(cl&&norm(cl).includes(q))));
+  fillFilterOptions();
 }
 
-/* ---------- Vue d'ensemble ---------- */
-function overview(){
- const cls=CL.filter(classOk);
- const q=norm(st.q),filt=q||st.r||st.s||st.c;
- const subs=filt?subFiltered(''):[];
- $('#cnt').textContent=cls.length+' classe'+(cls.length>1?'s':'')+(filt?' · '+subs.length+' sous-classe'+(subs.length>1?'s':'')+' trouvée'+(subs.length>1?'s':''):' · '+DB.length+' sous-classes');
- let h=cls.length?'<div class="grid">'+cls.map(cl=>{
-  const k=INFO.classes[cl]||{},n=Object.keys(SC[cl]||{}).length;
-  return `<a class="ccard" href="#${encodeURIComponent(cl)}" style="--c:${k.c||'#2a3170'}"><h3>${esc(cl)}${k.tiers?'<span class="pill" style="--pc:'+GC.tiers+'">tiers</span>':''}</h3><p>${esc(k.pitch||'')}</p>
-   <div class="cm">${k.dv?'d'+k.dv+' · ':''}${esc(k.prim||'')}<br>${k.cplx?'<span class="dots" title="Difficulté">'+dots(k.cplx)+'</span> '+CPLX[k.cplx]+' · ':''}${n} sous-classe${n>1?'s':''}</div></a>`;
- }).join('')+'</div>':'<div class="empty-msg" style="margin-top:12px">Aucune classe ne correspond à ces filtres.</div>';
- if(filt)h+='<h2 class="sec">Sous-classes trouvées</h2>'+subList(subs,true);
- else h+='<p class="srcn" style="color:#cfd4f5">Choisis une classe pour lire sa présentation, des conseils de jeu, sa progression et toutes ses sous-classes. Textes reformulés à partir des règles 2024 : le livre fait foi.</p>';
- $('#view').innerHTML=h;
+function subclassMatchesFilters(entry) {
+  return (!filters.r || entry.r.includes(filters.r)) && (!filters.s || entry.src.g === filters.s) && (!filters.c || entry.c === +filters.c);
 }
 
-/* ---------- Fiche d'une classe ---------- */
-function progression(cl,k){
- const caps=CAP[cl]||[],d=CLD[cl]||{};
- const scLv=[...new Set(DB.filter(o=>o.cl===cl).flatMap(o=>o.feats.map(f=>f.niv)))];
- const cols=[];
- (d.infos||[]).forEach(x=>{if(Array.isArray(x.val))cols.push([x.nom,x.val])});
- // Les ressources « Nom · niv. N » (Arcanum mystique) tiennent dans une seule colonne : niveaux de sort disponibles
- const grp={};
- (d.ressources||[]).forEach(x=>{
-  if(!Array.isArray(x.max))return;
-  const m=/^(.+?) · niv\. (\d+)$/.exec(x.nom);
-  if(!m)return cols.push([x.nom,x.max]);
-  if(!grp[m[1]])cols.push([m[1],grp[m[1]]=Array(20).fill('')]);
-  x.max.forEach((v,i)=>{if(v)grp[m[1]][i]+=(grp[m[1]][i]?', ':'niv. ')+m[2]});
- });
- Object.values(grp).forEach(a=>a.forEach((v,i)=>{if(!v)a[i]='—'}));
- if(d.mineurs)cols.push(['Sorts mineurs',d.mineurs]);
- if(d.prepares)cols.push(['Sorts préparés',d.prepares]);
- const emp=d.lanceur&&EMP[d.lanceur];
- let h='<div class="tblw"><table class="prog"><thead><tr><th>Niv.</th><th>Maîtrise</th><th>Capacités</th>'+cols.map(c=>`<th>${esc(c[0])}</th>`).join('')+(emp?`<th>${d.lanceur==='pacte'?'Emplacements (niv.)':'Emplacements'}</th>`:'')+'</tr></thead><tbody>';
- for(let n=1;n<=20;n++){
-  const f=caps.filter(x=>x.niv===n).map(x=>x.nom==='Sous-classe'?'<span class="sc">Sous-classe</span>':esc(x.nom));
-  if(scLv.includes(n)&&!caps.some(x=>x.niv===n&&x.nom==='Sous-classe'))f.push('<span class="sc">Capacité de sous-classe</span>');
-  let e='';
-  if(emp){const s=emp[n-1]||[];e=d.lanceur==='pacte'?(s[0]?s[0]+' (niv. '+s[1]+')':'—'):(s.length?s.join(' · '):'—')}
-  h+=`<tr><td class="n">${n}</td><td class="n">+${PB(n)}</td><td>${f.join(', ')||'—'}</td>${cols.map(c=>`<td class="n">${esc(c[1][n-1]??'—')}</td>`).join('')}${emp?`<td class="n">${esc(e)}</td>`:''}</tr>`;
- }
- h+='</tbody></table></div>';
- if(emp&&d.lanceur!=='pacte')h+='<p class="srcn">Emplacements : nombre d’emplacements de niveau 1 · 2 · 3…</p>';
- return h;
-}
-function classView(cl){
- const k=INFO.classes[cl]||{},c=k.c||'#2a3170';
- const subs=subFiltered(cl),all=DB.filter(o=>o.cl===cl).length;
- $('#cnt').textContent=subs.length+' sous-classe'+(subs.length>1?'s':'')+' affichée'+(subs.length>1?'s':'')+' sur '+all;
- const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join('');
- let h=`<div class="nav"><a class="b" href="#">← Toutes les classes</a>${CL.map(x=>x===cl?'':`<a class="b" style="--c:${(INFO.classes[x]||{}).c||'#2a3170'}" href="#${encodeURIComponent(x)}">${esc(x)}</a>`).join('')}</div>
- <article class="cls" style="--c:${c}"><header class="chead"><h2>${esc(cl)}${VO.btn('classes','classes§'+cl,cl)}</h2>${k.pitch?`<p>${esc(k.pitch)}</p>`:''}</header><div class="cbody">`;
- if(k.dv)h+=`<dl class="meta"><div><dt>Dé de vie</dt><dd>d${k.dv}</dd></div><div><dt>Caractéristique principale</dt><dd>${esc(k.prim)}</dd></div><div><dt>Jets de sauvegarde</dt><dd>${esc(k.sv)}</dd></div><div><dt>Difficulté</dt><dd><span class="dots">${dots(k.cplx)}</span> ${CPLX[k.cplx]}</dd></div><div><dt>Armures</dt><dd>${esc(k.arm)}</dd></div><div><dt>Armes</dt><dd>${esc(k.armes)}</dd></div><div><dt>Magie</dt><dd>${esc(k.inc)}</dd></div><div><dt>Rôles</dt><dd>${esc((k.role||[]).join(', '))}</dd></div></dl>`;
- if(k.tiers)h+=`<p class="srcn" style="font-style:normal">Classe tiers : ${esc((INFO.sources[k.tiers]||[''])[0])}. Demande l’accord du MJ.</p>`;
- if(k.jeu)h+=`<h3>Le style de jeu</h3><p>${esc(k.jeu)}</p>`;
- if(k.conseils)h+=`<h3>Conseils de jeu</h3><ul>${li(k.conseils)}</ul>`;
- if(k.eviter)h+=`<h3>Pièges à éviter</h3><ul>${li(k.eviter)}</ul>`;
- if(k.depart)h+=`<h3>Pour bien démarrer</h3><p>${esc(k.depart)}</p>`;
- if(k.groupe)h+=`<h3>Dans le groupe</h3><p>${esc(k.groupe)}</p>`;
- h+=`<div class="nav"><a class="b" href="creation.html">Créer un personnage</a><a class="b" href="grimoire.html">Voir les sorts</a><a class="b" href="dons.html">Voir les dons</a></div>`;
- h+=`<h3>Progression</h3>${progression(cl,k)}`;
- if((CAP[cl]||[]).length)h+=`<h3>Capacités de classe</h3>`+CAP[cl].filter(f=>f.nom!=='Sous-classe').map(f=>`<details class="feat"><summary>${esc(f.nom)} <span>· niv. ${f.niv}</span>${VO.btn('classes','capacites§'+cl+'|'+f.niv+'|'+f.nom,f.nom)}</summary><p>${br(lvlLines(f.desc))}</p></details>`).join('');
- h+=`</div></article><h2 class="sec">Sous-classes de ${esc(cl)} (${all})</h2>`+subList(subs,false);
- $('#view').innerHTML=h;
-}
-function subList(subs,withClass){
- if(!subs.length)return '<div class="empty-msg">Aucune sous-classe ne correspond à ces filtres.</div>';
- return '<div class="list">'+subs.map(o=>{
-  const key=o.cl+'/'+o.n,op=st.open.has(key),c=(INFO.classes[o.cl]||{}).c||'#2a3170';
-  const sub=[withClass?o.cl:'',o.src.l,o.c?CPLX[o.c]:''].filter(Boolean).join(' · ');
-  return `<div class="item" id="${esc(encodeURIComponent(key))}" style="--c:${c}"><div class="row"><div class="rmain"><div class="rt">${esc(o.n)}${VO.btn('classes','sous§'+o.cl+'|'+o.n,o.n)}${o.src.g&&o.src.g!=='2024'?`<span class="pill" style="--pc:${GC[o.src.g]}">${o.src.g==='tiers'?'tiers':o.src.g==='ps'?'Plane Shift':'2014'}</span>`:''}</div><div class="rs">${esc(sub)}</div>${o.r.length?`<div class="tags">${o.r.map(r=>`<span class="tag">${esc(r)}</span>`).join('')}</div>`:''}${o.i.t?`<div class="tip">${esc(o.i.t)}</div>`:''}</div>
-  <div class="racts"><button class="b" data-k="${esc(key)}" aria-expanded="${op}">${op?'Masquer':'Capacités'}</button></div></div>${op?`<div class="det">${o.feats.map(f=>`<p><b>Niv. ${f.niv} · ${esc(f.nom)}.</b> ${br(lvlLines(f.desc))}</p>`).join('')}<div class="srcn">${o.src.l?'Source : '+esc(o.src.l)+' · ':''}reformulé : le livre fait foi · <a href="fiche.html">utilisable dans la fiche</a></div></div>`:''}</div>`;
- }).join('')+'</div>';
+function classMatchesFilters(className) {
+  const info = classInfo.classes[className] || {};
+  const searchedText = normalizeText(filters.q);
+  const ownFiltersMatch = (!filters.r || (info.role || []).includes(filters.r)) && (!filters.c || info.cplx === +filters.c);
+  const textMatches = !searchedText || normalizeText(className + ' ' + (info.pitch || '') + ' ' + (info.jeu || '')).includes(searchedText)
+    || (featuresByClass[className] || []).some(feature => normalizeText(feature.nom).includes(searchedText));
+  if (ownFiltersMatch && textMatches && !filters.s) return true;
+  return subclasses.some(entry => entry.cl === className && subclassMatchesFilters(entry) && (!searchedText || entry.idx.includes(searchedText)));
 }
 
-/* ---------- Navigation ---------- */
-function route(){
- const parts=location.hash.slice(1).split('/').map(x=>{try{return decodeURIComponent(x)}catch(e){return x}});
- return {cl:CL.includes(parts[0])?parts[0]:'',sub:parts.slice(1).join('/')};
+function filteredSubclasses(className) {
+  const searchedText = normalizeText(filters.q);
+  return subclasses.filter(entry => (!className || entry.cl === className) && subclassMatchesFilters(entry)
+    && (!searchedText || entry.idx.includes(searchedText) || (className && normalizeText(className).includes(searchedText))));
 }
-function render(){
- if(!INFO)return;
- const r=route();
- if(r.cl)classView(r.cl);else overview();
-}
-function go(scroll){
- const r=route();
- if(r.cl&&r.sub){
-  const key=r.cl+'/'+r.sub;
-  st.open.add(key);render();
-  const el=document.getElementById(encodeURIComponent(key));if(el)el.scrollIntoView();
- }else{render();if(scroll)window.scrollTo(0,0)}
-}
-addEventListener('hashchange',()=>go(true));
-$('#view').addEventListener('click',e=>{
- const b=e.target.closest('button[data-k]');if(!b)return;
- const k=b.dataset.k;st.open.has(k)?st.open.delete(k):st.open.add(k);render();
-});
-[['#fq','q','input'],['#fr','r','change'],['#fs','s','change'],['#fc','c','change']].forEach(([s,k,ev])=>$(s).addEventListener(ev,e=>{st[k]=e.target.value;render()}));
-$('#bReset').onclick=()=>{Object.assign(st,{q:'',r:'',s:'',c:''});['#fq','#fr','#fs','#fc'].forEach(s=>$(s).value='');render()};
 
-Promise.all(['assets/json/vf/classes_infos.json','assets/json/vf/sousclasses.json','assets/json/vf/capacites.json','assets/json/vf/classes.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json()})))
- .then(([I,S,C,K])=>{
-  INFO=I;SC=S||{};CAP=C||{};CLD=(K&&K.classes)||{};EMP=(K&&K.emplacements)||{};
-  build();go(false);
- })
- .catch(()=>{$('#view').innerHTML='<div class="empty-msg">Impossible de charger les classes (ouvre le site via un serveur web).</div>'});
+function classCardHtml(className) {
+  const info = classInfo.classes[className] || {};
+  const subclassCount = Object.keys(subclassesByClass[className] || {}).length;
+  const thirdPartyPill = info.tiers ? '<span class="pill" style="--pc:' + SOURCE_GROUP_COLORS.tiers + '">tiers</span>' : '';
+  const complexity = info.cplx ? '<span class="dots" title="Difficulté">' + complexityDots(info.cplx) + '</span> ' + COMPLEXITY_LABELS[info.cplx] + ' · ' : '';
+  return `<a class="ccard" href="#${encodeURIComponent(className)}" style="--c:${info.c || DEFAULT_CLASS_COLOR}"><h3>${escapeHtml(className)}${thirdPartyPill}</h3><p>${escapeHtml(info.pitch || '')}</p>
+   <div class="cm">${info.dv ? 'd' + info.dv + ' · ' : ''}${escapeHtml(info.prim || '')}<br>${complexity}${subclassCount} sous-classe${plural(subclassCount)}</div></a>`;
+}
+
+function renderOverview() {
+  const shownClasses = classNames.filter(classMatchesFilters);
+  const isFiltered = normalizeText(filters.q) || filters.r || filters.s || filters.c;
+  const foundSubclasses = isFiltered ? filteredSubclasses('') : [];
+  const subclassCount = isFiltered
+    ? ' · ' + foundSubclasses.length + ' sous-classe' + plural(foundSubclasses.length) + ' trouvée' + plural(foundSubclasses.length)
+    : ' · ' + subclasses.length + ' sous-classes';
+  $('#cnt').textContent = shownClasses.length + ' classe' + plural(shownClasses.length) + subclassCount;
+  let html = shownClasses.length
+    ? '<div class="grid">' + shownClasses.map(classCardHtml).join('') + '</div>'
+    : '<div class="empty-msg" style="margin-top:12px">Aucune classe ne correspond à ces filtres.</div>';
+  if (isFiltered) html += '<h2 class="sec">Sous-classes trouvées</h2>' + subclassListHtml(foundSubclasses, true);
+  else html += '<p class="srcn" style="color:#cfd4f5">Choisis une classe pour lire sa présentation, des conseils de jeu, sa progression et toutes ses sous-classes. Textes reformulés à partir des règles 2024 : le livre fait foi.</p>';
+  $('#view').innerHTML = html;
+}
+
+function spellLevelsColumn(resources, columns) {
+  const spellLevelsByName = {};
+  resources.forEach(resource => {
+    if (!Array.isArray(resource.max)) return;
+    const match = /^(.+?) · niv\. (\d+)$/.exec(resource.nom);
+    if (!match) {
+      columns.push([resource.nom, resource.max]);
+      return;
+    }
+    const [, name, spellLevel] = match;
+    if (!spellLevelsByName[name]) columns.push([name, spellLevelsByName[name] = Array(20).fill('')]);
+    resource.max.forEach((uses, index) => {
+      if (uses) spellLevelsByName[name][index] += (spellLevelsByName[name][index] ? ', ' : 'niv. ') + spellLevel;
+    });
+  });
+  Object.values(spellLevelsByName).forEach(levels => levels.forEach((value, index) => { if (!value) levels[index] = '—'; }));
+}
+
+function progressionColumns(classData) {
+  const columns = [];
+  (classData.infos || []).forEach(info => { if (Array.isArray(info.val)) columns.push([info.nom, info.val]); });
+  spellLevelsColumn(classData.ressources || [], columns);
+  if (classData.mineurs) columns.push(['Sorts mineurs', classData.mineurs]);
+  if (classData.prepares) columns.push(['Sorts préparés', classData.prepares]);
+  return columns;
+}
+
+function featuresGainedAt(className, level, subclassLevels) {
+  const classFeatures = featuresByClass[className] || [];
+  const names = classFeatures.filter(feature => feature.niv === level).map(feature => feature.nom === 'Sous-classe' ? '<span class="sc">Sous-classe</span>' : escapeHtml(feature.nom));
+  const hasSubclassChoice = classFeatures.some(feature => feature.niv === level && feature.nom === 'Sous-classe');
+  if (subclassLevels.includes(level) && !hasSubclassChoice) names.push('<span class="sc">Capacité de sous-classe</span>');
+  return names.join(', ') || '—';
+}
+
+function spellSlotsText(casterType, slots) {
+  if (casterType === 'pacte') return slots[0] ? slots[0] + ' (niv. ' + slots[1] + ')' : '—';
+  return slots.length ? slots.join(' · ') : '—';
+}
+
+function progressionTableHtml(className) {
+  const classData = classDataByName[className] || {};
+  const subclassLevels = [...new Set(subclasses.filter(entry => entry.cl === className).flatMap(entry => entry.feats.map(feature => feature.niv)))];
+  const columns = progressionColumns(classData);
+  const slotTable = classData.lanceur && spellSlotsByCasterType[classData.lanceur];
+  const slotHeader = slotTable ? `<th>${classData.lanceur === 'pacte' ? 'Emplacements (niv.)' : 'Emplacements'}</th>` : '';
+  let html = '<div class="tblw"><table class="prog"><thead><tr><th>Niv.</th><th>Maîtrise</th><th>Capacités</th>' + columns.map(([name]) => `<th>${escapeHtml(name)}</th>`).join('') + slotHeader + '</tr></thead><tbody>';
+  for (let level = 1; level <= 20; level++) {
+    const columnCells = columns.map(([, values]) => `<td class="n">${escapeHtml(values[level - 1] ?? '—')}</td>`).join('');
+    const slotCell = slotTable ? `<td class="n">${escapeHtml(spellSlotsText(classData.lanceur, slotTable[level - 1] || []))}</td>` : '';
+    html += `<tr><td class="n">${level}</td><td class="n">+${proficiencyBonus(level)}</td><td>${featuresGainedAt(className, level, subclassLevels)}</td>${columnCells}${slotCell}</tr>`;
+  }
+  html += '</tbody></table></div>';
+  if (slotTable && classData.lanceur !== 'pacte') html += '<p class="srcn">Emplacements : nombre d’emplacements de niveau 1 · 2 · 3…</p>';
+  return html;
+}
+
+function listItemsHtml(items) {
+  return (items || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+}
+
+function classMetaHtml(info) {
+  if (!info.dv) return '';
+  return `<dl class="meta"><div><dt>Dé de vie</dt><dd>d${info.dv}</dd></div><div><dt>Caractéristique principale</dt><dd>${escapeHtml(info.prim)}</dd></div><div><dt>Jets de sauvegarde</dt><dd>${escapeHtml(info.sv)}</dd></div><div><dt>Difficulté</dt><dd><span class="dots">${complexityDots(info.cplx)}</span> ${COMPLEXITY_LABELS[info.cplx]}</dd></div><div><dt>Armures</dt><dd>${escapeHtml(info.arm)}</dd></div><div><dt>Armes</dt><dd>${escapeHtml(info.armes)}</dd></div><div><dt>Magie</dt><dd>${escapeHtml(info.inc)}</dd></div><div><dt>Rôles</dt><dd>${escapeHtml((info.role || []).join(', '))}</dd></div></dl>`;
+}
+
+function classAdviceHtml(info) {
+  let html = '';
+  if (info.tiers) html += `<p class="srcn" style="font-style:normal">Classe tiers : ${escapeHtml((classInfo.sources[info.tiers] || [''])[0])}. Demande l’accord du MJ.</p>`;
+  if (info.jeu) html += `<h3>Le style de jeu</h3><p>${escapeHtml(info.jeu)}</p>`;
+  if (info.conseils) html += `<h3>Conseils de jeu</h3><ul>${listItemsHtml(info.conseils)}</ul>`;
+  if (info.eviter) html += `<h3>Pièges à éviter</h3><ul>${listItemsHtml(info.eviter)}</ul>`;
+  if (info.depart) html += `<h3>Pour bien démarrer</h3><p>${escapeHtml(info.depart)}</p>`;
+  if (info.groupe) html += `<h3>Dans le groupe</h3><p>${escapeHtml(info.groupe)}</p>`;
+  return html;
+}
+
+function classFeaturesHtml(className) {
+  const classFeatures = featuresByClass[className] || [];
+  if (!classFeatures.length) return '';
+  return '<h3>Capacités de classe</h3>' + classFeatures.filter(feature => feature.nom !== 'Sous-classe').map(feature =>
+    `<details class="feat"><summary>${escapeHtml(feature.nom)} <span>· niv. ${feature.niv}</span>${VO.btn('classes', 'capacites§' + className + '|' + feature.niv + '|' + feature.nom, feature.nom)}</summary><p>${withLineBreaks(oneLevelPerLine(feature.desc))}</p></details>`).join('');
+}
+
+function otherClassesNavigationHtml(className) {
+  return `<div class="nav"><a class="b" href="#">← Toutes les classes</a>${classNames.map(other => other === className ? '' : `<a class="b" style="--c:${classColor(other)}" href="#${encodeURIComponent(other)}">${escapeHtml(other)}</a>`).join('')}</div>`;
+}
+
+function renderClassPage(className) {
+  const info = classInfo.classes[className] || {};
+  const shownSubclasses = filteredSubclasses(className);
+  const subclassTotal = subclasses.filter(entry => entry.cl === className).length;
+  $('#cnt').textContent = shownSubclasses.length + ' sous-classe' + plural(shownSubclasses.length) + ' affichée' + plural(shownSubclasses.length) + ' sur ' + subclassTotal;
+  $('#view').innerHTML = otherClassesNavigationHtml(className)
+    + `\n <article class="cls" style="--c:${info.c || DEFAULT_CLASS_COLOR}"><header class="chead"><h2>${escapeHtml(className)}${VO.btn('classes', 'classes§' + className, className)}</h2>${info.pitch ? `<p>${escapeHtml(info.pitch)}</p>` : ''}</header><div class="cbody">`
+    + classMetaHtml(info) + classAdviceHtml(info)
+    + '<div class="nav"><a class="b" href="creation.html">Créer un personnage</a><a class="b" href="grimoire.html">Voir les sorts</a><a class="b" href="dons.html">Voir les dons</a></div>'
+    + `<h3>Progression</h3>${progressionTableHtml(className)}` + classFeaturesHtml(className)
+    + `</div></article><h2 class="sec">Sous-classes de ${escapeHtml(className)} (${subclassTotal})</h2>` + subclassListHtml(shownSubclasses, false);
+}
+
+function sourcePillHtml(source) {
+  if (!source.g || source.g === '2024') return '';
+  const label = source.g === 'tiers' ? 'tiers' : source.g === 'ps' ? 'Plane Shift' : '2014';
+  return `<span class="pill" style="--pc:${SOURCE_GROUP_COLORS[source.g]}">${label}</span>`;
+}
+
+function subclassDetailsHtml(entry) {
+  const features = entry.feats.map(feature => `<p><b>Niv. ${feature.niv} · ${escapeHtml(feature.nom)}.</b> ${withLineBreaks(oneLevelPerLine(feature.desc))}</p>`).join('');
+  return `<div class="det">${features}<div class="srcn">${entry.src.l ? 'Source : ' + escapeHtml(entry.src.l) + ' · ' : ''}reformulé : le livre fait foi · <a href="fiche.html">utilisable dans la fiche</a></div></div>`;
+}
+
+function subclassItemHtml(entry, showClassName) {
+  const key = entry.cl + '/' + entry.n;
+  const isOpen = openSubclassKeys.has(key);
+  const summary = [showClassName ? entry.cl : '', entry.src.l, entry.c ? COMPLEXITY_LABELS[entry.c] : ''].filter(Boolean).join(' · ');
+  const roles = entry.r.length ? `<div class="tags">${entry.r.map(role => `<span class="tag">${escapeHtml(role)}</span>`).join('')}</div>` : '';
+  const tip = entry.i.t ? `<div class="tip">${escapeHtml(entry.i.t)}</div>` : '';
+  return `<div class="item" id="${escapeHtml(encodeURIComponent(key))}" style="--c:${classColor(entry.cl)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(entry.n)}${VO.btn('classes', 'sous§' + entry.cl + '|' + entry.n, entry.n)}${sourcePillHtml(entry.src)}</div><div class="rs">${escapeHtml(summary)}</div>${roles}${tip}</div>
+  <div class="racts"><button class="b" data-k="${escapeHtml(key)}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Capacités'}</button></div></div>${isOpen ? subclassDetailsHtml(entry) : ''}</div>`;
+}
+
+function subclassListHtml(entries, showClassName) {
+  if (!entries.length) return '<div class="empty-msg">Aucune sous-classe ne correspond à ces filtres.</div>';
+  return '<div class="list">' + entries.map(entry => subclassItemHtml(entry, showClassName)).join('') + '</div>';
+}
+
+function safelyDecoded(part) {
+  try { return decodeURIComponent(part); } catch (error) { return part; }
+}
+
+function currentRoute() {
+  const parts = location.hash.slice(1).split('/').map(safelyDecoded);
+  return { className: classNames.includes(parts[0]) ? parts[0] : '', subclassName: parts.slice(1).join('/') };
+}
+
+function renderCurrentView() {
+  if (!classInfo) return;
+  const route = currentRoute();
+  if (route.className) renderClassPage(route.className);
+  else renderOverview();
+}
+
+function followRoute(scrollToTop) {
+  const route = currentRoute();
+  if (route.className && route.subclassName) {
+    const key = route.className + '/' + route.subclassName;
+    openSubclassKeys.add(key);
+    renderCurrentView();
+    const item = document.getElementById(encodeURIComponent(key));
+    if (item) item.scrollIntoView();
+    return;
+  }
+  renderCurrentView();
+  if (scrollToTop) window.scrollTo(0, 0);
+}
+
+function toggleSubclassDetails(event) {
+  const button = event.target.closest('button[data-k]');
+  if (!button) return;
+  const key = button.dataset.k;
+  if (openSubclassKeys.has(key)) openSubclassKeys.delete(key);
+  else openSubclassKeys.add(key);
+  renderCurrentView();
+}
+
+function resetFilters() {
+  Object.assign(filters, DEFAULT_FILTERS);
+  FILTER_INPUTS.forEach(([selector]) => { $(selector).value = ''; });
+  renderCurrentView();
+}
+
+async function loadClasses() {
+  try {
+    const [info, subclassData, featureData, classData] = await Promise.all(['assets/json/vf/classes_infos.json', 'assets/json/vf/sousclasses.json', 'assets/json/vf/capacites.json', 'assets/json/vf/classes.json'].map(fetchJson));
+    classInfo = info;
+    subclassesByClass = subclassData || {};
+    featuresByClass = featureData || {};
+    classDataByName = (classData && classData.classes) || {};
+    spellSlotsByCasterType = (classData && classData.emplacements) || {};
+    buildClassesAndSubclasses();
+    followRoute(false);
+  } catch (error) {
+    $('#view').innerHTML = '<div class="empty-msg">Impossible de charger les classes (ouvre le site via un serveur web).</div>';
+  }
+}
+
+addEventListener('hashchange', () => followRoute(true));
+$('#view').addEventListener('click', toggleSubclassDetails);
+FILTER_INPUTS.forEach(([selector, key, eventType]) => $(selector).addEventListener(eventType, event => {
+  filters[key] = event.target.value;
+  renderCurrentView();
+}));
+$('#bReset').onclick = resetFilters;
+loadClasses();
