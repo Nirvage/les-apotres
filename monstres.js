@@ -28,7 +28,7 @@ function init(m){return typeof m.init==='number'?m.init:dex(m)}
 function sg(n){return (n>=0?'+':'−')+Math.abs(n)}
 function sec(title,arr,intro){
   if(!arr||!arr.length)return '';
-  return '<div class="sec"><h4>'+title+'</h4>'+(intro?'<p class="intro">'+esc(intro)+'</p>':'')+arr.map(function(a){return '<p><b><i>'+esc(a.n)+'.</i></b> '+esc(a.d)+'</p>'}).join('')+'</div>';
+  return '<div class="sec"><h4>'+title+'</h4>'+(intro?'<p class="intro">'+esc(intro)+'</p>':'')+arr.map(function(a){return '<p><b><i>'+esc(a.n)+'.</i></b> '+esc(a.d).replace(/\n/g,'<br>')+'</p>'}).join('')+'</div>';
 }
 function block(m){
   function L(t,v){return v?'<div><b>'+t+'</b> '+esc(v)+'</div>':''}
