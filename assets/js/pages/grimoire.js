@@ -1,294 +1,674 @@
-const SC={'Abjuration':'#2f6fd0','Divination':'#12968f','Enchantement':'#d6458e','Évocation':'#c8402f','Illusion':'#7a4fc4','Invocation':'#d8791a','Nécromancie':'#2e9e5b','Transmutation':'#b8860b'};
-const LC=['#7a4fc4','#2f6fd0','#12968f','#2e9e5b','#b8860b','#d8791a','#c8402f','#d6458e','#8e3a9d','#2a3170'];
-const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
-const lvName=l=>l===0?'Tours de magie':'Niveau '+l;
-const lvOne=l=>l===0?'Tour de magie':'Niveau '+l;
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4500)};
+const SCHOOL_COLORS = { 'Abjuration': '#2f6fd0', 'Divination': '#12968f', 'Enchantement': '#d6458e', 'Évocation': '#c8402f', 'Illusion': '#7a4fc4', 'Invocation': '#d8791a', 'Nécromancie': '#2e9e5b', 'Transmutation': '#b8860b' };
+const LEVEL_COLORS = ['#7a4fc4', '#2f6fd0', '#12968f', '#2e9e5b', '#b8860b', '#d8791a', '#c8402f', '#d6458e', '#8e3a9d', '#2a3170'];
+const SPELL_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DEFAULT_COLOR = '#2a3170';
+const MESSAGE_DURATION_MS = 4500;
+const WIDE_CARD_DESCRIPTION_LENGTH = 1400;
+const LAND_CIRCLE = 'Cercle de la Terre';
+const FILTER_SELECTS = [['#fc', 'cls'], ['#fs', 'sch'], ['#fl', 'lvl'], ['#fo', 'only'], ['#fb', 'src']];
 
-// Les sorts sont lus dans spells.json à l'ouverture de la page
-let DB=[],AUTO=null,CLS={},EMP=null,DOND=[];
-const BYN=new Map();
-const st={prep:new Set(),terrain:'',dons:{},sel:new Set(),q:'',cls:'',sch:'',lvl:'',only:'',tab:0,open:new Set(),src:''};
+let allSpells = [];
+let alwaysPreparedRules = null;
+let classesByName = {};
+let spellSlotsByCasterType = null;
+let featDefinitions = [];
+let alwaysPreparedNames = new Set();
+const spellsByName = new Map();
+const state = { prep: new Set(), terrain: '', dons: {}, sel: new Set(), q: '', cls: '', sch: '', lvl: '', only: '', tab: 0, open: new Set(), src: '' };
 
-function setup(data){
-  DB=data;
-  DB.forEach((s,i)=>{
-    s.i=i;const p=s.n.split('|');s.name=p[0];s.alias=p[1]||'';
-    s.idx=norm(s.n.replace('|',' '));
-    [s.n,p[0],p[1]].forEach(x=>{if(x&&!BYN.has(norm(x)))BYN.set(norm(x),s)});
-  });
-  // Menus de filtres
-  const classes=[...new Set(DB.flatMap(s=>s.c))].sort((a,b)=>a.localeCompare(b,'fr'));
-  const schools=[...new Set(DB.map(s=>s.e))].sort((a,b)=>a.localeCompare(b,'fr'));
-  const opts=(first,arr,f=x=>x)=>`<option value="">${first}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(f(x))}</option>`).join('');
-  $('#fc').innerHTML=opts('Toutes',classes);
-  $('#fs').innerHTML=opts('Tous',schools);
-  $('#fl').innerHTML=opts('Tous',[0,1,2,3,4,5,6,7,8,9],lvOne);
-}
+const notify = text => showMessage(text, MESSAGE_DURATION_MS);
+const plural = count => count > 1 ? 's' : '';
+const levelHeading = level => level === 0 ? 'Tours de magie' : 'Niveau ' + level;
+const levelLabel = level => level === 0 ? 'Tour de magie' : 'Niveau ' + level;
+const schoolColor = spell => SCHOOL_COLORS[spell.e] || DEFAULT_COLOR;
+const byName = (first, second) => first.name.localeCompare(second.name, 'fr');
+const isInBook = spell => state.sel.has(spell.n);
+const isAlwaysPrepared = spell => alwaysPreparedNames.has(spell.n);
+const isPreparedInBook = spell => state.prep.has(spell.n) && isInBook(spell);
+const findSpell = name => spellsByName.get(normalizeText(name));
 
-const srcNote=s=>s.src?`<div class="srcn">Source : ${esc(s.src)}${s.r_?' · description reconstituée à partir d’un résumé : à vérifier dans le livre':''}${s.v_?' · nom français non officiel':''}${s.ed==='2014'?' · sort en version 2014 (règles non mises à jour)':''}</div>`:'';
-const pills=s=>(isAuto(s)?'<span class="pill al">Toujours préparé</span>':st.prep.has(s.n)?'<span class="pill pr">Préparé</span>':'')+(s.cc?'<span class="pill co">Concentration</span>':'')+(s.ri?'<span class="pill ri">Rituel</span>':'');
-function card(s,remove){
-  const col=SC[s.e]||'#2a3170';
-  return `<article class="sp${s.h.length>1400?' wide':''}" style="--c:${col}"><header><div class="ti"><h3>${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</h3><div class="sub">${esc(s.e)} · ${esc(s.c.join(', '))}${s.alias?' · aussi : '+esc(s.alias):''}</div></div><span class="lvb" title="${lvOne(s.l)}">${s.l}</span></header>
-  <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${esc(s.t)}</dd></div><div><dt>Portée</dt><dd>${esc(s.r)}</dd></div><div><dt>Composantes</dt><dd>${esc(s.k)}</dd></div><div><dt>Durée</dt><dd>${esc(s.d)}</dd></div></dl>
-  <div class="desc">${s.h}</div>${srcNote(s)}${remove?`${s.l>0&&!isAuto(s)?`<button class="b pp noprint${st.prep.has(s.n)?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)}">${st.prep.has(s.n)?'★ Préparé':'☆ Préparer'}</button> `:''}<button class="b rm noprint" data-act="rm" data-i="${s.i}">Retirer du grimoire</button>`:''}</div></article>`;
-}
-
-function filtered(){
-  const q=norm(st.q);
-  return DB.filter(s=>(!q||s.idx.includes(q))&&(!st.cls||s.c.includes(st.cls))&&(!st.sch||s.e===st.sch)&&(st.lvl===''||s.l===+st.lvl)&&(!st.src||(st.src==='base'?!s.src:st.src==='2014'?s.ed==='2014':(!!s.src&&s.ed!=='2014')))&&(!st.only||(st.only==='p'?(st.prep.has(s.n)||isAuto(s)):st.sel.has(s.n))));
-}
-
-// ---- Sorts préparés ----
-const nrm=norm;
-function ficheD(){const f=Persos.part('fiche');return f&&f.data||{}}
-function ctx(){
-  const d=ficheD(),cl=d.clsel||'',sub=d.sclasse||'',lvl=Math.min(20,Math.max(1,parseInt(d.niveau)||1));
-  return {d,cl,sub,lvl,race:d.race||'',lig:d.sespece||''};
-}
-function pickKey(o,k){if(!o||!k)return null;const n=nrm(k);const f=Object.keys(o).find(x=>nrm(x)===n||nrm(x).includes(n)||n.includes(nrm(x)));return f?o[f]:null}
-// Sorts toujours préparés : espèce, classe, sous-classe, terrain
-function autoList(){
-  const c=ctx(),out=[];
-  if(!AUTO)return out;
-  const add=(a,src)=>(a||[]).forEach(e=>out.push({sort:e.sort,niv:e.niv,src,x:e.x}));
-  const E=pickKey(AUTO.especes,c.race);
-  if(E){add(E.base,c.race);const L=pickKey(E.lignages,c.lig);if(L)add(L,c.lig||c.race)}
-  if(c.cl){
-    add(AUTO.classes[c.cl],c.cl);
-    const S=pickKey(AUTO.sousclasses[c.cl],c.sub);if(S)add(S,c.sub);
-    if(c.cl==='Druide'&&/terre/i.test(c.sub)&&st.terrain){const T=AUTO.terrains['Cercle de la Terre'];if(T&&T[st.terrain])add(T[st.terrain],'Terrain : '+st.terrain)}
-  }
-  // Dons : sorts imposés, puis sorts choisis (dans le grimoire, sinon dans le texte saisi sur la fiche)
-  donSlots().forEach(g=>{
-    g.fixe.forEach(n=>out.push({sort:n,niv:1,src:g.nom}));
-    g.choix.forEach(ch=>ch.picks.forEach(n=>{if(n)out.push({sort:n,niv:1,src:g.nom})}));
-  });
-  // Un même sort donné deux fois : on garde la source qui le donne au plus bas niveau
-  const seen=new Map();
-  out.forEach(e=>{const k=nrm(e.sort),o=seen.get(k);if(!o||e.niv<o.niv)seen.set(k,e)});
-  return [...seen.values()];
-}
-// Dons du personnage qui donnent des sorts (sorts_auto.json > dons), avec les emplacements de choix
-function donSlots(){
-  const c=ctx(),D=AUTO&&AUTO.dons,X=c.d.extras;
-  if(!D||!X||!Array.isArray(X.dons))return [];
-  const pb=Math.ceil(c.lvl/4)+1;
-  return X.dons.filter(g=>g&&D[g.id]).map(g=>{
-    const R=D[g.id],ch=g.ch||{},dd=DOND.find(x=>x.id===g.id);
-    const nom=dd?dd.nom:g.id;
-    const lst=R.choix&&R.choix.some(x=>x.liste)?ch.liste||'':'';
-    // Sorts déjà écrits dans le champ texte du don sur la fiche (repris tant que rien n'est choisi ici)
-    const txt=String(ch.s||'').split(/[,;\n+\/]|\bet\b/).map(x=>BYN.get(nrm(x))).filter(Boolean);
-    const choix=(R.choix||[]).map((x,j)=>{
-      const nb=x.nb==='pb'?pb:x.nb,key=g.u+'_'+j;
-      const ok=s=>s.l===x.niv&&(!x.ecoles||x.ecoles.includes(s.e))&&(!x.rituel||s.ri)&&(!x.liste||!lst||s.c.includes(lst));
-      const mine=(st.dons[key]||[]).slice(0,nb);
-      const picks=Array.from({length:nb},(_,k)=>mine[k]!==undefined?mine[k]:'');
-      if(!mine.some(Boolean)){const f=txt.filter(ok);picks.forEach((_,k)=>{if(f[k])picks[k]=f[k].n})}
-      return {key,lbl:x.lbl+(x.liste?(lst?' · liste du '+lst:' · choisis d’abord la liste sur la fiche'):''),nb,ok,picks};
+function indexSpells(spells) {
+  allSpells = spells;
+  allSpells.forEach((spell, index) => {
+    const [name, alias] = spell.n.split('|');
+    spell.i = index;
+    spell.name = name;
+    spell.alias = alias || '';
+    spell.idx = normalizeText(spell.n.replace('|', ' '));
+    [spell.n, name, alias].forEach(key => {
+      if (key && !spellsByName.has(normalizeText(key))) spellsByName.set(normalizeText(key), spell);
     });
-    return {u:g.u,nom,fixe:(R.fixe||[]),choix};
   });
 }
-function autoNames(){
-  const c=ctx(),S=new Set();
-  autoList().forEach(e=>{if(e.niv<=c.lvl){const s=BYN.get(nrm(e.sort));if(s)S.add(s.n)}});
-  return S;
+
+function optionsHtml(firstLabel, values, label = value => value) {
+  return `<option value="">${firstLabel}</option>` + values.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(label(value))}</option>`).join('');
 }
-let AN=new Set();
-const isAuto=s=>AN.has(s.n);
-// Incantation de la classe (ou de la sous-classe pour Guerrier, Roublard, Chasseur de sang si la case est cochée sur la fiche)
-function castInfo(){
-  const c=ctx(),k=CLS[c.cl];if(!k)return null;
-  if(k.prepares)return {type:k.lanceur,prepares:k.prepares,mineurs:k.mineurs};
-  if(k.sous_classe&&c.d.sclance){const s=k.sous_classe;return {type:s.type||'tiers',prepares:s.prepares,mineurs:s.mineurs,emp:s.emp}}
+
+function setupCatalog(spells) {
+  indexSpells(spells);
+  const sortedFrench = list => list.sort((first, second) => first.localeCompare(second, 'fr'));
+  $('#fc').innerHTML = optionsHtml('Toutes', sortedFrench([...new Set(allSpells.flatMap(spell => spell.c))]));
+  $('#fs').innerHTML = optionsHtml('Tous', sortedFrench([...new Set(allSpells.map(spell => spell.e))]));
+  $('#fl').innerHTML = optionsHtml('Tous', SPELL_LEVELS, levelLabel);
+}
+
+function sourceNoteHtml(spell) {
+  if (!spell.src) return '';
+  return `<div class="srcn">Source : ${escapeHtml(spell.src)}${spell.r_ ? ' · description reconstituée à partir d’un résumé : à vérifier dans le livre' : ''}${spell.v_ ? ' · nom français non officiel' : ''}${spell.ed === '2014' ? ' · sort en version 2014 (règles non mises à jour)' : ''}</div>`;
+}
+
+function preparationPillHtml(spell) {
+  if (isAlwaysPrepared(spell)) return '<span class="pill al">Toujours préparé</span>';
+  return state.prep.has(spell.n) ? '<span class="pill pr">Préparé</span>' : '';
+}
+
+const spellPillsHtml = spell => preparationPillHtml(spell) + (spell.cc ? '<span class="pill co">Concentration</span>' : '') + (spell.ri ? '<span class="pill ri">Rituel</span>' : '');
+const canBePrepared = spell => spell.l > 0 && !isAlwaysPrepared(spell);
+
+function bookCardActionsHtml(spell) {
+  const prepared = state.prep.has(spell.n);
+  const prepareButton = canBePrepared(spell) ? `<button class="b pp noprint${prepared ? ' on' : ''}" data-act="prep" data-i="${spell.i}" aria-pressed="${prepared}">${prepared ? '★ Préparé' : '☆ Préparer'}</button> ` : '';
+  return prepareButton + `<button class="b rm noprint" data-act="rm" data-i="${spell.i}">Retirer du grimoire</button>`;
+}
+
+function cardHtml(spell, isInBookView) {
+  return `<article class="sp${spell.h.length > WIDE_CARD_DESCRIPTION_LENGTH ? ' wide' : ''}" style="--c:${schoolColor(spell)}"><header><div class="ti"><h3>${escapeHtml(spell.name)}${spellPillsHtml(spell)}${VO.btn('sorts', spell.n, spell.name)}</h3><div class="sub">${escapeHtml(spell.e)} · ${escapeHtml(spell.c.join(', '))}${spell.alias ? ' · aussi : ' + escapeHtml(spell.alias) : ''}</div></div><span class="lvb" title="${levelLabel(spell.l)}">${spell.l}</span></header>
+  <div class="body"><dl class="meta"><div><dt>Incantation</dt><dd>${escapeHtml(spell.t)}</dd></div><div><dt>Portée</dt><dd>${escapeHtml(spell.r)}</dd></div><div><dt>Composantes</dt><dd>${escapeHtml(spell.k)}</dd></div><div><dt>Durée</dt><dd>${escapeHtml(spell.d)}</dd></div></dl>
+  <div class="desc">${spell.h}</div>${sourceNoteHtml(spell)}${isInBookView ? bookCardActionsHtml(spell) : ''}</div></article>`;
+}
+
+function matchesSource(spell) {
+  if (!state.src) return true;
+  if (state.src === 'base') return !spell.src;
+  if (state.src === '2014') return spell.ed === '2014';
+  return !!spell.src && spell.ed !== '2014';
+}
+
+function matchesShownOnly(spell) {
+  if (!state.only) return true;
+  return state.only === 'p' ? (state.prep.has(spell.n) || isAlwaysPrepared(spell)) : isInBook(spell);
+}
+
+function filteredSpells() {
+  const searchedText = normalizeText(state.q);
+  return allSpells.filter(spell => (!searchedText || spell.idx.includes(searchedText))
+    && (!state.cls || spell.c.includes(state.cls))
+    && (!state.sch || spell.e === state.sch)
+    && (state.lvl === '' || spell.l === +state.lvl)
+    && matchesSource(spell)
+    && matchesShownOnly(spell));
+}
+
+function sheetData() {
+  const sheet = Persos.part('fiche');
+  return sheet && sheet.data || {};
+}
+
+function characterContext() {
+  const data = sheetData();
+  return { d: data, cl: data.clsel || '', sub: data.sclasse || '', lvl: Math.min(20, Math.max(1, parseInt(data.niveau) || 1)), race: data.race || '', lig: data.sespece || '' };
+}
+
+function valueForLooseKey(object, key) {
+  if (!object || !key) return null;
+  const searched = normalizeText(key);
+  const found = Object.keys(object).find(candidate => normalizeText(candidate) === searched || normalizeText(candidate).includes(searched) || searched.includes(normalizeText(candidate)));
+  return found ? object[found] : null;
+}
+
+const isLandDruid = context => context.cl === 'Druide' && /terre/i.test(context.sub);
+
+function grantedSpellsFromRules(context) {
+  const granted = [];
+  const addGranted = (entries, source) => (entries || []).forEach(entry => granted.push({ sort: entry.sort, niv: entry.niv, src: source, x: entry.x }));
+  const species = valueForLooseKey(alwaysPreparedRules.especes, context.race);
+  if (species) {
+    addGranted(species.base, context.race);
+    const lineage = valueForLooseKey(species.lignages, context.lig);
+    if (lineage) addGranted(lineage, context.lig || context.race);
+  }
+  if (context.cl) {
+    addGranted(alwaysPreparedRules.classes[context.cl], context.cl);
+    const subclass = valueForLooseKey(alwaysPreparedRules.sousclasses[context.cl], context.sub);
+    if (subclass) addGranted(subclass, context.sub);
+    if (isLandDruid(context) && state.terrain) {
+      const terrains = alwaysPreparedRules.terrains[LAND_CIRCLE];
+      if (terrains && terrains[state.terrain]) addGranted(terrains[state.terrain], 'Terrain : ' + state.terrain);
+    }
+  }
+  return granted;
+}
+
+function grantedSpellsFromFeats() {
+  const granted = [];
+  featSpellSlots().forEach(feat => {
+    feat.fixe.forEach(name => granted.push({ sort: name, niv: 1, src: feat.nom }));
+    feat.choix.forEach(choice => choice.picks.forEach(name => { if (name) granted.push({ sort: name, niv: 1, src: feat.nom }); }));
+  });
+  return granted;
+}
+
+function keepLowestLevelGrant(granted) {
+  const lowestByName = new Map();
+  granted.forEach(entry => {
+    const key = normalizeText(entry.sort);
+    const existing = lowestByName.get(key);
+    if (!existing || entry.niv < existing.niv) lowestByName.set(key, entry);
+  });
+  return [...lowestByName.values()];
+}
+
+function alwaysPreparedList() {
+  if (!alwaysPreparedRules) return [];
+  const granted = grantedSpellsFromRules(characterContext()).concat(grantedSpellsFromFeats());
+  return keepLowestLevelGrant(granted);
+}
+
+function spellsWrittenInFeatText(choices) {
+  return String(choices.s || '').split(/[,;\n+\/]|\bet\b/).map(findSpell).filter(Boolean);
+}
+
+function featChoiceSlot(choiceRule, index, feat, chosenList, writtenSpells, proficiencyBonus) {
+  const count = choiceRule.nb === 'pb' ? proficiencyBonus : choiceRule.nb;
+  const key = feat.u + '_' + index;
+  const accepts = spell => spell.l === choiceRule.niv && (!choiceRule.ecoles || choiceRule.ecoles.includes(spell.e)) && (!choiceRule.rituel || spell.ri) && (!choiceRule.liste || !chosenList || spell.c.includes(chosenList));
+  const savedPicks = (state.dons[key] || []).slice(0, count);
+  const picks = Array.from({ length: count }, (_, position) => savedPicks[position] !== undefined ? savedPicks[position] : '');
+  if (!savedPicks.some(Boolean)) {
+    const fromText = writtenSpells.filter(accepts);
+    picks.forEach((_, position) => { if (fromText[position]) picks[position] = fromText[position].n; });
+  }
+  const listNote = choiceRule.liste ? (chosenList ? ' · liste du ' + chosenList : ' · choisis d’abord la liste sur la fiche') : '';
+  return { key, lbl: choiceRule.lbl + listNote, nb: count, ok: accepts, picks };
+}
+
+function featSpellSlots() {
+  const context = characterContext();
+  const featRules = alwaysPreparedRules && alwaysPreparedRules.dons;
+  const extras = context.d.extras;
+  if (!featRules || !extras || !Array.isArray(extras.dons)) return [];
+  const proficiencyBonus = Math.ceil(context.lvl / 4) + 1;
+  return extras.dons.filter(feat => feat && featRules[feat.id]).map(feat => {
+    const rule = featRules[feat.id];
+    const choices = feat.ch || {};
+    const definition = featDefinitions.find(candidate => candidate.id === feat.id);
+    const chosenList = rule.choix && rule.choix.some(choice => choice.liste) ? choices.liste || '' : '';
+    const writtenSpells = spellsWrittenInFeatText(choices);
+    const slots = (rule.choix || []).map((choiceRule, index) => featChoiceSlot(choiceRule, index, feat, chosenList, writtenSpells, proficiencyBonus));
+    return { u: feat.u, nom: definition ? definition.nom : feat.id, fixe: rule.fixe || [], choix: slots };
+  });
+}
+
+function alwaysPreparedSpellNames() {
+  const level = characterContext().lvl;
+  const names = new Set();
+  alwaysPreparedList().forEach(entry => {
+    if (entry.niv > level) return;
+    const spell = findSpell(entry.sort);
+    if (spell) names.add(spell.n);
+  });
+  return names;
+}
+
+function spellcastingInfo() {
+  const context = characterContext();
+  const classData = classesByName[context.cl];
+  if (!classData) return null;
+  if (classData.prepares) return { type: classData.lanceur, prepares: classData.prepares, mineurs: classData.mineurs };
+  if (classData.sous_classe && context.d.sclance) {
+    const subclass = classData.sous_classe;
+    return { type: subclass.type || 'tiers', prepares: subclass.prepares, mineurs: subclass.mineurs, emp: subclass.emp };
+  }
   return null;
 }
-// Liste de sorts dans laquelle la classe prépare ses sorts (Magicien pour le Chevalier occulte et l'Escroc arcanique, Ensorceleur pour le Guerrier des Arts mystiques)
-function classList(){const c=ctx();return c.cl==='Guerrier'||c.cl==='Roublard'?'Magicien':c.cl==='Moine'?'Ensorceleur':CLS[c.cl]&&CLS[c.cl].prepares?c.cl:''}
-const offList=s=>{const l=classList();return !!l&&!s.c.includes(l)};
-function prepMax(){const k=castInfo();return k?k.prepares[ctx().lvl-1]:null}
-function cantripMax(){const k=castInfo();return k&&k.mineurs?k.mineurs[ctx().lvl-1]:null}
-// Niveau de sort le plus élevé que le personnage peut préparer (selon ses emplacements)
-function maxSpellLvl(){
-  const k=castInfo(),l=ctx().lvl-1;
-  if(!k||!EMP)return null;
-  if(k.type==='pacte'){const r=(k.emp||EMP.pacte)[l];return r&&r[0]?r[1]:0}
-  const r=EMP[k.type]&&EMP[k.type][l];
-  return r?r.length:null;
-}
-const isChosen=s=>st.prep.has(s.n)&&st.sel.has(s.n)&&s.l>0&&!AN.has(s.n);
-const prepCount=()=>DB.filter(isChosen).length;
-const cantripCount=()=>DB.filter(s=>s.l===0&&st.sel.has(s.n)&&!AN.has(s.n)).length;
-// Préparer / retirer un sort, en respectant la limite de la classe et le niveau maximal de sort
-function togglePrep(s){
-  if(st.prep.has(s.n)&&st.sel.has(s.n)){st.prep.delete(s.n);renderAll();return}
-  const max=prepMax(),ml=maxSpellLvl();
-  if(max!=null&&prepCount()>=max){msg('Limite atteinte ('+max+' sorts préparés) : retire d’abord un sort préparé');return}
-  if(ml!=null&&s.l>ml){msg(ml?'Tu ne peux préparer que des sorts jusqu’au niveau '+ml+' pour l’instant':'Pas encore d’emplacement de sort à ce niveau de personnage');return}
-  st.prep.add(s.n);st.sel.add(s.n);renderAll();
-  if(offList(s))msg('Attention : '+s.name+' n’est pas dans la liste de sorts du '+classList());
-}
-function renderPrep(){
-  AN=autoNames();
-  const c=ctx(),au=autoList(),max=prepMax(),ml=maxSpellLvl(),cm=cantripMax(),nc=cantripCount();
-  const nb=prepCount(),ds=donSlots().filter(g=>g.choix.length);
-  const who=[c.cl&&(c.cl+(c.sub?' ('+c.sub+')':'')+' niv. '+c.lvl),c.race&&(c.race+(c.lig?' · '+c.lig:''))].filter(Boolean).join(' — ');
-  const terr=c.cl==='Druide'&&/terre/i.test(c.sub)&&AUTO?`<label>Terrain du Cercle de la Terre <select id="terr" class="noprint"><option value="">— choisir —</option>${Object.keys(AUTO.terrains['Cercle de la Terre']).map(t=>`<option value="${t}"${t===st.terrain?' selected':''}>${t}</option>`).join('')}</select></label>`:'';
-  const chosen=DB.filter(isChosen).sort((a,b)=>a.l-b.l||a.name.localeCompare(b.name,'fr'));
-  const missing=au.filter(e=>e.niv<=c.lvl&&BYN.get(nrm(e.sort))&&!st.sel.has(BYN.get(nrm(e.sort)).n)).length;
-  const donH=ds.length?`<div class="noprint"><div style="margin-top:6px"><b>Sorts choisis grâce aux dons</b> (toujours préparés)</div>${ds.map(g=>g.choix.map(x=>{
-    const opts=DB.filter(x.ok).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
-    return `<div class="dch"><small>${esc(g.nom)} — ${esc(x.lbl)}</small><div class="dsel">${x.picks.map((v,k)=>`<select data-don="${x.key}" data-k="${k}" data-nb="${x.nb}" aria-label="${esc(g.nom)} : choix ${k+1}"><option value="">— choisir —</option>${opts.map(s=>`<option value="${esc(s.n)}"${s.n===v?' selected':''}>${esc(s.name)}</option>`).join('')}</select>`).join('')}</div></div>`}).join('')).join('')}</div>`:'';
-  const lim=[max!=null?'jusqu’à '+max+' sorts préparés':'',ml!=null?(ml?'sorts de niveau 1 à '+ml:'pas encore d’emplacement de sort'):''].filter(Boolean).join(', ');
-  $('#prep').innerHTML=`<h2>Sorts préparés <span class="cnt${max!=null&&nb>max?' over':''}" title="Sorts préparés au choix">${nb}${max!=null?' / '+max:''}</span>${cm?`<span class="cnt${nc>cm?' over':''}" title="Sorts mineurs (tours de magie) de la classe">mineurs ${nc} / ${cm}</span>`:''}</h2>
-  <p class="ctx">${who?esc(who)+(lim?' · '+lim:''):'Aucun personnage renseigné dans la fiche : choisis classe, espèce, dons et niveau pour voir les sorts toujours préparés et le nombre de sorts à préparer.'}${max==null&&c.cl?' · pas de sorts préparés pour cette classe/sous-classe (pour Guerrier, Roublard ou Chasseur de sang, coche la case d’incantation sur la fiche)':''}${max!=null&&nb>max?' · <b style="color:#c8402f">limite dépassée : retire des sorts préparés (tu peux changer ta liste à chaque repos long)</b>':''}</p>
-  ${terr}
-  ${au.length?`<div><b>Toujours préparés</b> (classe, sous-classe, espèce, dons : ne comptent pas dans la limite)</div><div class="al">${au.map(e=>{const s=BYN.get(nrm(e.sort)),off=e.niv>c.lvl;return `<span class="ch${off?' off':''}${s?'':' nf'}" title="${off?'Disponible au niveau '+e.niv:''}">${esc(s?s.name:e.sort)}<small>${esc(e.src)}${e.niv>1?' · niv. '+e.niv:''}${s?'':' · hors liste'}</small></span>`}).join('')}</div>
-  ${missing?`<button class="b noprint" id="bAuto">Ajouter les ${missing} sort${missing>1?'s':''} manquant${missing>1?'s':''} au grimoire</button>`:''}`:''}
-  ${donH}
-  <div style="margin-top:6px"><b>Préparés au choix</b></div>
-  <div class="al">${chosen.length?chosen.map(s=>`<button type="button" class="ch chb${offList(s)?' nf':''}" data-act="prep" data-i="${s.i}" title="Ne plus préparer">${esc(s.name)}<span class="noprint" aria-hidden="true"> ✕</span><span class="sr"> (retirer)</span><small>niv. ${s.l}${offList(s)?' · hors liste du '+esc(classList()):''}</small></button>`).join(''):'<span style="color:var(--soft)">Aucun. Clique sur « ☆ Préparer » dans la liste des sorts ou dans les fiches ci-dessous.</span>'}</div>`;
-}
-function renderList(){
-  AN=autoNames();
-  const r=filtered();
-  const max=prepMax();
-  $('#cnt').textContent=r.length+' sort'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' · '+st.sel.size+' dans le grimoire · '+prepCount()+(max!=null?' / '+max:'')+' préparé'+(prepCount()>1?'s':'');
-  $('#list').innerHTML=r.length?r.map(s=>{
-    const on=st.sel.has(s.n),op=st.open.has(s.n),col=SC[s.e]||'#2a3170';
-    return `<div class="item" style="--c:${col}"><div class="row"><div class="rmain"><div class="rt">${esc(s.name)}${pills(s)}${VO.btn('sorts',s.n,s.name)}</div><div class="rs">${esc(s.e)} · ${lvOne(s.l)} · ${esc(s.c.join(', '))} · ${esc(s.t)} · ${esc(s.r)}</div></div>
-    <div class="racts"><button class="b" style="--c:#2a3170" data-act="det" data-i="${s.i}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button>${s.l>0&&!isAuto(s)?`<button class="b pp${st.prep.has(s.n)&&on?' on':''}" data-act="prep" data-i="${s.i}" aria-pressed="${st.prep.has(s.n)&&on}" title="${on?'':'Ajoute aussi le sort au grimoire'}">${st.prep.has(s.n)&&on?'★ Préparé':'☆ Préparer'}</button>`:''}<button class="b add${on?' on':''}" data-act="tog" data-i="${s.i}" aria-pressed="${on}">${on?'✓ Ajouté':'+ Ajouter'}</button></div></div>${op?`<div class="det">${card(s,false)}</div>`:''}</div>`;
-  }).join(''):'<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
-}
-function renderBook(){
-  renderPrep();
-  const by=Array.from({length:10},()=>[]);
-  DB.forEach(s=>{if(st.sel.has(s.n))by[s.l].push(s)});
-  $('#tabs').innerHTML=by.map((a,l)=>`<button class="tab" role="tab" style="--c:${LC[l]}" data-act="tab" data-l="${l}" aria-selected="${l===st.tab}">${l===0?'Tours de magie':'Niv. '+l}<span>${a.length}</span></button>`).join('');
-  $('#levels').innerHTML=by.map((a,l)=>`<section class="lvl${l===st.tab?' on':''}${a.length?'':' empty'}" style="--c:${LC[l]}"><h2>${lvName(l)} <span>(${a.length})</span></h2>${a.length?`<div class="cards">${a.map(s=>card(s,true)).join('')}</div>`:'<div class="none">Aucun sort à ce niveau. Utilise « Choisir les sorts » pour en ajouter.</div>'}</section>`).join('');
-  $('#sum').textContent=st.sel.size?st.sel.size+' sort'+(st.sel.size>1?'s':'')+' sélectionné'+(st.sel.size>1?'s':''):'Aucun sort sélectionné';
-  $('#bBook').textContent='Mon grimoire ('+st.sel.size+')';
-}
-function renderAll(){renderList();renderBook();autosave()}
 
-// Données du personnage (sauvegarde .json et enregistrement dans le navigateur)
-function collect(){
-  return {version:1,type:'grimoire-dnd-5e',data:{
-    titre:$('#titre').value,
-    sorts:DB.filter(s=>st.sel.has(s.n)).map(s=>s.n),
-    prepares:DB.filter(s=>st.prep.has(s.n)&&st.sel.has(s.n)).map(s=>s.n),
-    terrain:st.terrain,
-    dons:st.dons,
-    filtres:{q:st.q,cls:st.cls,sch:st.sch,lvl:st.lvl,only:st.only}}};
+function spellListOfClass() {
+  const className = characterContext().cl;
+  if (className === 'Guerrier' || className === 'Roublard') return 'Magicien';
+  if (className === 'Moine') return 'Ensorceleur';
+  return classesByName[className] && classesByName[className].prepares ? className : '';
 }
-function syncInputs(){$('#fq').value=st.q;$('#fc').value=st.cls;$('#fs').value=st.sch;$('#fl').value=st.lvl;$('#fo').value=st.only;$('#fb').value=st.src}
-function apply(o){
-  const d=o&&o.data;
-  if(!d||!Array.isArray(d.sorts))throw new Error('format');
-  st.sel.clear();let unknown=0;
-  d.sorts.forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.sel.add(s.n);else unknown++});
-  const f=d.filtres||{};
-  st.q=f.q||'';st.cls=f.cls||'';st.sch=f.sch||'';st.lvl=(f.lvl===undefined||f.lvl===null)?'':String(f.lvl);st.only=(f.only==='p')?'p':f.only?'1':'';
-  st.prep.clear();(d.prepares||[]).forEach(n=>{const s=BYN.get(norm(String(n)));if(s)st.prep.add(s.n)});st.terrain=d.terrain||'';st.dons=d.dons&&typeof d.dons==='object'?d.dons:{};
-  syncInputs();renderAll();
-  return unknown;
-}
-function blank(){
-  st.sel.clear();st.prep.clear();st.terrain='';st.dons={};st.q=st.cls=st.sch=st.lvl=st.only='';
-  syncInputs();renderAll();
-}
-// Affiche le grimoire d'un personnage (obj vaut null pour un personnage vierge)
-function show(obj){
-  st.open.clear();st.tab=0;
-  if(obj)apply(obj);else blank();
-}
-function autosave(){Persos.save()}
 
-// Événements
-document.addEventListener('click',e=>{
-  if(e.target.id==='bAuto'){const n=autoList().filter(x=>x.niv<=ctx().lvl).map(x=>BYN.get(nrm(x.sort))).filter(Boolean);n.forEach(s=>st.sel.add(s.n));renderAll();msg(n.length+' sort(s) ajouté(s) au grimoire');return}
-  const b=e.target.closest('[data-act]');if(!b)return;
-  const a=b.dataset.act,s=DB[+b.dataset.i];
-  if(a==='tog'){if(st.sel.has(s.n)){st.sel.delete(s.n);st.prep.delete(s.n)}else st.sel.add(s.n);renderAll()}
-  else if(a==='det'){st.open.has(s.n)?st.open.delete(s.n):st.open.add(s.n);renderList()}
-  else if(a==='rm'){st.sel.delete(s.n);st.prep.delete(s.n);renderAll()}
-  else if(a==='prep')togglePrep(s);
-  else if(a==='tab'){st.tab=+b.dataset.l;renderBook()}
-  else if(a==='mode')setMode(b.dataset.m);
-});
-function setMode(m){
-  document.body.dataset.mode=m;
-  document.querySelectorAll('[data-act=mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m));
-  if(m==='book'){
-    const cnt=l=>DB.some(s=>s.l===l&&st.sel.has(s.n));
-    if(!cnt(st.tab)){const f=[0,1,2,3,4,5,6,7,8,9].find(cnt);if(f!==undefined){st.tab=f;renderBook()}}
+const isOffClassList = spell => {
+  const classList = spellListOfClass();
+  return !!classList && !spell.c.includes(classList);
+};
+
+function maxPreparedSpells() {
+  const info = spellcastingInfo();
+  return info ? info.prepares[characterContext().lvl - 1] : null;
+}
+
+function maxCantrips() {
+  const info = spellcastingInfo();
+  return info && info.mineurs ? info.mineurs[characterContext().lvl - 1] : null;
+}
+
+function highestPreparableLevel() {
+  const info = spellcastingInfo();
+  const levelIndex = characterContext().lvl - 1;
+  if (!info || !spellSlotsByCasterType) return null;
+  if (info.type === 'pacte') {
+    const pactSlots = (info.emp || spellSlotsByCasterType.pacte)[levelIndex];
+    return pactSlots && pactSlots[0] ? pactSlots[1] : 0;
   }
-  scrollTo(0,0);
+  const slots = spellSlotsByCasterType[info.type] && spellSlotsByCasterType[info.type][levelIndex];
+  return slots ? slots.length : null;
 }
-$('#fq').addEventListener('input',e=>{st.q=e.target.value;renderList();autosave()});
-[['#fc','cls'],['#fs','sch'],['#fl','lvl'],['#fo','only'],['#fb','src']].forEach(([id,k])=>$(id).addEventListener('change',e=>{st[k]=e.target.value;renderList();autosave()}));
-$('#titre').addEventListener('input',autosave);
-document.addEventListener('change',e=>{
-  const t=e.target;
-  if(t.id==='terr'){st.terrain=t.value;renderAll()}
-  else if(t.dataset.don){
-    // Choix des sorts d'un don : enregistrés dans le grimoire, et ajoutés au grimoire pour avoir leur fiche
-    const k=t.dataset.don,a=Array.from({length:+t.dataset.nb},(_,i)=>(st.dons[k]||[])[i]||'');
-    document.querySelectorAll(`[data-don="${k}"]`).forEach(x=>{a[+x.dataset.k]=x.value});
-    st.dons[k]=a;if(t.value)st.sel.add(t.value);renderAll();
-  }
-});
-$('#bReset').onclick=()=>{st.q=st.cls=st.sch=st.lvl=st.only=st.src='';syncInputs();renderList();autosave()};
 
-$('#bSave').onclick=()=>{
-  const nom=($('#titre').value||Persos.current().nom||'grimoire').trim().replace(/[^\p{L}\p{N}_-]+/gu,'_');
-  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=`grimoire_${nom}.json`;
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  msg('Grimoire enregistré dans un fichier .json');
-};
-$('#bLoad').onclick=()=>$('#file').click();
-$('#file').onchange=ev=>{
-  const f=ev.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{try{
-    const u=apply(JSON.parse(r.result));
-    msg('Grimoire chargé : '+st.sel.size+' sort'+(st.sel.size>1?'s':'')+(u?' ('+u+' introuvable'+(u>1?'s':'')+' ignoré'+(u>1?'s':'')+')':''));
-  }catch(e){msg('Fichier invalide : choisis un .json créé par cette page')}};
-  r.readAsText(f);ev.target.value='';
-};
-$('#bPrint').onclick=()=>{
-  if(!st.sel.size){msg('Ajoute d’abord des sorts à ton grimoire');return}
-  window.print();
-};
-$('#bClear').onclick=()=>{
-  if(!st.sel.size)return;
-  if(!confirm('Retirer tous les sorts du grimoire de « '+Persos.current().nom+' » ? Pense à enregistrer un .json avant.'))return;
-  st.sel.clear();st.prep.clear();renderAll();msg('Grimoire vidé');
-};
+const isChosenPrepared = spell => isPreparedInBook(spell) && spell.l > 0 && !alwaysPreparedNames.has(spell.n);
+const preparedCount = () => allSpells.filter(isChosenPrepared).length;
+const cantripCount = () => allSpells.filter(spell => spell.l === 0 && isInBook(spell) && !alwaysPreparedNames.has(spell.n)).length;
 
-async function boot(){
-  let data;
-  try{
-    const r=await fetch('assets/json/vf/spells.json');
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    data=await r.json();
-  }catch(e){
-    $('#cnt').textContent='';
-    $('#list').innerHTML='<div class="empty-msg">Impossible de charger la liste des sorts (spells.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
+function preparationRefusal(spell) {
+  const maximum = maxPreparedSpells();
+  const highestLevel = highestPreparableLevel();
+  if (maximum != null && preparedCount() >= maximum) return 'Limite atteinte (' + maximum + ' sorts préparés) : retire d’abord un sort préparé';
+  if (highestLevel != null && spell.l > highestLevel) return highestLevel ? 'Tu ne peux préparer que des sorts jusqu’au niveau ' + highestLevel + ' pour l’instant' : 'Pas encore d’emplacement de sort à ce niveau de personnage';
+  return null;
+}
+
+function togglePrepared(spell) {
+  if (isPreparedInBook(spell)) {
+    state.prep.delete(spell.n);
+    renderAll();
     return;
   }
-  setup(data);
-  try{AUTO=await (await fetch('assets/json/vf/sorts_auto.json')).json()}catch(e){AUTO=null}
-  try{const j=await (await fetch('assets/json/vf/classes.json')).json();CLS=j.classes||{};EMP=j.emplacements||null}catch(e){CLS={}}
-  try{DOND=await (await fetch('assets/json/vf/dons.json')).json()}catch(e){DOND=[]}
-  Persos.init({part:'grimoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
+  const refusal = preparationRefusal(spell);
+  if (refusal) {
+    notify(refusal);
+    return;
+  }
+  state.prep.add(spell.n);
+  state.sel.add(spell.n);
+  renderAll();
+  if (isOffClassList(spell)) notify('Attention : ' + spell.name + ' n’est pas dans la liste de sorts du ' + spellListOfClass());
 }
-boot();
+
+function characterSummary(context) {
+  const classPart = context.cl && (context.cl + (context.sub ? ' (' + context.sub + ')' : '') + ' niv. ' + context.lvl);
+  const speciesPart = context.race && (context.race + (context.lig ? ' · ' + context.lig : ''));
+  return [classPart, speciesPart].filter(Boolean).join(' — ');
+}
+
+function landTerrainSelectHtml(context) {
+  if (!isLandDruid(context) || !alwaysPreparedRules) return '';
+  const terrains = Object.keys(alwaysPreparedRules.terrains[LAND_CIRCLE]);
+  return `<label>Terrain du Cercle de la Terre <select id="terr" class="noprint"><option value="">— choisir —</option>${terrains.map(terrain => `<option value="${terrain}"${terrain === state.terrain ? ' selected' : ''}>${terrain}</option>`).join('')}</select></label>`;
+}
+
+function featChoiceHtml(feat, slot) {
+  const options = allSpells.filter(slot.ok).sort(byName);
+  const selects = slot.picks.map((picked, position) => `<select data-don="${slot.key}" data-k="${position}" data-nb="${slot.nb}" aria-label="${escapeHtml(feat.nom)} : choix ${position + 1}"><option value="">— choisir —</option>${options.map(spell => `<option value="${escapeHtml(spell.n)}"${spell.n === picked ? ' selected' : ''}>${escapeHtml(spell.name)}</option>`).join('')}</select>`).join('');
+  return `<div class="dch"><small>${escapeHtml(feat.nom)} — ${escapeHtml(slot.lbl)}</small><div class="dsel">${selects}</div></div>`;
+}
+
+function featChoicesHtml() {
+  const featsWithChoices = featSpellSlots().filter(feat => feat.choix.length);
+  if (!featsWithChoices.length) return '';
+  return `<div class="noprint"><div style="margin-top:6px"><b>Sorts choisis grâce aux dons</b> (toujours préparés)</div>${featsWithChoices.map(feat => feat.choix.map(slot => featChoiceHtml(feat, slot)).join('')).join('')}</div>`;
+}
+
+function limitsText(maximum, highestLevel) {
+  const prepared = maximum != null ? 'jusqu’à ' + maximum + ' sorts préparés' : '';
+  const levels = highestLevel != null ? (highestLevel ? 'sorts de niveau 1 à ' + highestLevel : 'pas encore d’emplacement de sort') : '';
+  return [prepared, levels].filter(Boolean).join(', ');
+}
+
+function contextLineHtml(context, maximum, highestLevel, count) {
+  const summary = characterSummary(context);
+  const limits = limitsText(maximum, highestLevel);
+  const intro = summary ? escapeHtml(summary) + (limits ? ' · ' + limits : '') : 'Aucun personnage renseigné dans la fiche : choisis classe, espèce, dons et niveau pour voir les sorts toujours préparés et le nombre de sorts à préparer.';
+  const noPreparation = maximum == null && context.cl ? ' · pas de sorts préparés pour cette classe/sous-classe (pour Guerrier, Roublard ou Chasseur de sang, coche la case d’incantation sur la fiche)' : '';
+  const overLimit = maximum != null && count > maximum ? ' · <b style="color:#c8402f">limite dépassée : retire des sorts préparés (tu peux changer ta liste à chaque repos long)</b>' : '';
+  return `<p class="ctx">${intro}${noPreparation}${overLimit}</p>`;
+}
+
+function grantedSpellChipHtml(entry, characterLevel) {
+  const spell = findSpell(entry.sort);
+  const notYet = entry.niv > characterLevel;
+  return `<span class="ch${notYet ? ' off' : ''}${spell ? '' : ' nf'}" title="${notYet ? 'Disponible au niveau ' + entry.niv : ''}">${escapeHtml(spell ? spell.name : entry.sort)}<small>${escapeHtml(entry.src)}${entry.niv > 1 ? ' · niv. ' + entry.niv : ''}${spell ? '' : ' · hors liste'}</small></span>`;
+}
+
+function missingGrantedCount(granted, characterLevel) {
+  return granted.filter(entry => {
+    const spell = findSpell(entry.sort);
+    return entry.niv <= characterLevel && spell && !isInBook(spell);
+  }).length;
+}
+
+function alwaysPreparedSectionHtml(granted, characterLevel) {
+  if (!granted.length) return '';
+  const missing = missingGrantedCount(granted, characterLevel);
+  const addButton = missing ? `<button class="b noprint" id="bAuto">Ajouter les ${missing} sort${plural(missing)} manquant${plural(missing)} au grimoire</button>` : '';
+  return `<div><b>Toujours préparés</b> (classe, sous-classe, espèce, dons : ne comptent pas dans la limite)</div><div class="al">${granted.map(entry => grantedSpellChipHtml(entry, characterLevel)).join('')}</div>
+  ${addButton}`;
+}
+
+function chosenPreparedChipHtml(spell) {
+  const offList = isOffClassList(spell);
+  return `<button type="button" class="ch chb${offList ? ' nf' : ''}" data-act="prep" data-i="${spell.i}" title="Ne plus préparer">${escapeHtml(spell.name)}<span class="noprint" aria-hidden="true"> ✕</span><span class="sr"> (retirer)</span><small>niv. ${spell.l}${offList ? ' · hors liste du ' + escapeHtml(spellListOfClass()) : ''}</small></button>`;
+}
+
+function preparedCountersHtml(count, maximum) {
+  const cantripMaximum = maxCantrips();
+  const cantrips = cantripCount();
+  const preparedCounter = `<span class="cnt${maximum != null && count > maximum ? ' over' : ''}" title="Sorts préparés au choix">${count}${maximum != null ? ' / ' + maximum : ''}</span>`;
+  const cantripCounter = cantripMaximum ? `<span class="cnt${cantrips > cantripMaximum ? ' over' : ''}" title="Sorts mineurs (tours de magie) de la classe">mineurs ${cantrips} / ${cantripMaximum}</span>` : '';
+  return preparedCounter + cantripCounter;
+}
+
+function renderPreparedPanel() {
+  alwaysPreparedNames = alwaysPreparedSpellNames();
+  const context = characterContext();
+  const maximum = maxPreparedSpells();
+  const count = preparedCount();
+  const chosen = allSpells.filter(isChosenPrepared).sort((first, second) => first.l - second.l || byName(first, second));
+  $('#prep').innerHTML = `<h2>Sorts préparés ${preparedCountersHtml(count, maximum)}</h2>
+  ${contextLineHtml(context, maximum, highestPreparableLevel(), count)}
+  ${landTerrainSelectHtml(context)}
+  ${alwaysPreparedSectionHtml(alwaysPreparedList(), context.lvl)}
+  ${featChoicesHtml()}
+  <div style="margin-top:6px"><b>Préparés au choix</b></div>
+  <div class="al">${chosen.length ? chosen.map(chosenPreparedChipHtml).join('') : '<span style="color:var(--soft)">Aucun. Clique sur « ☆ Préparer » dans la liste des sorts ou dans les fiches ci-dessous.</span>'}</div>`;
+}
+
+function listPrepareButtonHtml(spell) {
+  if (!canBePrepared(spell)) return '';
+  const prepared = isPreparedInBook(spell);
+  return `<button class="b pp${prepared ? ' on' : ''}" data-act="prep" data-i="${spell.i}" aria-pressed="${prepared}" title="${isInBook(spell) ? '' : 'Ajoute aussi le sort au grimoire'}">${prepared ? '★ Préparé' : '☆ Préparer'}</button>`;
+}
+
+function listRowHtml(spell) {
+  const inBook = isInBook(spell);
+  const isOpen = state.open.has(spell.n);
+  return `<div class="item" style="--c:${schoolColor(spell)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(spell.name)}${spellPillsHtml(spell)}${VO.btn('sorts', spell.n, spell.name)}</div><div class="rs">${escapeHtml(spell.e)} · ${levelLabel(spell.l)} · ${escapeHtml(spell.c.join(', '))} · ${escapeHtml(spell.t)} · ${escapeHtml(spell.r)}</div></div>
+    <div class="racts"><button class="b" style="--c:${DEFAULT_COLOR}" data-act="det" data-i="${spell.i}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button>${listPrepareButtonHtml(spell)}<button class="b add${inBook ? ' on' : ''}" data-act="tog" data-i="${spell.i}" aria-pressed="${inBook}">${inBook ? '✓ Ajouté' : '+ Ajouter'}</button></div></div>${isOpen ? `<div class="det">${cardHtml(spell, false)}</div>` : ''}</div>`;
+}
+
+function renderList() {
+  alwaysPreparedNames = alwaysPreparedSpellNames();
+  const shown = filteredSpells();
+  const maximum = maxPreparedSpells();
+  const count = preparedCount();
+  $('#cnt').textContent = shown.length + ' sort' + plural(shown.length) + ' affiché' + plural(shown.length) + ' · ' + state.sel.size + ' dans le grimoire · ' + count + (maximum != null ? ' / ' + maximum : '') + ' préparé' + plural(count);
+  $('#list').innerHTML = shown.length ? shown.map(listRowHtml).join('') : '<div class="empty-msg">Aucun sort ne correspond à ces filtres.</div>';
+}
+
+function bookSpellsByLevel() {
+  const byLevel = SPELL_LEVELS.map(() => []);
+  allSpells.forEach(spell => { if (isInBook(spell)) byLevel[spell.l].push(spell); });
+  return byLevel;
+}
+
+function bookSectionsHtml(byLevel) {
+  return byLevel.map((spells, level) => {
+    const content = spells.length ? `<div class="cards">${spells.map(spell => cardHtml(spell, true)).join('')}</div>` : '<div class="none">Aucun sort à ce niveau. Utilise « Choisir les sorts » pour en ajouter.</div>';
+    return `<section class="lvl${level === state.tab ? ' on' : ''}${spells.length ? '' : ' empty'}" style="--c:${LEVEL_COLORS[level]}"><h2>${levelHeading(level)} <span>(${spells.length})</span></h2>${content}</section>`;
+  }).join('');
+}
+
+function renderBook() {
+  renderPreparedPanel();
+  const byLevel = bookSpellsByLevel();
+  const bookSize = state.sel.size;
+  $('#tabs').innerHTML = byLevel.map((spells, level) => `<button class="tab" role="tab" style="--c:${LEVEL_COLORS[level]}" data-act="tab" data-l="${level}" aria-selected="${level === state.tab}">${level === 0 ? 'Tours de magie' : 'Niv. ' + level}<span>${spells.length}</span></button>`).join('');
+  $('#levels').innerHTML = bookSectionsHtml(byLevel);
+  $('#sum').textContent = bookSize ? bookSize + ' sort' + plural(bookSize) + ' sélectionné' + plural(bookSize) : 'Aucun sort sélectionné';
+  $('#bBook').textContent = 'Mon grimoire (' + bookSize + ')';
+}
+
+function renderAll() {
+  renderList();
+  renderBook();
+  Persos.save();
+}
+
+function collectSpellbook() {
+  return {
+    version: 1, type: 'grimoire-dnd-5e', data: {
+      titre: $('#titre').value,
+      sorts: allSpells.filter(isInBook).map(spell => spell.n),
+      prepares: allSpells.filter(isPreparedInBook).map(spell => spell.n),
+      terrain: state.terrain,
+      dons: state.dons,
+      filtres: { q: state.q, cls: state.cls, sch: state.sch, lvl: state.lvl, only: state.only }
+    }
+  };
+}
+
+function syncFilterInputs() {
+  $('#fq').value = state.q;
+  FILTER_SELECTS.forEach(([selector, key]) => { $(selector).value = state[key]; });
+}
+
+function addKnownSpells(names, target) {
+  let unknownCount = 0;
+  names.forEach(name => {
+    const spell = findSpell(String(name));
+    if (spell) target.add(spell.n);
+    else unknownCount++;
+  });
+  return unknownCount;
+}
+
+function restoreFilters(savedFilters) {
+  state.q = savedFilters.q || '';
+  state.cls = savedFilters.cls || '';
+  state.sch = savedFilters.sch || '';
+  state.lvl = savedFilters.lvl === undefined || savedFilters.lvl === null ? '' : String(savedFilters.lvl);
+  state.only = savedFilters.only === 'p' ? 'p' : savedFilters.only ? '1' : '';
+}
+
+function applySpellbook(saved) {
+  const data = saved && saved.data;
+  if (!data || !Array.isArray(data.sorts)) throw new Error('format');
+  state.sel.clear();
+  const unknownCount = addKnownSpells(data.sorts, state.sel);
+  restoreFilters(data.filtres || {});
+  state.prep.clear();
+  addKnownSpells(data.prepares || [], state.prep);
+  state.terrain = data.terrain || '';
+  state.dons = data.dons && typeof data.dons === 'object' ? data.dons : {};
+  syncFilterInputs();
+  renderAll();
+  return unknownCount;
+}
+
+function startBlank() {
+  state.sel.clear();
+  state.prep.clear();
+  state.terrain = '';
+  state.dons = {};
+  state.q = state.cls = state.sch = state.lvl = state.only = '';
+  syncFilterInputs();
+  renderAll();
+}
+
+function showCharacterSpellbook(saved) {
+  state.open.clear();
+  state.tab = 0;
+  if (saved) applySpellbook(saved);
+  else startBlank();
+}
+
+function addMissingGrantedSpells() {
+  const level = characterContext().lvl;
+  const spells = alwaysPreparedList().filter(entry => entry.niv <= level).map(entry => findSpell(entry.sort)).filter(Boolean);
+  spells.forEach(spell => state.sel.add(spell.n));
+  renderAll();
+  notify(spells.length + ' sort(s) ajouté(s) au grimoire');
+}
+
+function removeFromBook(spell) {
+  state.sel.delete(spell.n);
+  state.prep.delete(spell.n);
+  renderAll();
+}
+
+function toggleInBook(spell) {
+  if (isInBook(spell)) removeFromBook(spell);
+  else {
+    state.sel.add(spell.n);
+    renderAll();
+  }
+}
+
+function toggleDetails(spell) {
+  if (state.open.has(spell.n)) state.open.delete(spell.n);
+  else state.open.add(spell.n);
+  renderList();
+}
+
+const CLICK_ACTIONS = {
+  tog: toggleInBook,
+  det: toggleDetails,
+  rm: removeFromBook,
+  prep: togglePrepared,
+  tab: (spell, button) => { state.tab = +button.dataset.l; renderBook(); },
+  mode: (spell, button) => setMode(button.dataset.m)
+};
+
+function handleActionClick(event) {
+  if (event.target.id === 'bAuto') return addMissingGrantedSpells();
+  const button = event.target.closest('[data-act]');
+  if (!button) return;
+  const action = CLICK_ACTIONS[button.dataset.act];
+  if (action) action(allSpells[+button.dataset.i], button);
+}
+
+const hasBookSpellsOfLevel = level => allSpells.some(spell => spell.l === level && isInBook(spell));
+
+function showFirstFilledTab() {
+  if (hasBookSpellsOfLevel(state.tab)) return;
+  const firstFilledLevel = SPELL_LEVELS.find(hasBookSpellsOfLevel);
+  if (firstFilledLevel === undefined) return;
+  state.tab = firstFilledLevel;
+  renderBook();
+}
+
+function setMode(mode) {
+  document.body.dataset.mode = mode;
+  document.querySelectorAll('[data-act=mode]').forEach(button => button.setAttribute('aria-pressed', button.dataset.m === mode));
+  if (mode === 'book') showFirstFilledTab();
+  scrollTo(0, 0);
+}
+
+function onFilterChange(key) {
+  return event => {
+    state[key] = event.target.value;
+    renderList();
+    Persos.save();
+  };
+}
+
+function saveFeatSpellChoice(select) {
+  const key = select.dataset.don;
+  const picks = Array.from({ length: +select.dataset.nb }, (_, position) => (state.dons[key] || [])[position] || '');
+  document.querySelectorAll(`[data-don="${key}"]`).forEach(choiceSelect => { picks[+choiceSelect.dataset.k] = choiceSelect.value; });
+  state.dons[key] = picks;
+  if (select.value) state.sel.add(select.value);
+  renderAll();
+}
+
+function handlePreparedPanelChange(event) {
+  const target = event.target;
+  if (target.id === 'terr') {
+    state.terrain = target.value;
+    renderAll();
+  } else if (target.dataset.don) saveFeatSpellChoice(target);
+}
+
+function resetFilters() {
+  state.q = state.cls = state.sch = state.lvl = state.only = state.src = '';
+  syncFilterInputs();
+  renderList();
+  Persos.save();
+}
+
+function saveToFile() {
+  const name = fileSafeName($('#titre').value || Persos.current().nom || 'grimoire');
+  downloadJsonFile(`grimoire_${name}.json`, collectSpellbook());
+  notify('Grimoire enregistré dans un fichier .json');
+}
+
+function loadedMessage(unknownCount) {
+  const ignored = unknownCount ? ' (' + unknownCount + ' introuvable' + plural(unknownCount) + ' ignoré' + plural(unknownCount) + ')' : '';
+  return 'Grimoire chargé : ' + state.sel.size + ' sort' + plural(state.sel.size) + ignored;
+}
+
+function loadFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      notify(loadedMessage(applySpellbook(JSON.parse(reader.result))));
+    } catch (error) {
+      notify('Fichier invalide : choisis un .json créé par cette page');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function printSpellbook() {
+  if (!state.sel.size) {
+    notify('Ajoute d’abord des sorts à ton grimoire');
+    return;
+  }
+  window.print();
+}
+
+function clearSpellbook() {
+  if (!state.sel.size) return;
+  if (!confirm('Retirer tous les sorts du grimoire de « ' + Persos.current().nom + ' » ? Pense à enregistrer un .json avant.')) return;
+  state.sel.clear();
+  state.prep.clear();
+  renderAll();
+  notify('Grimoire vidé');
+}
+
+function showLoadingError() {
+  $('#cnt').textContent = '';
+  $('#list').innerHTML = '<div class="empty-msg">Impossible de charger la liste des sorts (spells.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
+}
+
+async function loadRulesData() {
+  alwaysPreparedRules = await fetchJson('assets/json/vf/sorts_auto.json').catch(() => null);
+  try {
+    const classData = await fetchJson('assets/json/vf/classes.json');
+    classesByName = classData.classes || {};
+    spellSlotsByCasterType = classData.emplacements || null;
+  } catch (error) {
+    classesByName = {};
+  }
+  featDefinitions = await fetchJson('assets/json/vf/dons.json').catch(() => []);
+}
+
+async function startPage() {
+  let spells;
+  try {
+    spells = await fetchJson('assets/json/vf/spells.json');
+  } catch (error) {
+    showLoadingError();
+    return;
+  }
+  setupCatalog(spells);
+  await loadRulesData();
+  Persos.init({ part: 'grimoire', mount: $('#persos'), title: $('#titre'), collect: collectSpellbook, apply: showCharacterSpellbook, msg: notify });
+}
+
+document.addEventListener('click', handleActionClick);
+$('#fq').addEventListener('input', onFilterChange('q'));
+FILTER_SELECTS.forEach(([selector, key]) => $(selector).addEventListener('change', onFilterChange(key)));
+$('#titre').addEventListener('input', () => Persos.save());
+document.addEventListener('change', handlePreparedPanelChange);
+$('#bReset').onclick = resetFilters;
+$('#bSave').onclick = saveToFile;
+$('#bLoad').onclick = () => $('#file').click();
+$('#file').onchange = loadFromFile;
+$('#bPrint').onclick = printSpellbook;
+$('#bClear').onclick = clearSpellbook;
+startPage();
