@@ -86,6 +86,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
   <div class="chk">
    <label><input type="checkbox" id="c_cast"> Incantation ou Magie de pacte</label>
    <label><input type="checkbox" id="c_style"> Capacité Style de combat</label>
+   <label><input type="checkbox" id="c_occ"> Occultiste</label>
    <label><input type="checkbox" id="c_légères"> Armures légères</label>
    <label><input type="checkbox" id="c_intermédiaires"> Armures intermédiaires</label>
    <label><input type="checkbox" id="c_lourdes"> Armures lourdes</label>
@@ -95,7 +96,7 @@ small{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
  </section>
 
  <section class="panel">
-  <h2>Tous les dons (règles 2024)</h2>
+  <h2>Tous les dons et manifestations occultes (règles 2024, plus les manifestations 2014 disparues)</h2>
   <div class="fgrid">
    <label><small>Nom ou effet</small><input id="fq" type="search" placeholder="Initiative, sort, bouclier, empoigner…"></label>
    <label><small>Catégorie</small><select id="fc"></select></label>
@@ -124,35 +125,37 @@ const rid=()=>Math.random().toString(36).slice(2,8);
 const AB=[['for','Force'],['dex','Dextérité'],['con','Constitution'],['int','Intelligence'],['sag','Sagesse'],['cha','Charisme']];
 const ABK=Object.fromEntries(AB.map(([k,n])=>[norm(n),k])),ABN=Object.fromEntries(AB);
 const AR=['légères','intermédiaires','lourdes','boucliers'];
-const CATC={'Origine':'#2e9e5b','Général':'#2a3170','Style de combat':'#c8402f','Faveur épique':'#7a4fc4'};
+const CATC={'Origine':'#2e9e5b','Général':'#2a3170','Style de combat':'#c8402f','Faveur épique':'#7a4fc4','Manifestation occulte':'#5b3a8c'};
 const MINE='Mes créations';
-// Dons qu'on peut prendre plusieurs fois (règles 2024)
-const REPEAT=new Set(['asi','adepte_elem','initie_magie','qualifie']);
+// Dons et manifestations occultes qu'on peut prendre plusieurs fois (règles 2024)
+const REPEAT=new Set(['asi','adepte_elem','initie_magie','qualifie','mo_decharge_dechirante','mo_lance_occulte','mo_decharge_repoussante','mo_lecons_premiers']);
 // Armures maîtrisées par classe (règles 2024) et dons qui en donnent ; mêmes tables que la fiche
 const PROF={'Artificier':['légères','intermédiaires','boucliers'],'Barbare':['légères','intermédiaires','boucliers'],'Barde':['légères'],'Chasseur de sang':['légères','intermédiaires'],'Clerc':['légères','intermédiaires','boucliers'],'Druide':['légères','boucliers'],'Guerrier':AR,'Occultiste':['légères'],'Paladin':AR,'Rôdeur':['légères','intermédiaires','boucliers'],'Roublard':['légères']};
 const DONPROF={armure_legere:['légères','boucliers'],armure_inter:['intermédiaires','boucliers'],armure_lourde:['lourdes']};
 // Capacité Style de combat : Guerrier niv. 1, Paladin et Rôdeur niv. 2
 const STYLE={'Guerrier':1,'Paladin':2,'Rôdeur':2};
-const PTYPES=[['none','Aucun prérequis'],['niv','Un niveau minimum'],['ab','Une valeur de caractéristique'],['cast','Incantation ou Magie de pacte'],['arm','Une maîtrise d’armure ou de bouclier'],['style','La capacité Style de combat'],['other','Autre (à vérifier)']];
+const PTYPES=[['none','Aucun prérequis'],['niv','Un niveau minimum'],['ab','Une valeur de caractéristique'],['cast','Incantation ou Magie de pacte'],['arm','Une maîtrise d’armure ou de bouclier'],['style','La capacité Style de combat'],['occ','Un niveau d’occultiste (manifestations occultes)'],['other','Autre (à vérifier)']];
 
 let DB=[],BASE=[],CLS=null;
 const st={q:'',c:'',p:'',a:'',ok:false,open:new Set()};
-const me={niv:1,ab:{for:10,dex:10,con:10,int:10,sag:10,cha:10},cast:false,style:false,ar:new Set(),dons:[]};
+const me={niv:1,ab:{for:10,dex:10,con:10,int:10,sag:10,cha:10},cast:false,style:false,occ:false,ar:new Set(),dons:[]};
 
 // Prérequis en texte libre -> conditions vérifiables
 function parsePre(pre){
- const t=norm(pre),r={niv:0,ab:null,cast:false,style:false,ar:[],other:false};
+ const t=norm(pre),r={niv:0,ab:null,cast:false,style:false,occ:false,more:false,ar:[],other:false};
  if(!t)return r;
  const n=t.match(/niveau (\d+)/);if(n)r.niv=+n[1];
  const a=t.match(/((?:(?:force|dexterite|constitution|intelligence|sagesse|charisme)(?:\s*,\s*|\s+ou\s+)?)+)\s+(\d+)\s+ou\s+plus/);
  if(a)r.ab={keys:a[1].match(/force|dexterite|constitution|intelligence|sagesse|charisme/g).map(x=>ABK[x]),min:+a[2]};
  r.cast=/incantation|magie de pacte|capacite sorts/.test(t);
  r.style=/style de combat/.test(t);
+ // Manifestations occultes : niveau d'occultiste, plus parfois un pacte, un sort ou une autre manifestation (à vérifier)
+ r.occ=/^occultiste/.test(t);r.more=r.occ&&t.includes(',');
  if(/armures? legeres/.test(t))r.ar.push('légères');
  if(/armures? intermediaires/.test(t))r.ar.push('intermédiaires');
  if(/armures? lourdes/.test(t))r.ar.push('lourdes');
  if(/bouclier/.test(t))r.ar.push('boucliers');
- r.other=!r.niv&&!r.ab&&!r.cast&&!r.style&&!r.ar.length;
+ r.other=!r.niv&&!r.ab&&!r.cast&&!r.style&&!r.occ&&!r.ar.length;
  return r;
 }
 function build(){
@@ -161,8 +164,8 @@ function build(){
   const P=parsePre(x.pre),types=[];
   if(!norm(x.pre))types.push('none');
   if(P.niv)types.push('niv');if(P.ab)types.push('ab');if(P.cast)types.push('cast');
-  if(P.ar.length)types.push('arm');if(P.style)types.push('style');if(P.other&&norm(x.pre))types.push('other');
-  return Object.assign(x,{P,types,c:x.mine?'#d8791a':CATC[x.cat]||'#2a3170',idx:norm(x.nom+' '+x.cat+' '+x.pre+' '+x.desc)});
+  if(P.ar.length)types.push('arm');if(P.style)types.push('style');if(P.occ)types.push('occ');if(P.other&&norm(x.pre))types.push('other');
+  return Object.assign(x,{P,types,c:x.mine?'#d8791a':CATC[x.cat]||'#2a3170',idx:norm([x.nom,x.en,x.cat,x.pre,x.desc,x.src,x.ed].join(' '))});
  });
  const cats=[];BASE.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
  const keep=$('#fc').value;
@@ -177,8 +180,9 @@ function missing(x){
  if(P.ab&&!P.ab.keys.some(k=>me.ab[k]>=P.ab.min))m.push(P.ab.keys.map(k=>ABN[k]).join(' ou ')+' '+P.ab.min);
  if(P.cast&&!me.cast)m.push('Incantation ou Magie de pacte');
  if(P.style&&!me.style)m.push('capacité Style de combat');
+ if(P.occ&&!me.occ)m.push('classe Occultiste');
  P.ar.filter(a=>!me.ar.has(a)).forEach(a=>m.push(a==='boucliers'?'maîtrise des boucliers':'maîtrise des armures '+a));
- return m;
+ return P.more&&!m.length?null:m;
 }
 const taken=x=>me.dons.filter(id=>id===x.id).length;
 
@@ -209,8 +213,8 @@ function render(){
   const sub=[x.mine?'Création personnelle · '+x.cat:x.cat,x.pre?'Prérequis : '+x.pre:'Aucun prérequis'].join(' · ');
   const add=n&&!rep?`<button class="b" disabled title="Déjà sur la fiche de ${who}">Sur la fiche</button>`
    :`<button class="b" data-add="${esc(x.id)}" title="Ajoute ce don à la fiche de ${who}">Ajouter${n?' encore':''}</button>`;
-  return `<div class="item" id="${esc(x.id)}" style="--c:${x.c}"><div class="row"><div class="rmain"><div class="rt">${esc(x.nom)}${x.mine?'<span class="pill">Création</span>':''}${rep?'<span class="pill" style="background:#5f6580">Répétable</span>':''}</div><div class="rs">${esc(sub)}</div>${stat}${n?` <span class="mb has">Sur la fiche${n>1?' ×'+n:''}</span>`:''}</div>
-  <div class="racts">${x.mine?`<button class="b" data-edit="${esc(x.id)}">Modifier</button>`:''}${add}<button class="b" data-n="${esc(x.id)}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button></div></div>${op?`<div class="det"><div class="desc">${descHTML(x)}</div><div class="srcn">${x.mine?'Création personnelle':'Source : '+esc(x.src||'Manuel des joueurs 2024')+(x.r_?' · reconstitué à partir d’un résumé : à vérifier dans le livre':' · reformulé : le livre fait foi')}${x.choix&&x.choix.length?' · les choix du don se font dans la fiche':''}</div></div>`:''}</div>`;
+  return `<div class="item" id="${esc(x.id)}" style="--c:${x.c}"><div class="row"><div class="rmain"><div class="rt">${esc(x.nom)}${x.mine?'<span class="pill">Création</span>':''}${rep?'<span class="pill" style="background:#5f6580">Répétable</span>':''}${x.ed?`<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${esc(x.ed)}</span>`:''}</div><div class="rs">${esc(sub)}</div>${stat}${n?` <span class="mb has">Sur la fiche${n>1?' ×'+n:''}</span>`:''}</div>
+  <div class="racts">${x.mine?`<button class="b" data-edit="${esc(x.id)}">Modifier</button>`:''}${add}<button class="b" data-n="${esc(x.id)}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button></div></div>${op?`<div class="det"><div class="desc">${descHTML(x)}</div>${x.en?`<div class="srcn">Nom anglais : ${esc(x.en)}</div>`:''}<div class="srcn">${x.mine?'Création personnelle':'Source : '+esc(x.src||'Manuel des joueurs 2024')+(x.r_?' · reconstitué à partir d’un résumé : à vérifier dans le livre':' · reformulé : le livre fait foi')}${x.choix&&x.choix.length?' · les choix du don se font dans la fiche':''}</div></div>`:''}</div>`;
  }).join(''):'<div class="empty-msg">Aucun don ne correspond à ces filtres.</div>';
 }
 
@@ -240,10 +244,10 @@ function loadChar(){
   me.ar=new Set(cl&&PROF[cl[0]]||[]);me.dons.forEach(id=>(DONPROF[id]||[]).forEach(a=>me.ar.add(a)));
  }
  const cn=D&&D.cl||cl&&cl[0]||'';
- me.style=!!(STYLE[cn]&&me.niv>=STYLE[cn]);
+ me.style=!!(STYLE[cn]&&me.niv>=STYLE[cn]);me.occ=cn==='Occultiste';
  $('#pn').value=me.niv;
  AB.forEach(([k])=>$('#a_'+k).value=me.ab[k]);
- $('#c_cast').checked=me.cast;$('#c_style').checked=me.style;
+ $('#c_cast').checked=me.cast;$('#c_style').checked=me.style;$('#c_occ').checked=me.occ;
  AR.forEach(a=>$('#c_'+a).checked=me.ar.has(a));
  $('#phint').textContent=!f?'Ce personnage n’a pas encore de fiche : indique son niveau et ses caractéristiques ici, ou remplis sa fiche.'
   :(D?'Valeurs reprises de la fiche (caractéristiques finales, bonus compris)':'Valeurs de base reprises de la fiche (ouvre la fiche une fois pour inclure les bonus d’espèce, d’historique et de dons)')
@@ -252,7 +256,7 @@ function loadChar(){
 function readInputs(){
  me.niv=Math.min(20,Math.max(1,parseInt($('#pn').value)||1));
  AB.forEach(([k])=>me.ab[k]=parseInt($('#a_'+k).value)||10);
- me.cast=$('#c_cast').checked;me.style=$('#c_style').checked;
+ me.cast=$('#c_cast').checked;me.style=$('#c_style').checked;me.occ=$('#c_occ').checked;
  me.ar=new Set(AR.filter(a=>$('#c_'+a).checked));
  render();
 }
