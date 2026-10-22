@@ -282,7 +282,7 @@ function stEsp(){
   const other=names.filter(n=>!main.includes(n));
   if(other.length)h+=`<label class="lbl">Autres espèces (suppléments) ${sel('esp',other.map(n=>[n,n+' — '+(ESP[n].src||'')]),other.includes(S.esp)?S.esp:'','Choisir…')}</label>`;
   if(e){
-    h+=`<div class="box"><h3>${esc(S.esp)}</h3><p>Taille : ${esc(e.taille)} · Vitesse : ${fm(e.vit)} m${e.src?' · '+esc(e.src):''}</p><ul>${e.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc)}</li>`).join('')}</ul>`;
+    h+=`<div class="box"><h3>${esc(S.esp)}</h3><p>Taille : ${esc(e.taille)} · Vitesse : ${fm(e.vit)} m${e.src?' · '+esc(e.src):''}</p><ul>${e.traits.map(t=>`<li><b>${esc(t.nom)}</b> — ${esc(t.desc).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`;
     if(e.lignage)h+=`<div class="chs"><label><small>${esc(e.lignage.lbl)}</small>${sel('lig',e.lignage.opts.map(o=>o.v),S.lig,'Choisir…')}</label></div>${l?`<p>${esc(l.txt||'')}</p>`:''}`;
     if(e.choix.length)h+=`<div class="chs">${e.choix.map(c=>chHTML('spch',c,S.spch[c.id])).join('')}</div>`;
     h+='</div>';

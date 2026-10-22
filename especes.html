@@ -142,7 +142,7 @@ function moves(nt){
 }
 function fullBlock(o){
  const s=o.s,i=o.inf;
- const T=t=>`<p><b><i>${esc(t.nom)}.</i></b> ${esc(t.desc)}</p>`;
+ const T=t=>`<p><b><i>${esc(t.nom)}.</i></b> ${esc(t.desc).replace(/\n/g,'<br>')}</p>`;
  let h=`<dl class="meta"><div><dt>Taille</dt><dd>${esc(s.taille)}</dd></div><div><dt>Vitesse</dt><dd>${m(s.vit)}${o.mv.length?' · '+o.mv.join(', '):''}</dd></div><div><dt>Type</dt><dd>${esc(o.typ)}</dd></div><div><dt>Durée de vie</dt><dd>${esc(i.age||'—')}</dd></div></dl><div class="desc">`;
  if(i.app)h+=`<h4>Apparence</h4><p>${esc(i.app)}</p>`;
  if(i.cult)h+=`<h4>Culture et origines</h4><p>${esc(i.cult)}</p>`;

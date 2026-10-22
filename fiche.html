@@ -704,8 +704,8 @@ function lvlLines(h){
   return h.replace(/(préparés\s*:\s*)((?:[^().:;]+\(niv\. \d+\)(?:,\s*)?){2,})/,(m,lead,list)=>
     lead.replace(/\s*:\s*$/,' :')+list.split(/\s*\(niv\. (\d+)\)(?:,\s*)?/).reduce((o,x,i,arr)=>i%2?o:x.trim()?o+'<br>niv. '+arr[i+1]+' : '+x.trim():o,''));
 }
-const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${lvlLines(esc(t.desc))}</li>`).join('')}</ul>`;
-const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${lvlLines(esc(f.desc))}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
+const traitsHTML=a=>`<ul class="xl">${a.map(t=>`<li><b>${esc(t.nom)}</b> — ${lvlLines(esc(t.desc)).replace(/\n/g,'<br>')}</li>`).join('')}</ul>`;
+const featsHTML=(a,lvl)=>'<ul class="xl">'+a.map(f=>f.niv<=lvl?`<li><b>Niv. ${f.niv} · ${esc(f.nom)}</b> — ${lvlLines(esc(f.desc)).replace(/\n/g,'<br>')}</li>`:`<li class="fut"><b>Niv. ${f.niv} · ${esc(f.nom)}</b> (pas encore acquis)</li>`).join('')+'</ul>';
 function renderExtras(F,lvl,pb,mod,tot){
   const E=F.E,cl=F.cl;
   const RES=F.res.map(r=>({...r,max:resMax(r,lvl,pb,mod)})).filter(r=>r.max>0);
@@ -1465,7 +1465,7 @@ async function boot(){
 }
 boot();
 </script>
-<script src="montee.js?v=20261014a"></script>
+<script src="montee.js?v=20261022a"></script>
 <script src="recherche.js?v=20261020a"></script>
 <script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}))</script>
 </body>

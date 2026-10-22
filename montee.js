@@ -120,7 +120,7 @@ function open(){
     return rows;
   }
   const table=r=>r.length?'<table>'+r.map(([a,b])=>`<tr><td>${esc(a)}</td><td class="up">${esc(b)}</td></tr>`).join('')+'</table>':'';
-  const featList=a=>'<ul>'+a.map(f=>`<li><b>${esc(f.nom)}</b> — ${esc(f.desc)}</li>`).join('')+'</ul>';
+  const featList=a=>'<ul>'+a.map(f=>`<li><b>${esc(f.nom)}</b> — ${esc(f.desc).replace(/\n/g,'<br>')}</li>`).join('')+'</ul>';
 
   // Dons proposés : généraux (et faveurs épiques dès le niv. 19), dont le niveau requis est atteint ; plus les dons créés
   const donOpts=()=>{
