@@ -277,7 +277,7 @@ $('#bClear').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('json/vf/spells.json');
+    const r=await fetch('assets/json/vf/spells.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){
@@ -286,9 +286,9 @@ async function boot(){
     return;
   }
   setup(data);
-  try{AUTO=await (await fetch('json/vf/sorts_auto.json')).json()}catch(e){AUTO=null}
-  try{const j=await (await fetch('json/vf/classes.json')).json();CLS=j.classes||{};EMP=j.emplacements||null}catch(e){CLS={}}
-  try{DOND=await (await fetch('json/vf/dons.json')).json()}catch(e){DOND=[]}
+  try{AUTO=await (await fetch('assets/json/vf/sorts_auto.json')).json()}catch(e){AUTO=null}
+  try{const j=await (await fetch('assets/json/vf/classes.json')).json();CLS=j.classes||{};EMP=j.emplacements||null}catch(e){CLS={}}
+  try{DOND=await (await fetch('assets/json/vf/dons.json')).json()}catch(e){DOND=[]}
   Persos.init({part:'grimoire',mount:$('#persos'),title:$('#titre'),collect,apply:show,msg});
 }
 boot();

@@ -80,7 +80,7 @@ $('#bRand').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('json/vf/bestiaire.json?v=20261019a');
+    const r=await fetch('assets/json/vf/bestiaire.json?v=20261019a');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){

@@ -22,7 +22,7 @@ async function ranger(cache, req, res) {
 }
 
 // Copie complète du site : accueil, puis chaque page, script (assets/js), feuille de style (assets/css)
-// et fichier JSON (json/vf, json/vo) cité
+// et fichier JSON (assets/json/vf, assets/json/vo) cité
 async function copier() {
   const cache = await caches.open(CACHE);
   const vus = new Set(), file = [base];

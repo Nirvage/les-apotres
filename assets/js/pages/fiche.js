@@ -762,7 +762,7 @@ document.addEventListener('click',async e=>{
   Persos.save();calc();
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error(f);return r.json()};
   let SP,OB;
-  try{[SP,OB]=await Promise.all(['json/vf/spells.json','json/vf/objets.json'].map(get));if(!EQD)EQD=await get('json/vf/equipement.json')}catch(x){alert('Impossible de lire les listes du site (sorts, objets, équipement).');return}
+  try{[SP,OB]=await Promise.all(['assets/json/vf/spells.json','assets/json/vf/objets.json'].map(get));if(!EQD)EQD=await get('assets/json/vf/equipement.json')}catch(x){alert('Impossible de lire les listes du site (sorts, objets, équipement).');return}
   const byO={};OB.concat(custom('objets')).forEach(x=>byO[x.n]=x);
   const ALL=EQD.concat(custom('equipement')),W=ALL.filter(x=>x.t==='Arme'&&x.h);
   const eq=Persos.part('equipement'),EL=eq&&eq.data&&eq.data.objets||[];
@@ -1057,7 +1057,7 @@ $('#bReset').onclick=()=>{
 // Les données de classes sont lues dans classes.json ; sans elles la fiche reste utilisable en saisie manuelle
 async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  const [a,b,c,d,e,h,q,r]=await Promise.allSettled(['json/vf/classes.json','json/vf/especes.json','json/vf/dons.json','json/vf/sousclasses.json','json/vf/capacites.json','json/vf/historiques.json','json/vf/equipement.json','json/vf/objets.json'].map(get));
+  const [a,b,c,d,e,h,q,r]=await Promise.allSettled(['assets/json/vf/classes.json','assets/json/vf/especes.json','assets/json/vf/dons.json','assets/json/vf/sousclasses.json','assets/json/vf/capacites.json','assets/json/vf/historiques.json','assets/json/vf/equipement.json','assets/json/vf/objets.json'].map(get));
   if(q.status==='fulfilled')EQD=q.value;
   if(r.status==='fulfilled')OBD=r.value;
   if(h.status==='fulfilled'){BGD=h.value;$('#bgsel').innerHTML='<option value="">—</option>'+Object.keys(BGD).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}

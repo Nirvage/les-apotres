@@ -12,9 +12,9 @@
 'use strict';
 
 var FILES={
-  sorts:'json/vo/sorts.json',objets:'json/vo/objets.json',equipement:'json/vo/equipement.json',monstres:'json/vo/monstres.json',
-  familiers:'json/vo/familiers.json',dons:'json/vo/dons.json',classes:'json/vo/classes.json',especes:'json/vo/especes.json',
-  historiques:'json/vo/historiques.json',etats:'json/vo/etats.json'
+  sorts:'assets/json/vo/sorts.json',objets:'assets/json/vo/objets.json',equipement:'assets/json/vo/equipement.json',monstres:'assets/json/vo/monstres.json',
+  familiers:'assets/json/vo/familiers.json',dons:'assets/json/vo/dons.json',classes:'assets/json/vo/classes.json',especes:'assets/json/vo/especes.json',
+  historiques:'assets/json/vo/historiques.json',etats:'assets/json/vo/etats.json'
 };
 var SRD={
   '52':'This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.',

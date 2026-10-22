@@ -171,5 +171,5 @@ Persos.init({part:'butin',mount:$('#persos'),msg,
   collect:()=>({version:1,type:'butin-dnd-5e',data}),
   apply:o=>{const d=o&&o.data;data=d&&Array.isArray(d.liste)?{liste:d.liste,cur:d.cur}:{liste:[],cur:null};render()},
   onName:render});
-Promise.all(['json/vf/objets.json','json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,s])=>{OBJ=o;SP=s;POOL=null;render()})
+Promise.all(['assets/json/vf/objets.json','assets/json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,s])=>{OBJ=o;SP=s;POOL=null;render()})
   .catch(()=>{$('#loot').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});

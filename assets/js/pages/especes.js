@@ -94,7 +94,7 @@ $('#list').addEventListener('click',e=>{
 $('#bReset').onclick=()=>{Object.assign(st,{q:'',e:'',t:'',y:'',p:''});['#fq','#fe','#ft','#fy','#fp'].forEach(s=>$(s).value='');render()};
 $('#bAll').onclick=()=>{const r=filtered(),all=r.length&&r.every(o=>st.open.has(o.n));r.forEach(o=>all?st.open.delete(o.n):st.open.add(o.n));render()};
 
-Promise.all(['json/vf/especes.json','json/vf/especes_infos.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json()})))
+Promise.all(['assets/json/vf/especes.json','assets/json/vf/especes_infos.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json()})))
  .then(([E,X])=>{
   build(E,X);
   // Lien direct : especes.html#Elfe ouvre la fiche de l'espèce

@@ -469,7 +469,7 @@ $('#bRestart').onclick=()=>{if(!confirm('Tout recommencer depuis le début ?'))r
 
 (async function boot(){
   const get=async f=>{const r=await fetch(f);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
-  try{[ESP,BG,DON,SCD,CLD]=await Promise.all([get('json/vf/especes.json'),get('json/vf/historiques.json'),get('json/vf/dons.json'),get('json/vf/sousclasses.json'),get('json/vf/classes.json')])}
+  try{[ESP,BG,DON,SCD,CLD]=await Promise.all([get('assets/json/vf/especes.json'),get('assets/json/vf/historiques.json'),get('assets/json/vf/dons.json'),get('assets/json/vf/sousclasses.json'),get('assets/json/vf/classes.json')])}
   catch(e){$('#main').innerHTML='<p class="warn">Impossible de charger les données (ouvre le site via un serveur web).</p>';return}
   if(!CL[S.cl])S.cl='';if(!BG[S.bg])S.bg='';if(!ESP[S.esp])S.esp='';
   render();

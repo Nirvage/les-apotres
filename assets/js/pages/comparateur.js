@@ -307,7 +307,7 @@ document.addEventListener('input',e=>{if(e.target.matches('#wq,#aq'))render()});
   $('#tca').value=ca;
   fillPersos();fromSheet();S.arProfCl=$('#cl').value;
   let base=[];
-  try{base=await (await fetch('json/vf/equipement.json')).json()}catch(_){$('#wcnt').textContent='Impossible de charger equipement.json (ouvre le site par un serveur web).'}
+  try{base=await (await fetch('assets/json/vf/equipement.json')).json()}catch(_){$('#wcnt').textContent='Impossible de charger equipement.json (ouvre le site par un serveur web).'}
   let mine=[];try{mine=Persos.custom().equipement||[]}catch(_){}
   const items=base.concat(mine.filter(x=>x&&x.n));
   W=items.filter(x=>x.t==='Arme').map(parseWeapon).filter(Boolean);

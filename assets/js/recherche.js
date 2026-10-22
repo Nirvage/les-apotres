@@ -50,8 +50,8 @@ function add(out,o){
 
 function build(){
   if(loading)return loading;
-  var files=['json/vf/spells.json','json/vf/objets.json','json/vf/equipement.json','json/vf/bestiaire.json','json/vf/familiers.json','json/vf/dons.json','json/vf/especes.json','json/vf/especes_infos.json',
-    'json/vf/capacites.json','json/vf/sousclasses.json','json/vf/historiques.json','json/vf/quetes.json','json/vf/classes_infos.json'];
+  var files=['assets/json/vf/spells.json','assets/json/vf/objets.json','assets/json/vf/equipement.json','assets/json/vf/bestiaire.json','assets/json/vf/familiers.json','assets/json/vf/dons.json','assets/json/vf/especes.json','assets/json/vf/especes_infos.json',
+    'assets/json/vf/capacites.json','assets/json/vf/sousclasses.json','assets/json/vf/historiques.json','assets/json/vf/quetes.json','assets/json/vf/classes_infos.json'];
   loading=Promise.all(files.map(get).concat([getText('assets/js/pages/etats.js'),getText('assets/js/pages/combat.js'),getText('guide.html'),getText('./'),getText('mj.html')])).then(function(r){
     var out=[];
     var sp=r[0],ob=r[1],eq=r[2],be=r[3],fa=r[4],dn=r[5],es=r[6],ei=r[7],ca=r[8],sc=r[9],hi=r[10],qu=r[11],ci=r[12]||{};

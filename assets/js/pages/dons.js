@@ -186,8 +186,8 @@ $('#bReset').onclick=()=>{Object.assign(st,{q:'',c:'',p:'',a:'',ok:false});['#fq
 $('#bAll').onclick=()=>{const r=filtered(),all=r.length&&r.every(x=>st.open.has(x.id));r.forEach(x=>all?st.open.delete(x.id):st.open.add(x.id));render()};
 
 fillChars();
-Promise.all([fetch('json/vf/dons.json').then(r=>{if(!r.ok)throw new Error('dons');return r.json()}),
-             fetch('json/vf/classes.json').then(r=>r.ok?r.json():null).catch(()=>null)])
+Promise.all([fetch('assets/json/vf/dons.json').then(r=>{if(!r.ok)throw new Error('dons');return r.json()}),
+             fetch('assets/json/vf/classes.json').then(r=>r.ok?r.json():null).catch(()=>null)])
  .then(([D,C])=>{
   BASE=D;CLS=C&&C.classes||null;
   build();loadChar();

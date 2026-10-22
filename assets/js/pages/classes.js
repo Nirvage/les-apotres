@@ -159,7 +159,7 @@ $('#view').addEventListener('click',e=>{
 [['#fq','q','input'],['#fr','r','change'],['#fs','s','change'],['#fc','c','change']].forEach(([s,k,ev])=>$(s).addEventListener(ev,e=>{st[k]=e.target.value;render()}));
 $('#bReset').onclick=()=>{Object.assign(st,{q:'',r:'',s:'',c:''});['#fq','#fr','#fs','#fc'].forEach(s=>$(s).value='');render()};
 
-Promise.all(['json/vf/classes_infos.json','json/vf/sousclasses.json','json/vf/capacites.json','json/vf/classes.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json()})))
+Promise.all(['assets/json/vf/classes_infos.json','assets/json/vf/sousclasses.json','assets/json/vf/capacites.json','assets/json/vf/classes.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json()})))
  .then(([I,S,C,K])=>{
   INFO=I;SC=S||{};CAP=C||{};CLD=(K&&K.classes)||{};EMP=(K&&K.emplacements)||{};
   build();go(false);

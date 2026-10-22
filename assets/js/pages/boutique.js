@@ -143,5 +143,5 @@ Persos.init({part:'boutiques',mount:$('#persos'),msg,
   apply:o=>{const d=o&&o.data;data=d&&Array.isArray(d.liste)?{liste:d.liste,cur:d.cur}:{liste:[],cur:null};render()},
   onName:render});
 TYPES.forEach(t=>$('#type').add(new Option(t.nom,t.id)));$('#type').onchange();
-Promise.all(['json/vf/objets.json','json/vf/equipement.json','json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,e,s])=>{OBJ=o;EQ=e;SP=s;render()})
+Promise.all(['assets/json/vf/objets.json','assets/json/vf/equipement.json','assets/json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,e,s])=>{OBJ=o;EQ=e;SP=s;render()})
   .catch(()=>{$('#shop').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});

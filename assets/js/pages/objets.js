@@ -125,7 +125,7 @@ function index(){
 }
 let WEAP=null;   // armes de equipement.json (arme de base d'une arme magique créée)
 async function editCustom(it){
-  if(!WEAP)try{WEAP=(await (await fetch('json/vf/equipement.json')).json()).concat(Persos.custom().equipement).filter(x=>x.t==='Arme'||x.t==='Munition').map(x=>x.n)}catch(e){WEAP=[]}
+  if(!WEAP)try{WEAP=(await (await fetch('assets/json/vf/equipement.json')).json()).concat(Persos.custom().equipement).filter(x=>x.t==='Arme'||x.t==='Munition').map(x=>x.n)}catch(e){WEAP=[]}
   Custom.edit({kind:'objets',item:it,types:TORDER,rares:RORDER,weapons:WEAP,
     taken:n=>BYN.has(norm(n)),
     done:(x,old)=>{
@@ -298,7 +298,7 @@ $('#bClear').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('json/vf/objets.json');
+    const r=await fetch('assets/json/vf/objets.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){

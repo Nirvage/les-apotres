@@ -253,7 +253,7 @@ $('#bClear').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('json/vf/familiers.json');
+    const r=await fetch('assets/json/vf/familiers.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){

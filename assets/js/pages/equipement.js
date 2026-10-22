@@ -166,7 +166,7 @@ $('#bClear').onclick=()=>{
 async function boot(){
   let data;
   try{
-    const r=await fetch('json/vf/equipement.json');
+    const r=await fetch('assets/json/vf/equipement.json');
     if(!r.ok)throw new Error('HTTP '+r.status);
     data=await r.json();
   }catch(e){

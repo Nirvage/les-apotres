@@ -73,7 +73,7 @@ Persos.init({part:'quetes',mount:$('#persos'),msg,
   collect:()=>({version:1,type:'quetes-dnd-5e',data:{suivi}}),
   apply:o=>{suivi=o&&o.data&&o.data.suivi&&typeof o.data.suivi==='object'?o.data.suivi:{};render()},
   onName:render});
-fetch('json/vf/quetes.json').then(r=>r.json()).then(d=>{
+fetch('assets/json/vf/quetes.json').then(r=>r.json()).then(d=>{
   QS=d.sort((a,b)=>a.tier-b.tier||minNiv(a)-minNiv(b)||a.po-b.po);
   [...new Set(QS.map(q=>q.type))].sort((a,b)=>a.localeCompare(b,'fr')).forEach(t=>$('#fty').add(new Option(t,t)));
   render();
