@@ -1,281 +1,550 @@
-const $=s=>document.querySelector(s);
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-const mod=(a,b)=>((a%b)+b)%b;
-const pl=(n,m)=>n+' '+m+(Math.abs(n)>1?'s':'');
-
-// Modèles de calendrier. Harptos : 12 mois de 30 jours en 3 décades, 5 fêtes hors des mois,
-// plus la Rencontre des Boucliers tous les 4 ans (Royaumes oubliés, Calendrier des Vaux).
-const PRESETS={
- harptos:{nom:'Calendrier de Harptos (Royaumes oubliés)',ere:'CV',sem:10,semNom:'décade',bis:4,lune:30.4375,
-  segs:'Marteau;30\n*Plein-Hiver\nAlturiak;30\nChes;30\nTarsakh;30\n*Verdherbe\nMirtul;30\nKythorn;30\nFlammerègle;30\n*Mi-été\n+Rencontre des Boucliers\nÉléasias;30\nÉleint;30\n*Hautemoisson\nMarpenoth;30\nUktar;30\n*Fête de la Lune\nNuitombe;30',
-  rep:'Ches;19;Équinoxe de printemps;Printemps\nKythorn;20;Solstice d’été;Été\nÉleint;21;Équinoxe d’automne;Automne\nNuitombe;20;Solstice d’hiver;Hiver',
-  annee:1492,lune0:[1372,'Plein-Hiver',1]},
- simple:{nom:'Simple : 12 mois de 30 jours',ere:'',sem:7,semNom:'semaine',bis:0,lune:28,
-  segs:'Premier mois;30\nDeuxième mois;30\nTroisième mois;30\nQuatrième mois;30\nCinquième mois;30\nSixième mois;30\nSeptième mois;30\nHuitième mois;30\nNeuvième mois;30\nDixième mois;30\nOnzième mois;30\nDouzième mois;30',
-  rep:'Troisième mois;21;Équinoxe de printemps;Printemps\nSixième mois;21;Solstice d’été;Été\nNeuvième mois;21;Équinoxe d’automne;Automne\nDouzième mois;21;Solstice d’hiver;Hiver',
-  annee:1,lune0:[1,'Premier mois',1]},
- perso:{nom:'Personnalisé'}
+const PRESETS = {
+  harptos: {
+    nom: 'Calendrier de Harptos (Royaumes oubliés)', ere: 'CV', sem: 10, semNom: 'décade', bis: 4, lune: 30.4375,
+    segs: 'Marteau;30\n*Plein-Hiver\nAlturiak;30\nChes;30\nTarsakh;30\n*Verdherbe\nMirtul;30\nKythorn;30\nFlammerègle;30\n*Mi-été\n+Rencontre des Boucliers\nÉléasias;30\nÉleint;30\n*Hautemoisson\nMarpenoth;30\nUktar;30\n*Fête de la Lune\nNuitombe;30',
+    rep: 'Ches;19;Équinoxe de printemps;Printemps\nKythorn;20;Solstice d’été;Été\nÉleint;21;Équinoxe d’automne;Automne\nNuitombe;20;Solstice d’hiver;Hiver',
+    annee: 1492, lune0: [1372, 'Plein-Hiver', 1]
+  },
+  simple: {
+    nom: 'Simple : 12 mois de 30 jours', ere: '', sem: 7, semNom: 'semaine', bis: 0, lune: 28,
+    segs: 'Premier mois;30\nDeuxième mois;30\nTroisième mois;30\nQuatrième mois;30\nCinquième mois;30\nSixième mois;30\nSeptième mois;30\nHuitième mois;30\nNeuvième mois;30\nDixième mois;30\nOnzième mois;30\nDouzième mois;30',
+    rep: 'Troisième mois;21;Équinoxe de printemps;Printemps\nSixième mois;21;Solstice d’été;Été\nNeuvième mois;21;Équinoxe d’automne;Automne\nDouzième mois;21;Solstice d’hiver;Hiver',
+    annee: 1, lune0: [1, 'Premier mois', 1]
+  },
+  perso: { nom: 'Personnalisé' }
 };
+const DEFAULT_PRESET = 'harptos';
+const MOON_PHASES = [['🌕', 'Pleine lune'], ['🌖', 'Lune gibbeuse décroissante'], ['🌗', 'Dernier quartier'], ['🌘', 'Dernier croissant'], ['🌑', 'Nouvelle lune'], ['🌒', 'Premier croissant'], ['🌓', 'Premier quartier'], ['🌔', 'Lune gibbeuse croissante']];
+const MAIN_MOON_PHASES = [[0, 0], [0.25, 2], [0.5, 4], [0.75, 6]];
+const SETTINGS_INPUTS = ['#cEre', '#cSem', '#cSemNom', '#cBis', '#cLune', '#cSegs', '#cRep'];
+const MAX_UPCOMING_EVENTS = 10;
+const MAX_PAST_EVENTS = 12;
+const MAX_DAYS_JUMP = 100000;
 
-let D=null,C=null,view=null,sel=null;
+let campaign = null;
+let calendar = null;
+let shownMonth = null;
+let selectedDate = null;
 
-/* ---------- Calendrier ---------- */
-function compile(c){
-  const segs=[];
-  String(c.segs||'').split('\n').forEach(l=>{
-    l=l.trim();if(!l)return;
-    const fete=/^[*+]/.test(l),bis=l[0]==='+';
-    if(fete)l=l.slice(1).trim();
-    const [nom,j]=l.split(';').map(x=>x.trim());
-    const n=parseInt(j,10)||(fete?1:30);
-    if(nom)segs.push({nom,j:Math.max(1,Math.min(400,n)),fete,bis});
-  });
-  if(!segs.length)segs.push({nom:'Mois',j:30,fete:false,bis:false});
-  if(!segs.some(s=>!s.fete))segs[0].fete=false;
-  const idx=n=>segs.findIndex(s=>s.nom.toLowerCase()===String(n).trim().toLowerCase());
-  const rep=[];
-  String(c.rep||'').split('\n').forEach(l=>{
-    const [m,j,t,sa]=l.split(';').map(x=>(x||'').trim());
-    const s=idx(m),n=parseInt(j,10);
-    if(s>=0&&n>=1&&n<=segs[s].j&&t)rep.push({s,j:n,t,sa});
-  });
-  const base=segs.filter(s=>!s.bis).reduce((a,s)=>a+s.j,0),bl=segs.filter(s=>s.bis).reduce((a,s)=>a+s.j,0);
-  const bis=Math.max(0,parseInt(c.bis,10)||0);
-  return {segs,rep,base,bl,bis:bl?bis:0,sem:Math.max(1,Math.min(20,parseInt(c.sem,10)||7)),semNom:c.semNom||'semaine',
-    lune:Math.max(1,+c.lune||28),ere:c.ere||'',idx};
+const positiveModulo = (value, divisor) => ((value % divisor) + divisor) % divisor;
+const countLabel = (count, word) => count + ' ' + word + (Math.abs(count) > 1 ? 's' : '');
+const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+
+function parseSegmentLine(rawLine) {
+  let line = rawLine.trim();
+  if (!line) return null;
+  const isFestival = /^[*+]/.test(line);
+  const isLeapDay = line[0] === '+';
+  if (isFestival) line = line.slice(1).trim();
+  const [name, days] = line.split(';').map(part => part.trim());
+  const dayCount = parseInt(days, 10) || (isFestival ? 1 : 30);
+  return name ? { nom: name, j: clamp(dayCount, 1, 400), fete: isFestival, bis: isLeapDay } : null;
 }
-const leap=y=>C.bis>0&&mod(y,C.bis)===0;
-const leapsBefore=y=>C.bis?Math.floor((y+C.bis-1)/C.bis):0;
-const yearStart=y=>C.base*y+C.bl*leapsBefore(y);
-const has=(y,s)=>!C.segs[s].bis||leap(y);
-// Date = {y, s (numéro du mois ou de la fête), j (jour, à partir de 1)} ; abs = numéro de jour absolu
-function toAbs(d){
-  let a=yearStart(d.y);
-  for(let s=0;s<d.s;s++)if(has(d.y,s))a+=C.segs[s].j;
-  return a+d.j-1;
+
+function parseSegments(text) {
+  const segments = String(text || '').split('\n').map(parseSegmentLine).filter(Boolean);
+  if (!segments.length) segments.push({ nom: 'Mois', j: 30, fete: false, bis: false });
+  if (!segments.some(segment => !segment.fete)) segments[0].fete = false;
+  return segments;
 }
-function fromAbs(a){
-  let y=Math.floor(a/(C.base+(C.bis?C.bl/C.bis:0)));
-  while(yearStart(y)>a)y--;
-  while(yearStart(y+1)<=a)y++;
-  let r=a-yearStart(y);
-  for(let s=0;s<C.segs.length;s++){
-    if(!has(y,s))continue;
-    if(r<C.segs[s].j)return {y,s,j:r+1};
-    r-=C.segs[s].j;
+
+function parseLandmarks(text, segments, indexOfSegment) {
+  const landmarks = [];
+  String(text || '').split('\n').forEach(line => {
+    const [monthName, day, title, season] = line.split(';').map(part => (part || '').trim());
+    const segmentIndex = indexOfSegment(monthName);
+    const dayNumber = parseInt(day, 10);
+    if (segmentIndex >= 0 && dayNumber >= 1 && dayNumber <= segments[segmentIndex].j && title) landmarks.push({ s: segmentIndex, j: dayNumber, t: title, sa: season });
+  });
+  return landmarks;
+}
+
+const totalDays = segments => segments.reduce((total, segment) => total + segment.j, 0);
+
+function compileCalendar(settings) {
+  const segments = parseSegments(settings.segs);
+  const indexOfSegment = name => segments.findIndex(segment => segment.nom.toLowerCase() === String(name).trim().toLowerCase());
+  const leapDays = totalDays(segments.filter(segment => segment.bis));
+  const leapCycle = Math.max(0, parseInt(settings.bis, 10) || 0);
+  return {
+    segments, indexOfSegment,
+    landmarks: parseLandmarks(settings.rep, segments, indexOfSegment),
+    commonYearDays: totalDays(segments.filter(segment => !segment.bis)),
+    leapDays,
+    leapCycle: leapDays ? leapCycle : 0,
+    weekLength: clamp(parseInt(settings.sem, 10) || 7, 1, 20),
+    weekName: settings.semNom || 'semaine',
+    moonCycle: Math.max(1, +settings.lune || 28),
+    era: settings.ere || ''
+  };
+}
+
+const isLeapYear = year => calendar.leapCycle > 0 && positiveModulo(year, calendar.leapCycle) === 0;
+const leapYearsBefore = year => calendar.leapCycle ? Math.floor((year + calendar.leapCycle - 1) / calendar.leapCycle) : 0;
+const yearStartDay = year => calendar.commonYearDays * year + calendar.leapDays * leapYearsBefore(year);
+const segmentExistsInYear = (year, segmentIndex) => !calendar.segments[segmentIndex].bis || isLeapYear(year);
+
+function toDayNumber(date) {
+  let dayNumber = yearStartDay(date.y);
+  for (let segmentIndex = 0; segmentIndex < date.s; segmentIndex++) {
+    if (segmentExistsInYear(date.y, segmentIndex)) dayNumber += calendar.segments[segmentIndex].j;
   }
-  return {y,s:C.segs.length-1,j:C.segs[C.segs.length-1].j};
+  return dayNumber + date.j - 1;
 }
-function valid(d){
-  if(!d)return null;
-  let s=Math.max(0,Math.min(C.segs.length-1,d.s|0)),y=d.y|0;
-  if(!has(y,s))s=mod(s-1,C.segs.length);
-  return {y,s,j:Math.max(1,Math.min(C.segs[s].j,d.j|0||1))};
+
+function yearOfDay(dayNumber) {
+  const averageYearLength = calendar.commonYearDays + (calendar.leapCycle ? calendar.leapDays / calendar.leapCycle : 0);
+  let year = Math.floor(dayNumber / averageYearLength);
+  while (yearStartDay(year) > dayNumber) year--;
+  while (yearStartDay(year + 1) <= dayNumber) year++;
+  return year;
 }
-function label(d,court){
-  const g=C.segs[d.s],y=court?'':' '+d.y+(C.ere?' '+C.ere:'');
-  return (g.fete&&g.j===1?g.nom:d.j+(d.j===1?'ᵉʳ':'')+' '+g.nom)+y;
+
+function fromDayNumber(dayNumber) {
+  const year = yearOfDay(dayNumber);
+  let remainingDays = dayNumber - yearStartDay(year);
+  for (let segmentIndex = 0; segmentIndex < calendar.segments.length; segmentIndex++) {
+    if (!segmentExistsInYear(year, segmentIndex)) continue;
+    if (remainingDays < calendar.segments[segmentIndex].j) return { y: year, s: segmentIndex, j: remainingDays + 1 };
+    remainingDays -= calendar.segments[segmentIndex].j;
+  }
+  const lastIndex = calendar.segments.length - 1;
+  return { y: year, s: lastIndex, j: calendar.segments[lastIndex].j };
 }
-// Phase de la lune : 0 = pleine, 0,5 = nouvelle
-const phase=a=>mod((a-D.lune0)/C.lune,1);
-const PH=[['🌕','Pleine lune'],['🌖','Lune gibbeuse décroissante'],['🌗','Dernier quartier'],['🌘','Dernier croissant'],['🌑','Nouvelle lune'],['🌒','Premier croissant'],['🌓','Premier quartier'],['🌔','Lune gibbeuse croissante']];
-const phaseOf=a=>PH[mod(Math.round(phase(a)*8),8)];
-// Icône seulement le jour le plus proche de chaque phase principale
-function moonMark(a){
-  const h=.5/C.lune;
-  for(const [k,i] of [[0,0],[.25,2],[.5,4],[.75,6]]){
-    const f=phase(a),dd=Math.min(Math.abs(f-k),1-Math.abs(f-k));
-    if(dd<h||(Math.abs(dd-h)<1e-9&&f<k))return PH[i];
+
+function validDate(date) {
+  if (!date) return null;
+  const year = date.y | 0;
+  let segmentIndex = clamp(date.s | 0, 0, calendar.segments.length - 1);
+  if (!segmentExistsInYear(year, segmentIndex)) segmentIndex = positiveModulo(segmentIndex - 1, calendar.segments.length);
+  return { y: year, s: segmentIndex, j: clamp(date.j | 0 || 1, 1, calendar.segments[segmentIndex].j) };
+}
+
+function dateLabel(date, withoutYear) {
+  const segment = calendar.segments[date.s];
+  const year = withoutYear ? '' : ' ' + date.y + (calendar.era ? ' ' + calendar.era : '');
+  const dayAndMonth = segment.fete && segment.j === 1 ? segment.nom : date.j + (date.j === 1 ? 'ᵉʳ' : '') + ' ' + segment.nom;
+  return dayAndMonth + year;
+}
+
+const moonPhaseFraction = dayNumber => positiveModulo((dayNumber - campaign.lune0) / calendar.moonCycle, 1);
+const moonPhaseOf = dayNumber => MOON_PHASES[positiveModulo(Math.round(moonPhaseFraction(dayNumber) * 8), 8)];
+
+function mainMoonPhaseOn(dayNumber) {
+  const halfDay = 0.5 / calendar.moonCycle;
+  for (const [target, phaseIndex] of MAIN_MOON_PHASES) {
+    const fraction = moonPhaseFraction(dayNumber);
+    const distance = Math.min(Math.abs(fraction - target), 1 - Math.abs(fraction - target));
+    if (distance < halfDay || (Math.abs(distance - halfDay) < 1e-9 && fraction < target)) return MOON_PHASES[phaseIndex];
   }
   return null;
 }
-function saison(a){
-  if(!C.rep.some(r=>r.sa))return '';
-  for(let k=0;k<=C.base+C.bl;k++){
-    const d=fromAbs(a-k),r=C.rep.find(r=>r.sa&&r.s===d.s&&r.j===d.j);
-    if(r)return r.sa;
+
+function seasonOn(dayNumber) {
+  if (!calendar.landmarks.some(landmark => landmark.sa)) return '';
+  for (let daysBack = 0; daysBack <= calendar.commonYearDays + calendar.leapDays; daysBack++) {
+    const date = fromDayNumber(dayNumber - daysBack);
+    const landmark = calendar.landmarks.find(candidate => candidate.sa && candidate.s === date.s && candidate.j === date.j);
+    if (landmark) return landmark.sa;
   }
   return '';
 }
 
-/* ---------- Événements ---------- */
-function eventsOn(d){
-  const out=[];
-  const g=C.segs[d.s];
-  if(g.fete)out.push({k:'fete',t:g.nom});
-  C.rep.forEach(r=>{if(r.s===d.s&&r.j===d.j)out.push({k:'rp',t:r.t})});
-  D.evts.forEach(e=>{if(e.s===d.s&&e.j===d.j&&(e.an?e.y<=d.y:e.y===d.y))out.push({k:'ev',t:e.t,n:e.n,e})});
-  return out;
+const isSameDayOfYear = (item, date) => item.s === date.s && item.j === date.j;
+const eventHappensOn = (event, date) => isSameDayOfYear(event, date) && (event.an ? event.y <= date.y : event.y === date.y);
+
+function eventsOn(date) {
+  const events = [];
+  const segment = calendar.segments[date.s];
+  if (segment.fete) events.push({ k: 'fete', t: segment.nom });
+  calendar.landmarks.forEach(landmark => { if (isSameDayOfYear(landmark, date)) events.push({ k: 'rp', t: landmark.t }); });
+  campaign.evts.forEach(event => { if (eventHappensOn(event, date)) events.push({ k: 'ev', t: event.t, n: event.n, e: event }); });
+  return events;
 }
 
-/* ---------- Affichage ---------- */
-const now=()=>toAbs(D.jour);
-function render(){
-  const mj=(()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'})();
-  $('#lock').hidden=mj;$('#mj').hidden=!mj;
-  if(!mj||!D)return;
-  const a=now(),p=phaseOf(a),sa=saison(a),el=a-toAbs(D.debut);
-  $('#tDate').textContent=label(D.jour);
-  const g=C.segs[D.jour.s];
-  $('#tSub').innerHTML=[
-    el>=0?'<span>Jour <b>'+(el+1)+'</b> de la campagne ('+pl(el,'jour')+' écoulé'+(el>1?'s':'')+')</span>':'<span>Avant le début de la campagne</span>',
-    g.fete?'<span>Jour de fête</span>':'<span>'+(n=>n===1?'1ʳᵉ ':n+'ᵉ ')(Math.floor((D.jour.j-1)/C.sem)+1)+esc(C.semNom)+' du mois</span>',
-    '<span><span class="moon">'+p[0]+'</span> '+p[1]+'</span>',
-    sa?'<span>Saison : <b>'+esc(sa)+'</b></span>':'',
-    eventsOn(D.jour).length?'<span>Aujourd’hui : <b>'+eventsOn(D.jour).map(e=>esc(e.t)).join(', ')+'</b></span>':''
+const todayNumber = () => toDayNumber(campaign.jour);
+
+const ordinalLabel = number => number === 1 ? '1ʳᵉ ' : number + 'ᵉ ';
+
+function campaignDayHtml(elapsedDays) {
+  if (elapsedDays < 0) return '<span>Avant le début de la campagne</span>';
+  return '<span>Jour <b>' + (elapsedDays + 1) + '</b> de la campagne (' + countLabel(elapsedDays, 'jour') + ' écoulé' + (elapsedDays > 1 ? 's' : '') + ')</span>';
+}
+
+function weekOfMonthHtml() {
+  if (calendar.segments[campaign.jour.s].fete) return '<span>Jour de fête</span>';
+  const week = Math.floor((campaign.jour.j - 1) / calendar.weekLength) + 1;
+  return '<span>' + ordinalLabel(week) + escapeHtml(calendar.weekName) + ' du mois</span>';
+}
+
+function todaySummaryHtml() {
+  const today = todayNumber();
+  const [moonIcon, moonName] = moonPhaseOf(today);
+  const season = seasonOn(today);
+  const todayEvents = eventsOn(campaign.jour);
+  return [
+    campaignDayHtml(today - toDayNumber(campaign.debut)),
+    weekOfMonthHtml(),
+    '<span><span class="moon">' + moonIcon + '</span> ' + moonName + '</span>',
+    season ? '<span>Saison : <b>' + escapeHtml(season) + '</b></span>' : '',
+    todayEvents.length ? '<span>Aujourd’hui : <b>' + todayEvents.map(event => escapeHtml(event.t)).join(', ') + '</b></span>' : ''
   ].join('');
-  $('#bPw').textContent='+ 1 '+C.semNom;
-  renderMonth();renderDay();renderLists();
 }
-// Un mois affiché = un mois et les jours de fête qui le suivent
-function monthGroup(y,s){
-  const g=[s];
-  for(let k=s+1;k<C.segs.length&&C.segs[k].fete;k++)if(has(y,k))g.push(k);
-  return g;
+
+function renderPage() {
+  const isGameMaster = isGameMasterActive();
+  $('#lock').hidden = isGameMaster;
+  $('#mj').hidden = !isGameMaster;
+  if (!isGameMaster || !campaign) return;
+  $('#tDate').textContent = dateLabel(campaign.jour);
+  $('#tSub').innerHTML = todaySummaryHtml();
+  $('#bPw').textContent = '+ 1 ' + calendar.weekName;
+  renderMonth();
+  renderSelectedDay();
+  renderEventLists();
 }
-const firstMonth=()=>C.segs.findIndex(s=>!s.fete);
-function shiftView(dir){
-  let {y,s}=view;
-  do{s+=dir;if(s<0){s=C.segs.length-1;y--}if(s>=C.segs.length){s=0;y++}}while(C.segs[s].fete);
-  view={y,s};renderMonth();
-}
-function viewOf(d){
-  let s=d.s;while(s>0&&C.segs[s].fete)s--;
-  if(C.segs[s].fete){ // fêtes en début d'année : rattachées au dernier mois de l'année précédente
-    let k=C.segs.length-1;while(C.segs[k].fete)k--;return {y:d.y-1,s:k};
+
+function monthWithFollowingFestivals(year, segmentIndex) {
+  const group = [segmentIndex];
+  for (let next = segmentIndex + 1; next < calendar.segments.length && calendar.segments[next].fete; next++) {
+    if (segmentExistsInYear(year, next)) group.push(next);
   }
-  return {y:d.y,s};
+  return group;
 }
-function cell(d,fete){
-  const a=toAbs(d),ev=eventsOn(d).filter(e=>e.k!=='fete'),m=moonMark(a);
-  const cls=['dc'];if(fete)cls.push('fete');if(a===now())cls.push('now');
-  if(sel&&a===toAbs(sel))cls.push('sel');if(ev.length)cls.push('has');if(ev.length&&ev.every(e=>e.k==='rp'))cls.push('rp');
-  return `<button type="button" class="${cls.join(' ')}" data-a="${a}" aria-label="${esc(label(d))}${ev.length?' : '+esc(ev.map(e=>e.t).join(', ')):''}">`
-   +`<span class="nb">${fete?esc(C.segs[d.s].nom):d.j}</span>${m?`<span class="ic" title="${m[1]}">${m[0]}</span>`:''}`
-   +ev.slice(0,2).map(e=>`<span class="ev">${esc(e.t)}</span>`).join('')+`</button>`;
+
+const firstMonthIndex = () => calendar.segments.findIndex(segment => !segment.fete);
+
+function shiftShownMonth(direction) {
+  let { y: year, s: segmentIndex } = shownMonth;
+  do {
+    segmentIndex += direction;
+    if (segmentIndex < 0) { segmentIndex = calendar.segments.length - 1; year--; }
+    if (segmentIndex >= calendar.segments.length) { segmentIndex = 0; year++; }
+  } while (calendar.segments[segmentIndex].fete);
+  shownMonth = { y: year, s: segmentIndex };
+  renderMonth();
 }
-function renderMonth(){
-  const {y,s}=view,g=C.segs[s];
-  $('#vTitle').textContent=g.nom+' '+y+(C.ere?' '+C.ere:'');
-  if(document.activeElement!==$('#vYear'))$('#vYear').value=y;
-  $('#grid').style.setProperty('--w',C.sem);
-  let h='';
-  for(let j=1;j<=g.j;j++)h+=cell({y,s,j},false);
-  monthGroup(y,s).slice(1).forEach(k=>{for(let j=1;j<=C.segs[k].j;j++)h+=cell({y,s:k,j},true)});
-  $('#grid').innerHTML=h;
+
+function lastMonthIndex() {
+  let index = calendar.segments.length - 1;
+  while (calendar.segments[index].fete) index--;
+  return index;
 }
-function renderDay(){
-  const d=sel||D.jour,a=toAbs(d),ev=eventsOn(d),p=phaseOf(a),diff=a-now();
-  const quand=diff===0?'Aujourd’hui':diff>0?'Dans '+pl(diff,'jour'):'Il y a '+pl(-diff,'jour');
-  $('#day').innerHTML=`<h2>${esc(label(d))}</h2>
-<p>${quand} · <span class="moon">${p[0]}</span> ${p[1]}</p>
-${ev.length?'<ul class="list" style="margin-top:6px">'+ev.map(e=>`<li class="${e.k==='ev'?'':e.k}"><span class="what">${esc(e.t)}${e.n?'<small>'+esc(e.n)+'</small>':''}${e.e&&e.e.an?'<small>Chaque année</small>':''}</span>${e.e?`<button data-del="${e.e.id}">Supprimer</button>`:''}</li>`).join('')+'</ul>':'<p class="empty">Rien de noté ce jour.</p>'}
-<form class="form" id="fEv">
+
+function monthContaining(date) {
+  let segmentIndex = date.s;
+  while (segmentIndex > 0 && calendar.segments[segmentIndex].fete) segmentIndex--;
+  if (calendar.segments[segmentIndex].fete) return { y: date.y - 1, s: lastMonthIndex() };
+  return { y: date.y, s: segmentIndex };
+}
+
+function dayCellClasses(dayNumber, isFestival, events) {
+  const classes = ['dc'];
+  if (isFestival) classes.push('fete');
+  if (dayNumber === todayNumber()) classes.push('now');
+  if (selectedDate && dayNumber === toDayNumber(selectedDate)) classes.push('sel');
+  if (events.length) classes.push('has');
+  if (events.length && events.every(event => event.k === 'rp')) classes.push('rp');
+  return classes.join(' ');
+}
+
+function dayCellHtml(date, isFestival) {
+  const dayNumber = toDayNumber(date);
+  const events = eventsOn(date).filter(event => event.k !== 'fete');
+  const moonMark = mainMoonPhaseOn(dayNumber);
+  const ariaLabel = escapeHtml(dateLabel(date)) + (events.length ? ' : ' + escapeHtml(events.map(event => event.t).join(', ')) : '');
+  return `<button type="button" class="${dayCellClasses(dayNumber, isFestival, events)}" data-a="${dayNumber}" aria-label="${ariaLabel}">`
+    + `<span class="nb">${isFestival ? escapeHtml(calendar.segments[date.s].nom) : date.j}</span>${moonMark ? `<span class="ic" title="${moonMark[1]}">${moonMark[0]}</span>` : ''}`
+    + events.slice(0, 2).map(event => `<span class="ev">${escapeHtml(event.t)}</span>`).join('') + '</button>';
+}
+
+function segmentCellsHtml(year, segmentIndex, isFestival) {
+  let html = '';
+  for (let day = 1; day <= calendar.segments[segmentIndex].j; day++) html += dayCellHtml({ y: year, s: segmentIndex, j: day }, isFestival);
+  return html;
+}
+
+function renderMonth() {
+  const { y: year, s: segmentIndex } = shownMonth;
+  $('#vTitle').textContent = calendar.segments[segmentIndex].nom + ' ' + year + (calendar.era ? ' ' + calendar.era : '');
+  if (document.activeElement !== $('#vYear')) $('#vYear').value = year;
+  $('#grid').style.setProperty('--w', calendar.weekLength);
+  const festivals = monthWithFollowingFestivals(year, segmentIndex).slice(1);
+  $('#grid').innerHTML = segmentCellsHtml(year, segmentIndex, false) + festivals.map(festival => segmentCellsHtml(year, festival, true)).join('');
+}
+
+function relativeDayLabel(difference) {
+  if (difference === 0) return 'Aujourd’hui';
+  return difference > 0 ? 'Dans ' + countLabel(difference, 'jour') : 'Il y a ' + countLabel(-difference, 'jour');
+}
+
+function dayEventHtml(event) {
+  const note = event.n ? '<small>' + escapeHtml(event.n) + '</small>' : '';
+  const yearly = event.e && event.e.an ? '<small>Chaque année</small>' : '';
+  const deleteButton = event.e ? `<button data-del="${event.e.id}">Supprimer</button>` : '';
+  return `<li class="${event.k === 'ev' ? '' : event.k}"><span class="what">${escapeHtml(event.t)}${note}${yearly}</span>${deleteButton}</li>`;
+}
+
+function dayEventsHtml(events) {
+  return events.length ? '<ul class="list" style="margin-top:6px">' + events.map(dayEventHtml).join('') + '</ul>' : '<p class="empty">Rien de noté ce jour.</p>';
+}
+
+function newEventFormHtml(isAnotherDay) {
+  return `<form class="form" id="fEv">
  <input type="text" id="eT" placeholder="Nouvel événement (fête, rendez-vous, échéance…)" aria-label="Titre de l’événement" maxlength="120" required>
  <textarea id="eN" placeholder="Note (facultatif)" aria-label="Note" maxlength="1000"></textarea>
  <label><input type="checkbox" id="eA"> Revient chaque année</label>
- <div class="row"><button class="btn p">Ajouter</button>${diff?'<button type="button" class="btn" id="bGo">On est ce jour-là</button>':''}</div>
+ <div class="row"><button class="btn p">Ajouter</button>${isAnotherDay ? '<button type="button" class="btn" id="bGo">On est ce jour-là</button>' : ''}</div>
 </form>`;
 }
-function renderLists(){
-  const a0=now(),fetes=$('#fFetes').checked,nx=[];
-  const span=Math.max(400,Math.round((C.base+C.bl)*1.5));
-  for(let k=1;k<=span&&nx.length<10;k++){
-    const d=fromAbs(a0+k);
-    eventsOn(d).forEach(e=>{if(e.k==='ev'||fetes)nx.push({d,k,e})});
+
+function renderSelectedDay() {
+  const date = selectedDate || campaign.jour;
+  const dayNumber = toDayNumber(date);
+  const [moonIcon, moonName] = moonPhaseOf(dayNumber);
+  const difference = dayNumber - todayNumber();
+  $('#day').innerHTML = `<h2>${escapeHtml(dateLabel(date))}</h2>
+<p>${relativeDayLabel(difference)} · <span class="moon">${moonIcon}</span> ${moonName}</p>
+${dayEventsHtml(eventsOn(date))}
+${newEventFormHtml(difference !== 0)}`;
+}
+
+function upcomingEvents(today, includeFestivals) {
+  const upcoming = [];
+  const searchSpan = Math.max(400, Math.round((calendar.commonYearDays + calendar.leapDays) * 1.5));
+  for (let daysAhead = 1; daysAhead <= searchSpan && upcoming.length < MAX_UPCOMING_EVENTS; daysAhead++) {
+    const date = fromDayNumber(today + daysAhead);
+    eventsOn(date).forEach(event => { if (event.k === 'ev' || includeFestivals) upcoming.push({ date, daysAhead, event }); });
   }
-  $('#next').innerHTML=nx.length?nx.slice(0,10).map(x=>`<li class="${x.e.k==='ev'?'':x.e.k}"><span class="when go" data-a="${a0+x.k}">${x.k===1?'Demain':'Dans '+x.k+' j'}</span><span class="what">${esc(x.e.t)}<small>${esc(label(x.d))}${x.e.n?' · '+esc(x.e.n):''}</small></span></li>`).join('')
-    :'<li class="empty" style="border:0;background:none">Aucun événement prévu. Touche un jour du calendrier pour en ajouter un.</li>';
-  const ps=D.evts.filter(e=>!e.an&&toAbs(e)<a0).sort((x,y)=>toAbs(y)-toAbs(x)).slice(0,12);
-  $('#past').innerHTML=ps.length?ps.map(e=>{const k=a0-toAbs(e);return `<li><span class="when go" data-a="${toAbs(e)}">${k===1?'Hier':'Il y a '+k+' j'}</span><span class="what">${esc(e.t)}<small>${esc(label(e))}${e.n?' · '+esc(e.n):''}</small></span><button data-del="${e.id}">Supprimer</button></li>`}).join('')
-    :'<li class="empty" style="border:0;background:none">Les événements passés s’afficheront ici.</li>';
+  return upcoming.slice(0, MAX_UPCOMING_EVENTS);
 }
 
-/* ---------- Actions ---------- */
-function setDay(a,info){
-  D.jour=fromAbs(a);sel=null;view=viewOf(D.jour);Persos.save();render();
-  if(info)msg(info+' : '+label(D.jour));
+function upcomingEventHtml({ date, daysAhead, event }, today) {
+  const when = daysAhead === 1 ? 'Demain' : 'Dans ' + daysAhead + ' j';
+  return `<li class="${event.k === 'ev' ? '' : event.k}"><span class="when go" data-a="${today + daysAhead}">${when}</span><span class="what">${escapeHtml(event.t)}<small>${escapeHtml(dateLabel(date))}${event.n ? ' · ' + escapeHtml(event.n) : ''}</small></span></li>`;
 }
-function addMonth(){
-  let {y,s,j}=D.jour;
-  do{s++;if(s>=C.segs.length){s=0;y++}}while(C.segs[s].fete||!has(y,s));
-  setDay(toAbs({y,s,j:Math.min(j,C.segs[s].j)}),'Un mois passe');
-}
-$('#bP1').onclick=()=>setDay(now()+1,'Nouveau jour');
-$('#bM1').onclick=()=>setDay(now()-1,'Retour d’un jour');
-$('#bPw').onclick=()=>setDay(now()+C.sem,'Une '+C.semNom+' passe');
-$('#bPm').onclick=addMonth;
-$('#bPn').onclick=()=>{const n=Math.max(1,Math.min(100000,parseInt($('#nJ').value,10)||1));setDay(now()+n,pl(n,'jour')+' passent')};
-$('#vPrev').onclick=()=>shiftView(-1);
-$('#vNext').onclick=()=>shiftView(1);
-$('#vNow').onclick=()=>{view=viewOf(D.jour);sel=null;renderMonth();renderDay()};
-$('#vYear').onchange=e=>{const y=parseInt(e.target.value,10);if(!isNaN(y)){view.y=y;renderMonth()}};
-$('#grid').onclick=e=>{const b=e.target.closest('.dc');if(!b)return;sel=fromAbs(+b.dataset.a);renderMonth();renderDay();
-  if(matchMedia('(max-width:800px)').matches)$('#day').scrollIntoView({block:'nearest'})};
-document.addEventListener('click',e=>{
-  const g=e.target.closest('.go[data-a]');
-  if(g){sel=fromAbs(+g.dataset.a);view=viewOf(sel);renderMonth();renderDay();$('#day').scrollIntoView({block:'nearest'});return}
-  const x=e.target.closest('[data-del]');
-  if(x){const ev=D.evts.find(v=>v.id===x.dataset.del);if(!ev||!confirm('Supprimer « '+ev.t+' » ?'))return;
-    D.evts=D.evts.filter(v=>v!==ev);Persos.save();render();msg('Événement supprimé');return}
-  if(e.target.id==='bGo'&&sel)setDay(toAbs(sel),'Date du jour');
-});
-document.addEventListener('submit',e=>{
-  if(e.target.id!=='fEv')return;e.preventDefault();
-  const t=$('#eT').value.trim();if(!t)return;
-  const d=sel||D.jour;
-  D.evts.push({id:'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),y:d.y,s:d.s,j:d.j,t,n:$('#eN').value.trim(),an:$('#eA').checked});
-  Persos.save();render();msg('Événement ajouté : '+t);
-});
-$('#fFetes').onchange=renderLists;
 
-/* ---------- Réglages ---------- */
-Object.keys(PRESETS).forEach(k=>$('#cPreset').add(new Option(PRESETS[k].nom,k)));
-function fillCfg(){
-  const c=D.cal;
-  $('#cPreset').value=c.preset||'perso';$('#cEre').value=c.ere||'';$('#cSem').value=c.sem;$('#cSemNom').value=c.semNom||'';
-  $('#cBis').value=c.bis||0;$('#cLune').value=c.lune;$('#cSegs').value=c.segs;$('#cRep').value=c.rep||'';
+function pastEvents(today) {
+  return campaign.evts.filter(event => !event.an && toDayNumber(event) < today)
+    .sort((first, second) => toDayNumber(second) - toDayNumber(first))
+    .slice(0, MAX_PAST_EVENTS);
 }
-$('#cPreset').onchange=e=>{
-  const p=PRESETS[e.target.value];if(!p.segs)return;
-  $('#cEre').value=p.ere;$('#cSem').value=p.sem;$('#cSemNom').value=p.semNom;$('#cBis').value=p.bis;$('#cLune').value=p.lune;$('#cSegs').value=p.segs;$('#cRep').value=p.rep;
-};
-['#cEre','#cSem','#cSemNom','#cBis','#cLune','#cSegs','#cRep'].forEach(s=>$(s).addEventListener('input',()=>{$('#cPreset').value='perso'}));
-$('#cApply').onclick=()=>{
-  // Les dates gardent leur mois (par son nom) et leur jour
-  const old=C,nm=s=>old.segs[s]&&old.segs[s].nom;
-  const lune0={d:fromAbs(D.lune0)};
-  const keep=['jour','debut'].map(k=>({k,n:nm(D[k].s),d:D[k]}));
-  D.cal={preset:$('#cPreset').value,ere:$('#cEre').value.trim(),sem:+$('#cSem').value,semNom:$('#cSemNom').value.trim()||'semaine',
-    bis:+$('#cBis').value,lune:+$('#cLune').value,segs:$('#cSegs').value,rep:$('#cRep').value};
-  C=compile(D.cal);
-  const re=(d,n)=>{const s=C.idx(n);return valid({y:d.y,s:s>=0?s:Math.min(d.s,C.segs.length-1),j:d.j})};
-  keep.forEach(x=>D[x.k]=re(x.d,x.n));
-  D.lune0=toAbs(re(lune0.d,nm(lune0.d.s)));
-  D.evts=D.evts.map(e=>{const s=C.idx(nm(e.s));return s<0?null:Object.assign(e,valid({y:e.y,s,j:e.j}))}).filter(Boolean);
-  sel=null;view=viewOf(D.jour);fillCfg();Persos.save();render();msg('Calendrier mis à jour');
-};
-$('#cStart').onclick=()=>{D.debut=Object.assign({},D.jour);Persos.save();render();msg('La campagne commence le '+label(D.jour))};
-$('#cMoon').onclick=()=>{D.lune0=now();Persos.save();render();msg('Pleine lune le '+label(D.jour))};
 
-/* ---------- Chargement ---------- */
-function defaults(k){
-  const p=PRESETS[k||'harptos'];
-  const cal={preset:k||'harptos',ere:p.ere,sem:p.sem,semNom:p.semNom,bis:p.bis,lune:p.lune,segs:p.segs,rep:p.rep};
-  C=compile(cal);
-  const s0=firstMonth(),j0={y:p.annee,s:s0,j:1};
-  return {cal,jour:j0,debut:Object.assign({},j0),lune0:toAbs({y:p.lune0[0],s:Math.max(0,C.idx(p.lune0[1])),j:p.lune0[2]}),evts:[]};
+function pastEventHtml(event, today) {
+  const dayNumber = toDayNumber(event);
+  const daysAgo = today - dayNumber;
+  return `<li><span class="when go" data-a="${dayNumber}">${daysAgo === 1 ? 'Hier' : 'Il y a ' + daysAgo + ' j'}</span><span class="what">${escapeHtml(event.t)}<small>${escapeHtml(dateLabel(event))}${event.n ? ' · ' + escapeHtml(event.n) : ''}</small></span><button data-del="${event.id}">Supprimer</button></li>`;
 }
-function load(o){
-  const d=o&&o.data;
-  if(d&&d.cal&&d.jour){
-    C=compile(d.cal);
-    D={cal:d.cal,jour:valid(d.jour),debut:valid(d.debut||d.jour),lune0:+d.lune0||0,
-      evts:(Array.isArray(d.evts)?d.evts:[]).filter(e=>e&&e.t&&C.segs[e.s]).map(e=>Object.assign(e,valid(e)))};
-  }else D=defaults();
-  sel=null;view=viewOf(D.jour);fillCfg();render();
+
+function renderEventLists() {
+  const today = todayNumber();
+  const upcoming = upcomingEvents(today, $('#fFetes').checked);
+  $('#next').innerHTML = upcoming.length ? upcoming.map(entry => upcomingEventHtml(entry, today)).join('')
+    : '<li class="empty" style="border:0;background:none">Aucun événement prévu. Touche un jour du calendrier pour en ajouter un.</li>';
+  const past = pastEvents(today);
+  $('#past').innerHTML = past.length ? past.map(event => pastEventHtml(event, today)).join('')
+    : '<li class="empty" style="border:0;background:none">Les événements passés s’afficheront ici.</li>';
 }
-Persos.init({part:'calendrier',mount:$('#persos'),msg,
-  collect:()=>({version:1,type:'calendrier-dnd-5e',data:D}),
-  apply:load,onName:render});
+
+function setToday(dayNumber, announcement) {
+  campaign.jour = fromDayNumber(dayNumber);
+  selectedDate = null;
+  shownMonth = monthContaining(campaign.jour);
+  Persos.save();
+  renderPage();
+  if (announcement) showMessage(announcement + ' : ' + dateLabel(campaign.jour));
+}
+
+function advanceOneMonth() {
+  let { y: year, s: segmentIndex, j: day } = campaign.jour;
+  do {
+    segmentIndex++;
+    if (segmentIndex >= calendar.segments.length) { segmentIndex = 0; year++; }
+  } while (calendar.segments[segmentIndex].fete || !segmentExistsInYear(year, segmentIndex));
+  setToday(toDayNumber({ y: year, s: segmentIndex, j: Math.min(day, calendar.segments[segmentIndex].j) }), 'Un mois passe');
+}
+
+function advanceSeveralDays() {
+  const days = clamp(parseInt($('#nJ').value, 10) || 1, 1, MAX_DAYS_JUMP);
+  setToday(todayNumber() + days, countLabel(days, 'jour') + ' passent');
+}
+
+function showTodayMonth() {
+  shownMonth = monthContaining(campaign.jour);
+  selectedDate = null;
+  renderMonth();
+  renderSelectedDay();
+}
+
+function changeShownYear(event) {
+  const year = parseInt(event.target.value, 10);
+  if (isNaN(year)) return;
+  shownMonth.y = year;
+  renderMonth();
+}
+
+function selectDayInGrid(event) {
+  const cell = event.target.closest('.dc');
+  if (!cell) return;
+  selectedDate = fromDayNumber(+cell.dataset.a);
+  renderMonth();
+  renderSelectedDay();
+  if (matchMedia('(max-width:800px)').matches) $('#day').scrollIntoView({ block: 'nearest' });
+}
+
+function goToListedDay(link) {
+  selectedDate = fromDayNumber(+link.dataset.a);
+  shownMonth = monthContaining(selectedDate);
+  renderMonth();
+  renderSelectedDay();
+  $('#day').scrollIntoView({ block: 'nearest' });
+}
+
+function deleteEvent(button) {
+  const event = campaign.evts.find(candidate => candidate.id === button.dataset.del);
+  if (!event || !confirm('Supprimer « ' + event.t + ' » ?')) return;
+  campaign.evts = campaign.evts.filter(candidate => candidate !== event);
+  Persos.save();
+  renderPage();
+  showMessage('Événement supprimé');
+}
+
+function handlePageClick(event) {
+  const listedDay = event.target.closest('.go[data-a]');
+  if (listedDay) return goToListedDay(listedDay);
+  const deleteButton = event.target.closest('[data-del]');
+  if (deleteButton) return deleteEvent(deleteButton);
+  if (event.target.id === 'bGo' && selectedDate) setToday(toDayNumber(selectedDate), 'Date du jour');
+}
+
+const newEventId = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+function addEvent(event) {
+  if (event.target.id !== 'fEv') return;
+  event.preventDefault();
+  const title = $('#eT').value.trim();
+  if (!title) return;
+  const date = selectedDate || campaign.jour;
+  campaign.evts.push({ id: newEventId(), y: date.y, s: date.s, j: date.j, t: title, n: $('#eN').value.trim(), an: $('#eA').checked });
+  Persos.save();
+  renderPage();
+  showMessage('Événement ajouté : ' + title);
+}
+
+function fillSettings() {
+  const settings = campaign.cal;
+  $('#cPreset').value = settings.preset || 'perso';
+  $('#cEre').value = settings.ere || '';
+  $('#cSem').value = settings.sem;
+  $('#cSemNom').value = settings.semNom || '';
+  $('#cBis').value = settings.bis || 0;
+  $('#cLune').value = settings.lune;
+  $('#cSegs').value = settings.segs;
+  $('#cRep').value = settings.rep || '';
+}
+
+function fillSettingsFromPreset(event) {
+  const preset = PRESETS[event.target.value];
+  if (!preset.segs) return;
+  $('#cEre').value = preset.ere;
+  $('#cSem').value = preset.sem;
+  $('#cSemNom').value = preset.semNom;
+  $('#cBis').value = preset.bis;
+  $('#cLune').value = preset.lune;
+  $('#cSegs').value = preset.segs;
+  $('#cRep').value = preset.rep;
+}
+
+function settingsFromInputs() {
+  return {
+    preset: $('#cPreset').value, ere: $('#cEre').value.trim(), sem: +$('#cSem').value, semNom: $('#cSemNom').value.trim() || 'semaine',
+    bis: +$('#cBis').value, lune: +$('#cLune').value, segs: $('#cSegs').value, rep: $('#cRep').value
+  };
+}
+
+function applySettings() {
+  const previousCalendar = calendar;
+  const previousSegmentName = segmentIndex => previousCalendar.segments[segmentIndex] && previousCalendar.segments[segmentIndex].nom;
+  const fullMoonDate = fromDayNumber(campaign.lune0);
+  const keptDates = ['jour', 'debut'].map(key => ({ key, name: previousSegmentName(campaign[key].s), date: campaign[key] }));
+  campaign.cal = settingsFromInputs();
+  calendar = compileCalendar(campaign.cal);
+  const sameNamedDate = (date, name) => {
+    const segmentIndex = calendar.indexOfSegment(name);
+    return validDate({ y: date.y, s: segmentIndex >= 0 ? segmentIndex : Math.min(date.s, calendar.segments.length - 1), j: date.j });
+  };
+  keptDates.forEach(({ key, name, date }) => { campaign[key] = sameNamedDate(date, name); });
+  campaign.lune0 = toDayNumber(sameNamedDate(fullMoonDate, previousSegmentName(fullMoonDate.s)));
+  campaign.evts = campaign.evts.map(event => {
+    const segmentIndex = calendar.indexOfSegment(previousSegmentName(event.s));
+    return segmentIndex < 0 ? null : Object.assign(event, validDate({ y: event.y, s: segmentIndex, j: event.j }));
+  }).filter(Boolean);
+  selectedDate = null;
+  shownMonth = monthContaining(campaign.jour);
+  fillSettings();
+  Persos.save();
+  renderPage();
+  showMessage('Calendrier mis à jour');
+}
+
+function startCampaignToday() {
+  campaign.debut = Object.assign({}, campaign.jour);
+  Persos.save();
+  renderPage();
+  showMessage('La campagne commence le ' + dateLabel(campaign.jour));
+}
+
+function setFullMoonToday() {
+  campaign.lune0 = todayNumber();
+  Persos.save();
+  renderPage();
+  showMessage('Pleine lune le ' + dateLabel(campaign.jour));
+}
+
+function defaultCampaign(presetKey) {
+  const key = presetKey || DEFAULT_PRESET;
+  const preset = PRESETS[key];
+  const settings = { preset: key, ere: preset.ere, sem: preset.sem, semNom: preset.semNom, bis: preset.bis, lune: preset.lune, segs: preset.segs, rep: preset.rep };
+  calendar = compileCalendar(settings);
+  const firstDay = { y: preset.annee, s: firstMonthIndex(), j: 1 };
+  const [moonYear, moonSegmentName, moonDay] = preset.lune0;
+  return { cal: settings, jour: firstDay, debut: Object.assign({}, firstDay), lune0: toDayNumber({ y: moonYear, s: Math.max(0, calendar.indexOfSegment(moonSegmentName)), j: moonDay }), evts: [] };
+}
+
+function savedCampaign(data) {
+  calendar = compileCalendar(data.cal);
+  const events = (Array.isArray(data.evts) ? data.evts : []).filter(event => event && event.t && calendar.segments[event.s]).map(event => Object.assign(event, validDate(event)));
+  return { cal: data.cal, jour: validDate(data.jour), debut: validDate(data.debut || data.jour), lune0: +data.lune0 || 0, evts: events };
+}
+
+function loadCampaign(saved) {
+  const data = saved && saved.data;
+  campaign = data && data.cal && data.jour ? savedCampaign(data) : defaultCampaign();
+  selectedDate = null;
+  shownMonth = monthContaining(campaign.jour);
+  fillSettings();
+  renderPage();
+}
+
+$('#bP1').onclick = () => setToday(todayNumber() + 1, 'Nouveau jour');
+$('#bM1').onclick = () => setToday(todayNumber() - 1, 'Retour d’un jour');
+$('#bPw').onclick = () => setToday(todayNumber() + calendar.weekLength, 'Une ' + calendar.weekName + ' passe');
+$('#bPm').onclick = advanceOneMonth;
+$('#bPn').onclick = advanceSeveralDays;
+$('#vPrev').onclick = () => shiftShownMonth(-1);
+$('#vNext').onclick = () => shiftShownMonth(1);
+$('#vNow').onclick = showTodayMonth;
+$('#vYear').onchange = changeShownYear;
+$('#grid').onclick = selectDayInGrid;
+document.addEventListener('click', handlePageClick);
+document.addEventListener('submit', addEvent);
+$('#fFetes').onchange = renderEventLists;
+
+Object.keys(PRESETS).forEach(key => $('#cPreset').add(new Option(PRESETS[key].nom, key)));
+$('#cPreset').onchange = fillSettingsFromPreset;
+SETTINGS_INPUTS.forEach(selector => $(selector).addEventListener('input', () => { $('#cPreset').value = 'perso'; }));
+$('#cApply').onclick = applySettings;
+$('#cStart').onclick = startCampaignToday;
+$('#cMoon').onclick = setFullMoonToday;
+
+Persos.init({ part: 'calendrier', mount: $('#persos'), msg: showMessage, collect: () => ({ version: 1, type: 'calendrier-dnd-5e', data: campaign }), apply: loadCampaign, onName: renderPage });

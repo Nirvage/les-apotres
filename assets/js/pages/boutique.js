@@ -1,147 +1,353 @@
-const $=s=>document.querySelector(s);
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-const nb=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:2});
-const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296*n};
-const ri=(a,b)=>a+Math.floor(rnd(b-a+1));
-function pick(l,n){l=l.slice();const r=[];while(r.length<n&&l.length)r.push(l.splice(Math.floor(rnd(l.length)),1)[0]);return r}
-
-const RN=['Courant','Peu courant','Rare','Très rare','Légendaire'];
-const PRIX=[100,400,4000,40000,200000];
-// Parchemins de sort (Guide du Maître 2024) : rareté selon le niveau du sort ; prix du Manuel des joueurs pour les niveaux 0 et 1
-const SCR_R=[0,0,1,1,2,2,3,3,3,4],SCR_P=[30,50];
-const TAILLES={
-  village:{f:.25,max:2,c:.4,nom:'Village'},
-  bourg:{f:.4,max:3,c:.6,nom:'Bourg'},
-  ville:{f:.65,max:3,c:.8,nom:'Ville'},
-  capitale:{f:1,max:4,c:1,nom:'Grande ville'}
+const RARITY_NAMES = ['Courant', 'Peu courant', 'Rare', 'Très rare', 'Légendaire'];
+const RARITY_PRICES = [100, 400, 4000, 40000, 200000];
+const SCROLL_RARITY_BY_SPELL_LEVEL = [0, 0, 1, 1, 2, 2, 3, 3, 3, 4];
+const LOW_LEVEL_SCROLL_PRICES = [30, 50];
+const MAX_SAVED_SHOPS = 20;
+const SETTLEMENT_SIZES = {
+  village: { stockFactor: 0.25, maxRarity: 2, mundaneShare: 0.4, name: 'Village' },
+  bourg: { stockFactor: 0.4, maxRarity: 3, mundaneShare: 0.6, name: 'Bourg' },
+  ville: { stockFactor: 0.65, maxRarity: 3, mundaneShare: 0.8, name: 'Ville' },
+  capitale: { stockFactor: 1, maxRarity: 4, mundaneShare: 1, name: 'Grande ville' }
 };
-const RX=s=>new RegExp('^('+s+')','i');
-/* Types de boutique.
-   q : nombre d'objets magiques par rareté [courant, peu courant, rare, très rare, légendaire] en grande ville ;
-   mag : objets magiques vendus ; cour : marchandise courante (equipement.json) ; scr : parchemins de sort (classes, ou [] pour toutes) */
-const TYPES=[
- {id:'armurerie',nom:'Armurerie',d:'Armes, armures, boucliers et munitions, ordinaires et magiques.',q:[4,9,6,3,1],
-  mag:o=>/^(Arme|Armure|Munition)$/.test(o.t),cour:e=>/^(Arme|Armure|Munition)$/.test(e.t)},
- {id:'cordonnier',nom:'Cordonnier et tailleur',d:'Vêtements, bottes, capes, gants, ceintures, chapeaux et robes.',q:[3,7,6,3,1],
-  mag:o=>o.t==='Objet merveilleux'&&RX('Bottes|Chaussons|Sandales|Cape|Manteau|Gants|Gantelets|Robe|Ceinture|Chapeau|Bandeau|Bracelets|Masque|Casque|Capuche|Écharpe|Voile').test(o.n),
-  cour:e=>/(V[êe]tements|^Robe|^Costume|^Sac|^Bourse|^Couverture|cordonnier|travailleur du cuir|tisserand|^Parfum)/i.test(e.n)},
- {id:'alchimiste',nom:'Alchimiste',d:'Potions, huiles, élixirs, poussières et ingrédients.',q:[6,12,9,4,1],
-  mag:o=>(o.t==='Potion'||RX('Huile|Élixir|Philtre|Poussière|Onguent|Baume|Pigments|Fiole|Sels').test(o.n))&&!/^Potion de soins/.test(o.n),
-  cour:e=>/(Acide|Antitoxine|Feu grégeois|Eau bénite|Potion|Poison|Fiole|Bouteille|alchimiste|herboriste|empoisonneur|Parfum|Composants)/i.test(e.n)},
- {id:'magie',nom:'Boutique de magie',d:'Baguettes, bâtons, sceptres, anneaux, objets merveilleux et parchemins.',q:[8,15,10,10,3],
-  mag:o=>/^(Baguette|Bâton|Sceptre|Anneau|Objet merveilleux|Parchemin)$/.test(o.t),scr:[],
-  cour:e=>/(Focalisation arcanique|Livre de sorts|Composants|Parchemin de sort)/i.test(e.n)},
- {id:'joaillier',nom:'Joaillier',d:'Anneaux, amulettes, colliers, broches, pierres précieuses et gemmes.',q:[3,7,6,3,2],
-  mag:o=>o.t==='Anneau'||(o.t==='Objet merveilleux'&&RX('Amulette|Collier|Broche|Médaillon|Pierre|Gemme|Perle|Diadème|Couronne|Bracelets|Talisman|Scarabée|Joyau').test(o.n)),
-  cour:e=>/(joaillier|^Loupe|Symbole sacré \(amulette\))/i.test(e.n),gemmes:true},
- {id:'libraire',nom:'Libraire et scribe',d:'Livres, manuels, cartes, matériel d’écriture et parchemins de sort.',q:[9,9,6,3,1],
-  mag:o=>o.t==='Objet merveilleux'&&RX('Livre|Manuel|Tome|Grimoire|Codex|Traité|Plume|Carte|Recueil').test(o.n)&&!/^Cartes merveilleuses/.test(o.n),scr:[],
-  cour:e=>/(^Livre|^Papier|^Parchemin \(|^Encre|^Plume|^Carte|^Étui|calligraphe|cartographe|contrefaçon)/i.test(e.n)},
- {id:'temple',nom:'Temple',d:'Articles religieux, soins, eau bénite et parchemins de sorts divins.',q:[6,7,4,1,0],
-  mag:o=>/^Potion de soins/.test(o.n)||RX('Amulette du dévot|Encensoir du dévot|Collier de prière|Talisman du bien|Eau|Perle de pouvoir|Scarabée de protection').test(o.n),scr:['Clerc','Paladin'],
-  cour:e=>/(Symbole sacré|Eau bénite|Trousse de soins|Antitoxine|herboriste|Potion de guérison|Chandelle|Encens)/i.test(e.n)},
- {id:'ecurie',nom:'Écurie et charron',d:'Montures, selles, chariots et barques ; quelques objets magiques pour les montures.',q:[1,3,3,2,0],
-  mag:o=>RX('Fer|Fers|Figurine merveilleuse|Selle|Bride').test(o.n),
-  cour:e=>e.t==='Monture et véhicule'&&e.po<1000&&!/^Écurie/.test(e.n)},
- {id:'musique',nom:'Luthier',d:'Instruments de musique, ordinaires et magiques.',q:[1,4,4,1,1],
-  mag:o=>RX('Instrument|Flûte|Lyre|Luth|Harpe|Tambour|Cor |Cornemuse|Mandoline|Cithare|Carillon|Lyre').test(o.n),
-  cour:e=>/Instruments de musique/.test(e.c||'')},
- {id:'bazar',nom:'Bazar d’aventurier',d:'Matériel d’aventure, paquetages, outils, jeux et quelques babioles magiques.',q:[6,4,1,0,0],
-  mag:o=>o.t==='Objet merveilleux',
-  cour:e=>/^(Équipement d’aventurier|Outil|Paquetage)$/.test(e.t)&&!/Potion|Poison|Parchemin de sort|Focalisation|Livre de sorts/.test(e.n)}
-];
-const GEMMES=[['Azurite',10],['Hématite',10],['Malachite',10],['Turquoise',10],['Cornaline',50],['Jaspe',50],['Onyx',50],['Pierre de lune',50],['Ambre',100],['Améthyste',100],['Grenat',100],['Perle',100],['Jade',100],['Aigue-marine',500],['Perle noire',500],['Topaze',500],['Opale noire',1000],['Émeraude',1000],['Saphir bleu',1000],['Diamant',5000],['Rubis',5000],['Saphir étoilé',5000]];
+const GEM_MAX_VALUE_BY_MAX_RARITY = [50, 500, 1000, 5000, 5000];
 
-let OBJ=[],EQ=[],SP=[],data={liste:[],cur:null};
-const estMJ=()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'};
-// Rareté principale d'un objet (la première citée quand elle varie) ; null pour les artefacts et les raretés non précisées
-function rar(q){
-  const s=String(q||'').toLowerCase().replace(/^variable \(/,'');
-  if(s.startsWith('peu courant'))return 1;if(s.startsWith('très rare'))return 3;
-  if(s.startsWith('courant'))return 0;if(s.startsWith('rare'))return 2;if(s.startsWith('légendaire'))return 4;
+const nameStartsWith = alternatives => new RegExp('^(' + alternatives + ')', 'i');
+
+const SHOP_TYPES = [
+  {
+    id: 'armurerie', name: 'Armurerie', description: 'Armes, armures, boucliers et munitions, ordinaires et magiques.', magicItemsPerRarity: [4, 9, 6, 3, 1],
+    sellsMagicItem: item => /^(Arme|Armure|Munition)$/.test(item.t),
+    sellsMundaneItem: gear => /^(Arme|Armure|Munition)$/.test(gear.t)
+  },
+  {
+    id: 'cordonnier', name: 'Cordonnier et tailleur', description: 'Vêtements, bottes, capes, gants, ceintures, chapeaux et robes.', magicItemsPerRarity: [3, 7, 6, 3, 1],
+    sellsMagicItem: item => item.t === 'Objet merveilleux' && nameStartsWith('Bottes|Chaussons|Sandales|Cape|Manteau|Gants|Gantelets|Robe|Ceinture|Chapeau|Bandeau|Bracelets|Masque|Casque|Capuche|Écharpe|Voile').test(item.n),
+    sellsMundaneItem: gear => /(V[êe]tements|^Robe|^Costume|^Sac|^Bourse|^Couverture|cordonnier|travailleur du cuir|tisserand|^Parfum)/i.test(gear.n)
+  },
+  {
+    id: 'alchimiste', name: 'Alchimiste', description: 'Potions, huiles, élixirs, poussières et ingrédients.', magicItemsPerRarity: [6, 12, 9, 4, 1],
+    sellsMagicItem: item => (item.t === 'Potion' || nameStartsWith('Huile|Élixir|Philtre|Poussière|Onguent|Baume|Pigments|Fiole|Sels').test(item.n)) && !/^Potion de soins/.test(item.n),
+    sellsMundaneItem: gear => /(Acide|Antitoxine|Feu grégeois|Eau bénite|Potion|Poison|Fiole|Bouteille|alchimiste|herboriste|empoisonneur|Parfum|Composants)/i.test(gear.n)
+  },
+  {
+    id: 'magie', name: 'Boutique de magie', description: 'Baguettes, bâtons, sceptres, anneaux, objets merveilleux et parchemins.', magicItemsPerRarity: [8, 15, 10, 10, 3],
+    sellsMagicItem: item => /^(Baguette|Bâton|Sceptre|Anneau|Objet merveilleux|Parchemin)$/.test(item.t), scrollClasses: [],
+    sellsMundaneItem: gear => /(Focalisation arcanique|Livre de sorts|Composants|Parchemin de sort)/i.test(gear.n)
+  },
+  {
+    id: 'joaillier', name: 'Joaillier', description: 'Anneaux, amulettes, colliers, broches, pierres précieuses et gemmes.', magicItemsPerRarity: [3, 7, 6, 3, 2],
+    sellsMagicItem: item => item.t === 'Anneau' || (item.t === 'Objet merveilleux' && nameStartsWith('Amulette|Collier|Broche|Médaillon|Pierre|Gemme|Perle|Diadème|Couronne|Bracelets|Talisman|Scarabée|Joyau').test(item.n)),
+    sellsMundaneItem: gear => /(joaillier|^Loupe|Symbole sacré \(amulette\))/i.test(gear.n), sellsGems: true
+  },
+  {
+    id: 'libraire', name: 'Libraire et scribe', description: 'Livres, manuels, cartes, matériel d’écriture et parchemins de sort.', magicItemsPerRarity: [9, 9, 6, 3, 1],
+    sellsMagicItem: item => item.t === 'Objet merveilleux' && nameStartsWith('Livre|Manuel|Tome|Grimoire|Codex|Traité|Plume|Carte|Recueil').test(item.n) && !/^Cartes merveilleuses/.test(item.n), scrollClasses: [],
+    sellsMundaneItem: gear => /(^Livre|^Papier|^Parchemin \(|^Encre|^Plume|^Carte|^Étui|calligraphe|cartographe|contrefaçon)/i.test(gear.n)
+  },
+  {
+    id: 'temple', name: 'Temple', description: 'Articles religieux, soins, eau bénite et parchemins de sorts divins.', magicItemsPerRarity: [6, 7, 4, 1, 0],
+    sellsMagicItem: item => /^Potion de soins/.test(item.n) || nameStartsWith('Amulette du dévot|Encensoir du dévot|Collier de prière|Talisman du bien|Eau|Perle de pouvoir|Scarabée de protection').test(item.n), scrollClasses: ['Clerc', 'Paladin'],
+    sellsMundaneItem: gear => /(Symbole sacré|Eau bénite|Trousse de soins|Antitoxine|herboriste|Potion de guérison|Chandelle|Encens)/i.test(gear.n)
+  },
+  {
+    id: 'ecurie', name: 'Écurie et charron', description: 'Montures, selles, chariots et barques ; quelques objets magiques pour les montures.', magicItemsPerRarity: [1, 3, 3, 2, 0],
+    sellsMagicItem: item => nameStartsWith('Fer|Fers|Figurine merveilleuse|Selle|Bride').test(item.n),
+    sellsMundaneItem: gear => gear.t === 'Monture et véhicule' && gear.po < 1000 && !/^Écurie/.test(gear.n)
+  },
+  {
+    id: 'musique', name: 'Luthier', description: 'Instruments de musique, ordinaires et magiques.', magicItemsPerRarity: [1, 4, 4, 1, 1],
+    sellsMagicItem: item => nameStartsWith('Instrument|Flûte|Lyre|Luth|Harpe|Tambour|Cor |Cornemuse|Mandoline|Cithare|Carillon|Lyre').test(item.n),
+    sellsMundaneItem: gear => /Instruments de musique/.test(gear.c || '')
+  },
+  {
+    id: 'bazar', name: 'Bazar d’aventurier', description: 'Matériel d’aventure, paquetages, outils, jeux et quelques babioles magiques.', magicItemsPerRarity: [6, 4, 1, 0, 0],
+    sellsMagicItem: item => item.t === 'Objet merveilleux',
+    sellsMundaneItem: gear => /^(Équipement d’aventurier|Outil|Paquetage)$/.test(gear.t) && !/Potion|Poison|Parchemin de sort|Focalisation|Livre de sorts/.test(gear.n)
+  }
+];
+const GEMS = [['Azurite', 10], ['Hématite', 10], ['Malachite', 10], ['Turquoise', 10], ['Cornaline', 50], ['Jaspe', 50], ['Onyx', 50], ['Pierre de lune', 50], ['Ambre', 100], ['Améthyste', 100], ['Grenat', 100], ['Perle', 100], ['Jade', 100], ['Aigue-marine', 500], ['Perle noire', 500], ['Topaze', 500], ['Opale noire', 1000], ['Émeraude', 1000], ['Saphir bleu', 1000], ['Diamant', 5000], ['Rubis', 5000], ['Saphir étoilé', 5000]];
+
+let magicItems = [];
+let equipment = [];
+let spells = [];
+let shops = { liste: [], cur: null };
+
+const formatNumber = number => number.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+const plural = count => count > 1 ? 's' : '';
+
+function randomFraction(scale) {
+  const randomValues = new Uint32Array(1);
+  crypto.getRandomValues(randomValues);
+  return randomValues[0] / 4294967296 * scale;
+}
+
+const randomIntegerBetween = (minimum, maximum) => minimum + Math.floor(randomFraction(maximum - minimum + 1));
+
+function randomSample(list, count) {
+  const remaining = list.slice();
+  const sample = [];
+  while (sample.length < count && remaining.length) sample.push(remaining.splice(Math.floor(randomFraction(remaining.length)), 1)[0]);
+  return sample;
+}
+
+function rarityIndex(rarityText) {
+  const rarity = String(rarityText || '').toLowerCase().replace(/^variable \(/, '');
+  if (rarity.startsWith('peu courant')) return 1;
+  if (rarity.startsWith('très rare')) return 3;
+  if (rarity.startsWith('courant')) return 0;
+  if (rarity.startsWith('rare')) return 2;
+  if (rarity.startsWith('légendaire')) return 4;
   return null;
 }
-const conso=o=>/^(Potion|Parchemin|Munition)$/.test(o.t)||/consomm/i.test(o.h||'');
-const varie=(p,on)=>{if(!on)return p;const v=p*(.8+rnd(.4));return v>=1000?Math.round(v/50)*50:v>=100?Math.round(v/5)*5:Math.max(1,Math.round(v))};
 
-function generer(){
-  const T=TYPES.find(t=>t.id===$('#type').value),S=TAILLES[$('#taille').value],vp=$('#varp').checked;
-  // Réserve d'objets magiques par rareté, parchemins de sort compris
-  const pool=[[],[],[],[],[]];
-  OBJ.forEach(o=>{const r=rar(o.q);if(r!=null&&T.mag(o)&&!/maudit/i.test(o.n))pool[r].push({n:o.n,t:o.t,r,base:PRIX[r]/(conso(o)?2:1),k:'o'})});
-  if(T.scr)SP.forEach(s=>{
-    if(T.scr.length&&!s.c.some(c=>T.scr.includes(c)))return;
-    const r=SCR_R[s.l],nom=s.n.split('|')[0];
-    pool[r].push({n:'Parchemin de sort : '+nom,t:'Parchemin ('+(s.l?'niveau '+s.l:'tour de magie')+')',r,base:s.l<2?SCR_P[s.l]:PRIX[r]/2,k:'s',ref:s.n});
-  });
-  const items=[];
-  T.q.forEach((q,r)=>{
-    if(!q||r>S.max)return;
-    const n=Math.round(q*S.f*(.75+rnd(.5)));
-    pick(pool[r],n).forEach(o=>items.push({...o,po:varie(o.base,vp),qty:o.t.startsWith('Potion')||o.k==='s'||o.t==='Munition'?ri(1,3):1}));
-  });
-  items.sort((a,b)=>a.r-b.r||a.n.localeCompare(b.n,'fr'));
-  // Marchandise courante : une partie du catalogue selon la taille de la localité
-  const cp=EQ.filter(T.cour);
-  const cour=pick(cp,Math.max(Math.min(cp.length,4),Math.min(40*S.c,Math.round(cp.length*S.c*(.8+rnd(.2)))))).map(e=>({n:e.n,t:e.c||e.t,k:'e',p:e.p,po:e.po,
-    qty:e.t==='Monture et véhicule'?ri(1,3):e.po<=1?ri(5,20):e.po<=50?ri(1,6):ri(1,2)}));
-  if(T.gemmes)pick(GEMMES.filter(g=>g[1]<=[50,500,1000,5000,5000][S.max]),Math.round(GEMMES.length*S.c*.7)).forEach(g=>cour.push({n:g[0],t:'Pierre précieuse',k:'g',p:nb(g[1])+' po',po:g[1],qty:ri(1,4)}));
-  cour.sort((a,b)=>a.t.localeCompare(b.t,'fr')||a.po-b.po);
-  const shop={id:'b'+Date.now().toString(36),nom:T.nom+' ('+S.nom.toLowerCase()+')',type:T.id,taille:$('#taille').value,magie:items,courant:cour};
-  data.liste.unshift(shop);data.liste=data.liste.slice(0,20);data.cur=shop.id;
-  Persos.save();render();
-  msg('Inventaire généré : '+items.length+' objet'+(items.length>1?'s':'')+' magique'+(items.length>1?'s':''));
+const isConsumable = item => /^(Potion|Parchemin|Munition)$/.test(item.t) || /consomm/i.test(item.h || '');
+
+function roundedPrice(price) {
+  if (price >= 1000) return Math.round(price / 50) * 50;
+  if (price >= 100) return Math.round(price / 5) * 5;
+  return Math.max(1, Math.round(price));
 }
 
-function detail(it){
-  if(it.k==='o'){const o=OBJ.find(x=>x.n===it.n);return o?o.h:''}
-  if(it.k==='s'){const s=SP.find(x=>x.n===it.ref);return s?'<b>'+(s.l?'Niveau '+s.l:'Tour de magie')+', '+esc(s.e)+'.</b> '+s.h:''}
-  if(it.k==='e'){const e=EQ.find(x=>x.n===it.n);return e?e.h||'':''}
+const varyPrice = (basePrice, shouldVary) => shouldVary ? roundedPrice(basePrice * (0.8 + randomFraction(0.4))) : basePrice;
+
+const selectedShopType = () => SHOP_TYPES.find(type => type.id === $('#type').value);
+const currentShop = () => shops.liste.find(shop => shop.id === shops.cur);
+const shopTypeById = id => SHOP_TYPES.find(type => type.id === id);
+
+function addMagicItemsToPool(pool, shopType) {
+  magicItems.forEach(item => {
+    const rarity = rarityIndex(item.q);
+    if (rarity == null || !shopType.sellsMagicItem(item) || /maudit/i.test(item.n)) return;
+    pool[rarity].push({ n: item.n, t: item.t, r: rarity, base: RARITY_PRICES[rarity] / (isConsumable(item) ? 2 : 1), k: 'o' });
+  });
+}
+
+const spellLevelLabel = level => level ? 'niveau ' + level : 'tour de magie';
+
+function addSpellScrollsToPool(pool, shopType) {
+  if (!shopType.scrollClasses) return;
+  spells.forEach(spell => {
+    if (shopType.scrollClasses.length && !spell.c.some(className => shopType.scrollClasses.includes(className))) return;
+    const rarity = SCROLL_RARITY_BY_SPELL_LEVEL[spell.l];
+    const price = spell.l < 2 ? LOW_LEVEL_SCROLL_PRICES[spell.l] : RARITY_PRICES[rarity] / 2;
+    pool[rarity].push({ n: 'Parchemin de sort : ' + spell.n.split('|')[0], t: 'Parchemin (' + spellLevelLabel(spell.l) + ')', r: rarity, base: price, k: 's', ref: spell.n });
+  });
+}
+
+function magicItemPoolByRarity(shopType) {
+  const pool = [[], [], [], [], []];
+  addMagicItemsToPool(pool, shopType);
+  addSpellScrollsToPool(pool, shopType);
+  return pool;
+}
+
+const sellsSeveralCopies = item => item.t.startsWith('Potion') || item.k === 's' || item.t === 'Munition';
+
+function magicStock(shopType, size, shouldVaryPrices) {
+  const pool = magicItemPoolByRarity(shopType);
+  const stock = [];
+  shopType.magicItemsPerRarity.forEach((countInCapital, rarity) => {
+    if (!countInCapital || rarity > size.maxRarity) return;
+    const count = Math.round(countInCapital * size.stockFactor * (0.75 + randomFraction(0.5)));
+    randomSample(pool[rarity], count).forEach(item => stock.push({ ...item, po: varyPrice(item.base, shouldVaryPrices), qty: sellsSeveralCopies(item) ? randomIntegerBetween(1, 3) : 1 }));
+  });
+  return stock.sort((first, second) => first.r - second.r || first.n.localeCompare(second.n, 'fr'));
+}
+
+function mundaneQuantity(gear) {
+  if (gear.t === 'Monture et véhicule') return randomIntegerBetween(1, 3);
+  if (gear.po <= 1) return randomIntegerBetween(5, 20);
+  if (gear.po <= 50) return randomIntegerBetween(1, 6);
+  return randomIntegerBetween(1, 2);
+}
+
+function mundaneStockSize(catalogSize, size) {
+  const minimum = Math.min(catalogSize, 4);
+  const sized = Math.min(40 * size.mundaneShare, Math.round(catalogSize * size.mundaneShare * (0.8 + randomFraction(0.2))));
+  return Math.max(minimum, sized);
+}
+
+function gemStock(size) {
+  const affordableGems = GEMS.filter(([, value]) => value <= GEM_MAX_VALUE_BY_MAX_RARITY[size.maxRarity]);
+  return randomSample(affordableGems, Math.round(GEMS.length * size.mundaneShare * 0.7))
+    .map(([name, value]) => ({ n: name, t: 'Pierre précieuse', k: 'g', p: formatNumber(value) + ' po', po: value, qty: randomIntegerBetween(1, 4) }));
+}
+
+function mundaneStock(shopType, size) {
+  const catalog = equipment.filter(shopType.sellsMundaneItem);
+  const stock = randomSample(catalog, mundaneStockSize(catalog.length, size))
+    .map(gear => ({ n: gear.n, t: gear.c || gear.t, k: 'e', p: gear.p, po: gear.po, qty: mundaneQuantity(gear) }));
+  if (shopType.sellsGems) stock.push(...gemStock(size));
+  return stock.sort((first, second) => first.t.localeCompare(second.t, 'fr') || first.po - second.po);
+}
+
+function rememberShop(shop) {
+  shops.liste.unshift(shop);
+  shops.liste = shops.liste.slice(0, MAX_SAVED_SHOPS);
+  shops.cur = shop.id;
+  Persos.save();
+  renderPage();
+}
+
+function generateShop() {
+  const shopType = selectedShopType();
+  const sizeKey = $('#taille').value;
+  const size = SETTLEMENT_SIZES[sizeKey];
+  const magic = magicStock(shopType, size, $('#varp').checked);
+  const mundane = mundaneStock(shopType, size);
+  rememberShop({ id: 'b' + Date.now().toString(36), nom: shopType.name + ' (' + size.name.toLowerCase() + ')', type: shopType.id, taille: sizeKey, magie: magic, courant: mundane });
+  showMessage('Inventaire généré : ' + magic.length + ' objet' + plural(magic.length) + ' magique' + plural(magic.length));
+}
+
+function scrollDetailsHtml(spell) {
+  return '<b>' + (spell.l ? 'Niveau ' + spell.l : 'Tour de magie') + ', ' + escapeHtml(spell.e) + '.</b> ' + spell.h;
+}
+
+function itemDetailsHtml(stockItem) {
+  if (stockItem.k === 'o') {
+    const item = magicItems.find(candidate => candidate.n === stockItem.n);
+    return item ? item.h : '';
+  }
+  if (stockItem.k === 's') {
+    const spell = spells.find(candidate => candidate.n === stockItem.ref);
+    return spell ? scrollDetailsHtml(spell) : '';
+  }
+  if (stockItem.k === 'e') {
+    const gear = equipment.find(candidate => candidate.n === stockItem.n);
+    return gear ? gear.h || '' : '';
+  }
   return '';
 }
-function ligne(it,i,sec){
-  const out=!it.qty,h=detail(it);
-  const prix=it.k==='e'||it.k==='g'?esc(it.p):nb(it.po)+' po'+(it.po!==it.base?'<s>'+nb(it.base)+'</s>':'');
-  return `<details class="it ${it.k==='o'||it.k==='s'?'r'+it.r:'rc'}${out?' out':''}"><summary><span class="nm">${esc(it.n)}<small>${esc(it.t)}${it.k==='o'||it.k==='s'?' · '+RN[it.r]:''}</small></span>
-<span class="pr">${prix}</span><span class="qt">${out?'Épuisé':'Stock : '+it.qty}</span>${out?'':`<button type="button" class="sold" data-sec="${sec}" data-i="${i}">Vendu</button>`}</summary>${h?'<div class="h">'+h+'</div>':''}</details>`;
-}
-function render(){
-  const mj=estMJ();
-  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#bPrint').hidden=!mj;
-  if(!mj||!OBJ.length)return;
-  $('#saved').innerHTML=data.liste.length?'<span>Boutiques enregistrées :</span>'+data.liste.map(s=>`<span class="sv" aria-current="${s.id===data.cur}"><button type="button" data-open="${s.id}">${esc(s.nom)}</button><button type="button" class="x" data-del="${s.id}" aria-label="Supprimer ${esc(s.nom)}" title="Supprimer">×</button></span>`).join(''):'';
-  const s=data.liste.find(x=>x.id===data.cur);
-  if(!s){$('#shop').innerHTML='<section class="panel empty">Choisis un type de boutique puis touche « Générer l’inventaire ».</section>';return}
-  const cnt=RN.map((n,r)=>[n,s.magie.filter(x=>x.r===r).length]).filter(x=>x[1]);
-  const T=TYPES.find(t=>t.id===s.type)||{};
-  $('#shop').innerHTML=`<section class="panel shop"><div class="shead"><input id="snom" value="${esc(s.nom)}" aria-label="Nom de la boutique"><small>${esc(T.nom||'')} · ${esc((TAILLES[s.taille]||{}).nom||'')}</small></div>
-<div class="sum">${cnt.map(([n,c])=>`<span class="r${RN.indexOf(n)}" style="background:var(--k)">${c} ${n.toLowerCase()}${c>1?'s':''}</span>`).join('')}${s.courant.length?`<span class="rc" style="background:var(--k)">${s.courant.length} article${s.courant.length>1?'s':''} courant${s.courant.length>1?'s':''}</span>`:''}</div>
-${s.magie.length?`<div class="sec"><h2 style="--k:#7a4fc4">Objets magiques</h2>${s.magie.map((it,i)=>ligne(it,i,'magie')).join('')}</div>`:''}
-${s.courant.length?`<div class="sec"><h2 style="--k:#9a8f7a">Marchandise courante</h2>${s.courant.map((it,i)=>ligne(it,i,'courant')).join('')}</div>`:''}
-${!s.magie.length&&!s.courant.length?'<p class="empty">Rien en stock.</p>':''}</section>`;
-}
-$('#type').onchange=()=>{const T=TYPES.find(t=>t.id===$('#type').value);$('#tdesc').textContent=T.d+' En grande ville : '+T.q.map((n,r)=>n+' '+RN[r].toLowerCase()).filter(x=>!x.startsWith('0')).join(', ')+' (environ deux tiers en ville, un tiers dans un bourg, un quart dans un village ; pas de légendaire hors des grandes villes, ni de très rare au village).'};
-$('#bGen').onclick=generer;
-$('#saved').onclick=e=>{
-  const o=e.target.dataset.open,d=e.target.dataset.del;
-  if(o){data.cur=o;Persos.save();render()}
-  if(d){const s=data.liste.find(x=>x.id===d);if(!s||!confirm('Supprimer « '+s.nom+' » ?'))return;
-    data.liste=data.liste.filter(x=>x.id!==d);if(data.cur===d)data.cur=data.liste[0]?data.liste[0].id:null;Persos.save();render();msg('Boutique supprimée')}
-};
-$('#shop').addEventListener('click',e=>{
-  const b=e.target.closest('.sold');if(!b)return;e.preventDefault();
-  const s=data.liste.find(x=>x.id===data.cur),it=s&&s[b.dataset.sec][b.dataset.i];if(!it)return;
-  it.qty--;Persos.save();render();msg('« '+it.n+' » vendu'+(it.qty?' (reste '+it.qty+')':' : épuisé'));
-});
-$('#shop').addEventListener('input',e=>{if(e.target.id!=='snom')return;const s=data.liste.find(x=>x.id===data.cur);if(s){s.nom=e.target.value;Persos.save()}});
-$('#shop').addEventListener('change',e=>{if(e.target.id==='snom')render()});
-$('#bPrint').onclick=()=>window.print();
 
-Persos.init({part:'boutiques',mount:$('#persos'),msg,
-  collect:()=>({version:1,type:'boutiques-dnd-5e',data}),
-  apply:o=>{const d=o&&o.data;data=d&&Array.isArray(d.liste)?{liste:d.liste,cur:d.cur}:{liste:[],cur:null};render()},
-  onName:render});
-TYPES.forEach(t=>$('#type').add(new Option(t.nom,t.id)));$('#type').onchange();
-Promise.all(['assets/json/vf/objets.json','assets/json/vf/equipement.json','assets/json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,e,s])=>{OBJ=o;EQ=e;SP=s;render()})
-  .catch(()=>{$('#shop').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});
+const isMagicStockItem = stockItem => stockItem.k === 'o' || stockItem.k === 's';
+
+function priceHtml(stockItem) {
+  if (stockItem.k === 'e' || stockItem.k === 'g') return escapeHtml(stockItem.p);
+  return formatNumber(stockItem.po) + ' po' + (stockItem.po !== stockItem.base ? '<s>' + formatNumber(stockItem.base) + '</s>' : '');
+}
+
+function stockLineHtml(stockItem, index, section) {
+  const isSoldOut = !stockItem.qty;
+  const details = itemDetailsHtml(stockItem);
+  const rarityClass = isMagicStockItem(stockItem) ? 'r' + stockItem.r : 'rc';
+  const rarityLabel = isMagicStockItem(stockItem) ? ' · ' + RARITY_NAMES[stockItem.r] : '';
+  const soldButton = isSoldOut ? '' : `<button type="button" class="sold" data-sec="${section}" data-i="${index}">Vendu</button>`;
+  return `<details class="it ${rarityClass}${isSoldOut ? ' out' : ''}"><summary><span class="nm">${escapeHtml(stockItem.n)}<small>${escapeHtml(stockItem.t)}${rarityLabel}</small></span>
+<span class="pr">${priceHtml(stockItem)}</span><span class="qt">${isSoldOut ? 'Épuisé' : 'Stock : ' + stockItem.qty}</span>${soldButton}</summary>${details ? '<div class="h">' + details + '</div>' : ''}</details>`;
+}
+
+function savedShopsHtml() {
+  if (!shops.liste.length) return '';
+  return '<span>Boutiques enregistrées :</span>' + shops.liste.map(shop => `<span class="sv" aria-current="${shop.id === shops.cur}"><button type="button" data-open="${shop.id}">${escapeHtml(shop.nom)}</button><button type="button" class="x" data-del="${shop.id}" aria-label="Supprimer ${escapeHtml(shop.nom)}" title="Supprimer">×</button></span>`).join('');
+}
+
+function stockSummaryHtml(shop) {
+  const rarityCounts = RARITY_NAMES.map((name, rarity) => [name, shop.magie.filter(item => item.r === rarity).length]).filter(([, count]) => count);
+  const magicBadges = rarityCounts.map(([name, count]) => `<span class="r${RARITY_NAMES.indexOf(name)}" style="background:var(--k)">${count} ${name.toLowerCase()}${plural(count)}</span>`).join('');
+  const mundaneCount = shop.courant.length;
+  const mundaneBadge = mundaneCount ? `<span class="rc" style="background:var(--k)">${mundaneCount} article${plural(mundaneCount)} courant${plural(mundaneCount)}</span>` : '';
+  return `<div class="sum">${magicBadges}${mundaneBadge}</div>`;
+}
+
+function stockSectionHtml(shop, section, title, color) {
+  const items = shop[section];
+  return items.length ? `<div class="sec"><h2 style="--k:${color}">${title}</h2>${items.map((item, index) => stockLineHtml(item, index, section)).join('')}</div>` : '';
+}
+
+function shopHtml(shop) {
+  const shopType = shopTypeById(shop.type) || {};
+  const sizeName = (SETTLEMENT_SIZES[shop.taille] || {}).name || '';
+  return `<section class="panel shop"><div class="shead"><input id="snom" value="${escapeHtml(shop.nom)}" aria-label="Nom de la boutique"><small>${escapeHtml(shopType.name || '')} · ${escapeHtml(sizeName)}</small></div>
+${stockSummaryHtml(shop)}
+${stockSectionHtml(shop, 'magie', 'Objets magiques', '#7a4fc4')}
+${stockSectionHtml(shop, 'courant', 'Marchandise courante', '#9a8f7a')}
+${!shop.magie.length && !shop.courant.length ? '<p class="empty">Rien en stock.</p>' : ''}</section>`;
+}
+
+function renderPage() {
+  const isGameMaster = isGameMasterActive();
+  $('#lock').hidden = isGameMaster;
+  $('#mj').hidden = !isGameMaster;
+  $('#bPrint').hidden = !isGameMaster;
+  if (!isGameMaster || !magicItems.length) return;
+  $('#saved').innerHTML = savedShopsHtml();
+  const shop = currentShop();
+  $('#shop').innerHTML = shop ? shopHtml(shop) : '<section class="panel empty">Choisis un type de boutique puis touche « Générer l’inventaire ».</section>';
+}
+
+function describeSelectedShopType() {
+  const shopType = selectedShopType();
+  const capitalStock = shopType.magicItemsPerRarity.map((count, rarity) => count + ' ' + RARITY_NAMES[rarity].toLowerCase()).filter(text => !text.startsWith('0')).join(', ');
+  $('#tdesc').textContent = shopType.description + ' En grande ville : ' + capitalStock + ' (environ deux tiers en ville, un tiers dans un bourg, un quart dans un village ; pas de légendaire hors des grandes villes, ni de très rare au village).';
+}
+
+function openShop(id) {
+  shops.cur = id;
+  Persos.save();
+  renderPage();
+}
+
+function deleteShop(id) {
+  const shop = shops.liste.find(candidate => candidate.id === id);
+  if (!shop || !confirm('Supprimer « ' + shop.nom + ' » ?')) return;
+  shops.liste = shops.liste.filter(candidate => candidate.id !== id);
+  if (shops.cur === id) shops.cur = shops.liste[0] ? shops.liste[0].id : null;
+  Persos.save();
+  renderPage();
+  showMessage('Boutique supprimée');
+}
+
+function handleSavedShopsClick(event) {
+  const { open, del } = event.target.dataset;
+  if (open) openShop(open);
+  if (del) deleteShop(del);
+}
+
+function sellOneItem(event) {
+  const button = event.target.closest('.sold');
+  if (!button) return;
+  event.preventDefault();
+  const shop = currentShop();
+  const stockItem = shop && shop[button.dataset.sec][button.dataset.i];
+  if (!stockItem) return;
+  stockItem.qty--;
+  Persos.save();
+  renderPage();
+  showMessage('« ' + stockItem.n + ' » vendu' + (stockItem.qty ? ' (reste ' + stockItem.qty + ')' : ' : épuisé'));
+}
+
+function renameCurrentShop(event) {
+  if (event.target.id !== 'snom') return;
+  const shop = currentShop();
+  if (!shop) return;
+  shop.nom = event.target.value;
+  Persos.save();
+}
+
+function applySavedShops(saved) {
+  const savedShops = saved && saved.data;
+  shops = savedShops && Array.isArray(savedShops.liste) ? { liste: savedShops.liste, cur: savedShops.cur } : { liste: [], cur: null };
+  renderPage();
+}
+
+async function loadCatalogs() {
+  try {
+    [magicItems, equipment, spells] = await Promise.all(['assets/json/vf/objets.json', 'assets/json/vf/equipement.json', 'assets/json/vf/spells.json'].map(fetchJson));
+    renderPage();
+  } catch (error) {
+    $('#shop').innerHTML = '<section class="panel empty">Impossible de charger les objets.</section>';
+  }
+}
+
+$('#type').onchange = describeSelectedShopType;
+$('#bGen').onclick = generateShop;
+$('#saved').onclick = handleSavedShopsClick;
+$('#shop').addEventListener('click', sellOneItem);
+$('#shop').addEventListener('input', renameCurrentShop);
+$('#shop').addEventListener('change', event => { if (event.target.id === 'snom') renderPage(); });
+$('#bPrint').onclick = () => window.print();
+
+Persos.init({ part: 'boutiques', mount: $('#persos'), msg: showMessage, collect: () => ({ version: 1, type: 'boutiques-dnd-5e', data: shops }), apply: applySavedShops, onName: renderPage });
+SHOP_TYPES.forEach(type => $('#type').add(new Option(type.name, type.id)));
+describeSelectedShopType();
+loadCatalogs();

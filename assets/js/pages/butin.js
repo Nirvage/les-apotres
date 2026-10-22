@@ -1,175 +1,346 @@
-const $=s=>document.querySelector(s);
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-const nb=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:2});
-const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296*n};
-const ri=(a,b)=>a+Math.floor(rnd(b-a+1));
-const un=l=>l[Math.floor(rnd(l.length))];
-const dice=(n,f)=>{let s=0;for(let i=0;i<n;i++)s+=ri(1,f);return s};
+const RARITY_NAMES = ['Courant', 'Peu courant', 'Rare', 'Très rare', 'Légendaire'];
+const RARITY_PRICES = [100, 400, 4000, 40000, 200000];
+const SCROLL_RARITY_BY_SPELL_LEVEL = [0, 0, 1, 1, 2, 2, 3, 3, 3, 4];
+const LOW_LEVEL_SCROLL_PRICES = [30, 50];
+const CHALLENGE_RATINGS = ['0', '1/8', '1/4', '1/2', ...Array.from({ length: 30 }, (_, index) => String(index + 1))];
+const MAX_SAVED_LOOTS = 20;
+const MAX_INDIVIDUAL_CREATURES = 50;
+const MAX_VALUABLES_PER_LOT = 12;
+const COIN_NAMES = [['pp', 'platine'], ['po', 'or'], ['pa', 'argent'], ['pc', 'cuivre']];
 
-const RN=['Courant','Peu courant','Rare','Très rare','Légendaire'];
-const PRIX=[100,400,4000,40000,200000];
-const SCR_R=[0,0,1,1,2,2,3,3,3,4],SCR_P=[30,50];
-const FPS=['0','1/8','1/4','1/2',...Array.from({length:30},(_,i)=>String(i+1))];
-const fpVal=s=>s.includes('/')?1/+s.split('/')[1]:+s;
-
-/* Tranches de FP.
-   ind : trésor individuel d'une créature [nombre de dés, faces, multiplicateur, pièce] ;
-   mag : magot [dés, faces, multiplicateur] en PO, part en pièces (le reste en gemmes et objets d'art), nombre d'objets magiques [dés, faces, modificateur] ;
-   rar : chances (sur 100) de chaque rareté pour un objet magique [courant, peu courant, rare, très rare, légendaire] ;
-   gem/art : valeurs possibles des pierres précieuses et objets d'art */
-const TR=[
- {max:4,t:'FP 0 à 4',ind:[3,6,1,'po'],mag:[2,4,100],obj:[1,4,-1],rar:[54,37,9,0,0],gem:[10,50],art:[25]},
- {max:10,t:'FP 5 à 10',ind:[2,8,10,'po'],mag:[8,10,100],obj:[1,3,0],rar:[30,51,17,2,0],gem:[50,100,500],art:[25,250]},
- {max:16,t:'FP 11 à 16',ind:[2,10,10,'pp'],mag:[8,8,1000],obj:[1,4,0],rar:[11,23,36,23,7],gem:[500,1000],art:[250,750]},
- {max:99,t:'FP 17 et plus',ind:[2,8,100,'pp'],mag:[6,10,10000],obj:[1,6,0],rar:[0,6,30,40,24],gem:[1000,5000],art:[2500,7500]}
-];
-const tranche=fp=>TR.find(t=>fp<=t.max);
-
-const GEMMES={
- 10:['Agate rubanée','Azurite','Hématite','Lapis-lazuli','Malachite','Obsidienne','Quartz bleu','Rhodochrosite','Œil-de-tigre','Turquoise'],
- 50:['Calcédoine','Chrysoprase','Cornaline','Citrine','Jaspe','Pierre de lune','Onyx','Quartz étoilé','Sardonyx','Zircon'],
- 100:['Ambre','Améthyste','Chrysobéryl','Corail','Grenat','Jade','Jais','Perle','Spinelle','Tourmaline'],
- 500:['Alexandrite','Aigue-marine','Perle noire','Spinelle bleu','Péridot','Topaze'],
- 1000:['Opale noire','Saphir bleu','Émeraude','Opale de feu','Opale','Rubis étoilé','Saphir étoilé','Saphir jaune'],
- 5000:['Saphir noir','Diamant','Jacinthe','Rubis']
-};
-const ARTS={
- 25:['Aiguière en argent','Statuette en os sculpté','Petit bracelet en or','Vêtements de cérémonie brodés de fil d’or','Masque de velours noir cousu de fil d’argent','Calice en cuivre filigrané d’argent','Paire de dés en os gravés','Petit miroir dans un cadre en bois peint','Mouchoir de soie brodé','Médaillon en or contenant un portrait'],
- 250:['Anneau en or serti de pierres de sang','Statuette en ivoire sculpté','Grand bracelet en or','Collier en argent avec pendentif en pierre précieuse','Couronne en bronze','Robe de soie brodée de fil d’or','Grande tapisserie de belle facture','Chope en laiton incrustée de jade','Boîte de figurines animales en turquoise','Cage à oiseaux en or filigrané d’électrum'],
- 750:['Calice en argent serti de pierres de lune','Épée longue plaquée d’argent, jais sur la poignée','Harpe en bois exotique incrustée d’ivoire et de zircons','Petite idole en or','Peigne en or en forme de dragon aux yeux de grenat','Bouchon de bouteille ciselé d’or et serti d’améthystes','Dague de cérémonie en électrum, perle noire au pommeau','Broche en argent et or','Statuette en obsidienne avec ornements en or','Masque de guerre en or peint'],
- 2500:['Fine chaîne en or sertie d’une opale de feu','Peinture de maître ancienne','Manteau de soie et de velours brodé de pierres de lune','Bracelet en platine serti d’un saphir','Gant brodé serti d’éclats de joyaux','Bracelet de cheville incrusté de joyaux','Boîte à musique en or','Diadème en or serti de quatre aigues-marines','Cache-œil avec un faux œil en saphir et pierre de lune','Collier de petites perles roses'],
- 7500:['Couronne en or incrustée de joyaux','Anneau en platine incrusté de joyaux','Petite statuette en or sertie de rubis','Coupe en or sertie d’émeraudes','Coffret à bijoux en or filigrané de platine','Sarcophage d’enfant en or peint','Plateau de jeu en jade avec des pièces en or massif','Corne à boire en ivoire incrustée d’or et de joyaux']
-};
-
-const THEMES=[
- {id:'',nom:'Tous les types'},
- {id:'arm',nom:'Armes, armures, munitions',f:t=>/^(Arme|Armure|Munition)$/.test(t)},
- {id:'conso',nom:'Potions et parchemins',f:t=>/^(Potion|Parchemin)/.test(t)},
- {id:'arc',nom:'Anneaux, baguettes, bâtons, sceptres',f:t=>/^(Anneau|Baguette|Bâton|Sceptre)$/.test(t)},
- {id:'merv',nom:'Objets merveilleux',f:t=>t==='Objet merveilleux'}
+const TREASURE_TIERS = [
+  { maxChallenge: 4, label: 'FP 0 à 4', individualCoins: [3, 6, 1, 'po'], hoardGold: [2, 4, 100], magicItemCount: [1, 4, -1], rarityChances: [54, 37, 9, 0, 0], gemValues: [10, 50], artValues: [25] },
+  { maxChallenge: 10, label: 'FP 5 à 10', individualCoins: [2, 8, 10, 'po'], hoardGold: [8, 10, 100], magicItemCount: [1, 3, 0], rarityChances: [30, 51, 17, 2, 0], gemValues: [50, 100, 500], artValues: [25, 250] },
+  { maxChallenge: 16, label: 'FP 11 à 16', individualCoins: [2, 10, 10, 'pp'], hoardGold: [8, 8, 1000], magicItemCount: [1, 4, 0], rarityChances: [11, 23, 36, 23, 7], gemValues: [500, 1000], artValues: [250, 750] },
+  { maxChallenge: 99, label: 'FP 17 et plus', individualCoins: [2, 8, 100, 'pp'], hoardGold: [6, 10, 10000], magicItemCount: [1, 6, 0], rarityChances: [0, 6, 30, 40, 24], gemValues: [1000, 5000], artValues: [2500, 7500] }
 ];
 
-let OBJ=[],SP=[],POOL=null,data={liste:[],cur:null};
-const estMJ=()=>{const c=Persos.current();return !!c&&c.nom.trim().toLowerCase()==='mj'};
-function rar(q){
-  const s=String(q||'').toLowerCase().replace(/^variable \(/,'');
-  if(s.startsWith('peu courant'))return 1;if(s.startsWith('très rare'))return 3;
-  if(s.startsWith('courant'))return 0;if(s.startsWith('rare'))return 2;if(s.startsWith('légendaire'))return 4;
+const GEMS_BY_VALUE = {
+  10: ['Agate rubanée', 'Azurite', 'Hématite', 'Lapis-lazuli', 'Malachite', 'Obsidienne', 'Quartz bleu', 'Rhodochrosite', 'Œil-de-tigre', 'Turquoise'],
+  50: ['Calcédoine', 'Chrysoprase', 'Cornaline', 'Citrine', 'Jaspe', 'Pierre de lune', 'Onyx', 'Quartz étoilé', 'Sardonyx', 'Zircon'],
+  100: ['Ambre', 'Améthyste', 'Chrysobéryl', 'Corail', 'Grenat', 'Jade', 'Jais', 'Perle', 'Spinelle', 'Tourmaline'],
+  500: ['Alexandrite', 'Aigue-marine', 'Perle noire', 'Spinelle bleu', 'Péridot', 'Topaze'],
+  1000: ['Opale noire', 'Saphir bleu', 'Émeraude', 'Opale de feu', 'Opale', 'Rubis étoilé', 'Saphir étoilé', 'Saphir jaune'],
+  5000: ['Saphir noir', 'Diamant', 'Jacinthe', 'Rubis']
+};
+const ART_OBJECTS_BY_VALUE = {
+  25: ['Aiguière en argent', 'Statuette en os sculpté', 'Petit bracelet en or', 'Vêtements de cérémonie brodés de fil d’or', 'Masque de velours noir cousu de fil d’argent', 'Calice en cuivre filigrané d’argent', 'Paire de dés en os gravés', 'Petit miroir dans un cadre en bois peint', 'Mouchoir de soie brodé', 'Médaillon en or contenant un portrait'],
+  250: ['Anneau en or serti de pierres de sang', 'Statuette en ivoire sculpté', 'Grand bracelet en or', 'Collier en argent avec pendentif en pierre précieuse', 'Couronne en bronze', 'Robe de soie brodée de fil d’or', 'Grande tapisserie de belle facture', 'Chope en laiton incrustée de jade', 'Boîte de figurines animales en turquoise', 'Cage à oiseaux en or filigrané d’électrum'],
+  750: ['Calice en argent serti de pierres de lune', 'Épée longue plaquée d’argent, jais sur la poignée', 'Harpe en bois exotique incrustée d’ivoire et de zircons', 'Petite idole en or', 'Peigne en or en forme de dragon aux yeux de grenat', 'Bouchon de bouteille ciselé d’or et serti d’améthystes', 'Dague de cérémonie en électrum, perle noire au pommeau', 'Broche en argent et or', 'Statuette en obsidienne avec ornements en or', 'Masque de guerre en or peint'],
+  2500: ['Fine chaîne en or sertie d’une opale de feu', 'Peinture de maître ancienne', 'Manteau de soie et de velours brodé de pierres de lune', 'Bracelet en platine serti d’un saphir', 'Gant brodé serti d’éclats de joyaux', 'Bracelet de cheville incrusté de joyaux', 'Boîte à musique en or', 'Diadème en or serti de quatre aigues-marines', 'Cache-œil avec un faux œil en saphir et pierre de lune', 'Collier de petites perles roses'],
+  7500: ['Couronne en or incrustée de joyaux', 'Anneau en platine incrusté de joyaux', 'Petite statuette en or sertie de rubis', 'Coupe en or sertie d’émeraudes', 'Coffret à bijoux en or filigrané de platine', 'Sarcophage d’enfant en or peint', 'Plateau de jeu en jade avec des pièces en or massif', 'Corne à boire en ivoire incrustée d’or et de joyaux']
+};
+
+const ITEM_THEMES = [
+  { id: '', name: 'Tous les types' },
+  { id: 'arm', name: 'Armes, armures, munitions', matchesType: type => /^(Arme|Armure|Munition)$/.test(type) },
+  { id: 'conso', name: 'Potions et parchemins', matchesType: type => /^(Potion|Parchemin)/.test(type) },
+  { id: 'arc', name: 'Anneaux, baguettes, bâtons, sceptres', matchesType: type => /^(Anneau|Baguette|Bâton|Sceptre)$/.test(type) },
+  { id: 'merv', name: 'Objets merveilleux', matchesType: type => type === 'Objet merveilleux' }
+];
+
+let magicItems = [];
+let spells = [];
+let magicItemPool = null;
+let loots = { liste: [], cur: null };
+
+const formatNumber = number => number.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+const plural = count => count > 1 ? 's' : '';
+const challengeValue = rating => rating.includes('/') ? 1 / +rating.split('/')[1] : +rating;
+const treasureTier = challenge => TREASURE_TIERS.find(tier => challenge <= tier.maxChallenge);
+const currentLoot = () => loots.liste.find(loot => loot.id === loots.cur);
+
+function randomFraction(scale) {
+  const randomValues = new Uint32Array(1);
+  crypto.getRandomValues(randomValues);
+  return randomValues[0] / 4294967296 * scale;
+}
+
+const randomIntegerBetween = (minimum, maximum) => minimum + Math.floor(randomFraction(maximum - minimum + 1));
+const randomElement = list => list[Math.floor(randomFraction(list.length))];
+
+function rollDice(count, faces) {
+  let total = 0;
+  for (let roll = 0; roll < count; roll++) total += randomIntegerBetween(1, faces);
+  return total;
+}
+
+function rarityIndex(rarityText) {
+  const rarity = String(rarityText || '').toLowerCase().replace(/^variable \(/, '');
+  if (rarity.startsWith('peu courant')) return 1;
+  if (rarity.startsWith('très rare')) return 3;
+  if (rarity.startsWith('courant')) return 0;
+  if (rarity.startsWith('rare')) return 2;
+  if (rarity.startsWith('légendaire')) return 4;
   return null;
 }
-const conso=o=>/^(Potion|Parchemin|Munition)$/.test(o.t)||/consomm/i.test(o.h||'');
-// Réserve des objets magiques par rareté (objets maudits exclus), parchemins de sort compris
-function pool(){
-  if(POOL)return POOL;
-  POOL=[[],[],[],[],[]];
-  OBJ.forEach(o=>{const r=rar(o.q);if(r!=null&&!/maudit/i.test(o.n))POOL[r].push({n:o.n,t:o.t,r,po:PRIX[r]/(conso(o)?2:1),k:'o'})});
-  SP.forEach(s=>{const r=SCR_R[s.l];POOL[r].push({n:'Parchemin de sort : '+s.n.split('|')[0],t:'Parchemin ('+(s.l?'niveau '+s.l:'tour de magie')+')',r,po:s.l<2?SCR_P[s.l]:PRIX[r]/2,k:'s',ref:s.n})});
-  return POOL;
-}
-function rareteAuHasard(T){let x=rnd(100);for(let r=0;r<5;r++){x-=T.rar[r];if(x<0)return r}return 4}
-function objet(r,theme){
-  const P=pool(),f=(THEMES.find(t=>t.id===theme)||{}).f;
-  // Si le thème n'a rien dans cette rareté, on prend n'importe quel objet de la rareté
-  let l=f?P[r].filter(o=>f(o.t)):P[r];if(!l.length)l=P[r];
-  return {...un(l)};
-}
-// Pierres précieuses ou objets d'art pour une valeur donnée : un seul type de pièce par lot, regroupé par nom
-function bijoux(val,vals,LIST){
-  const v=vals.filter(x=>x<=val);if(!v.length)return [];
-  const u=un(v),n=Math.max(1,Math.min(12,Math.round(val/u))),m={};
-  for(let i=0;i<n;i++){const k=un(LIST[u]);m[k]=(m[k]||0)+1}
-  return Object.entries(m).map(([n,q])=>({n,q,po:u}));
-}
-function pieces(po,main){
-  // Répartit une somme en PO entre plusieurs pièces, la plus grosse part dans la pièce principale
-  const c={pc:0,pa:0,po:0,pp:0};
-  if(main==='pp'){c.pp=Math.floor(po*.8/10);po-=c.pp*10}
-  else if(po>=2000){c.pp=Math.floor(po*.25/10);po-=c.pp*10}
-  c.pa=Math.min(Math.floor(po*10*.1),ri(20,300));c.pc=po<200?ri(0,99):0;c.po=Math.max(0,Math.round(po-c.pa/10-c.pc/100));
-  return c;
+
+const isConsumable = item => /^(Potion|Parchemin|Munition)$/.test(item.t) || /consomm/i.test(item.h || '');
+const spellLevelLabel = level => level ? 'niveau ' + level : 'tour de magie';
+
+function buildMagicItemPool() {
+  const pool = [[], [], [], [], []];
+  magicItems.forEach(item => {
+    const rarity = rarityIndex(item.q);
+    if (rarity != null && !/maudit/i.test(item.n)) pool[rarity].push({ n: item.n, t: item.t, r: rarity, po: RARITY_PRICES[rarity] / (isConsumable(item) ? 2 : 1), k: 'o' });
+  });
+  spells.forEach(spell => {
+    const rarity = SCROLL_RARITY_BY_SPELL_LEVEL[spell.l];
+    const price = spell.l < 2 ? LOW_LEVEL_SCROLL_PRICES[spell.l] : RARITY_PRICES[rarity] / 2;
+    pool[rarity].push({ n: 'Parchemin de sort : ' + spell.n.split('|')[0], t: 'Parchemin (' + spellLevelLabel(spell.l) + ')', r: rarity, po: price, k: 's', ref: spell.n });
+  });
+  return pool;
 }
 
-function generer(){
-  if(!OBJ.length)return;
-  const fps=$('#fp').value,fp=fpVal(fps),T=tranche(fp),mode=$('#mode').value,theme=$('#theme').value;
-  const L={id:'l'+Date.now().toString(36),fp:fps,mode,theme,grp:+$('#grp').value||5,pieces:{pc:0,pa:0,po:0,pp:0},gemmes:[],arts:[],objets:[]};
-  if(mode==='ind'){
-    const n=Math.max(1,Math.min(50,+$('#nb').value||1)),[d,f,x,p]=T.ind;
-    for(let i=0;i<n;i++)L.pieces[p]+=dice(d,f)*x;
-    L.nom='Trésor de '+n+' créature'+(n>1?'s':'')+' (FP '+fps+')';
-  }else{
-    const [d,f,x]=T.mag,tot=dice(d,f)*x,part=tot*(.5+rnd(.25));
-    L.pieces=pieces(Math.round(part),T.ind[3]);
-    const reste=tot-part,g=reste*(.4+rnd(.3));
-    L.gemmes=bijoux(g,T.gem,GEMMES);L.arts=bijoux(reste-g,T.art,ARTS);
-    const [od,of,om]=T.obj,no=Math.max(0,dice(od,of)+om);
-    for(let i=0;i<no;i++)L.objets.push(objet(rareteAuHasard(T),theme));
-    L.objets.sort((a,b)=>a.r-b.r||a.n.localeCompare(b.n,'fr'));
-    L.nom='Magot (FP '+fps+')';
+function itemPoolByRarity() {
+  if (!magicItemPool) magicItemPool = buildMagicItemPool();
+  return magicItemPool;
+}
+
+function randomRarity(tier) {
+  let roll = randomFraction(100);
+  for (let rarity = 0; rarity < 5; rarity++) {
+    roll -= tier.rarityChances[rarity];
+    if (roll < 0) return rarity;
   }
-  data.liste.unshift(L);data.liste=data.liste.slice(0,20);data.cur=L.id;
-  Persos.save();render();
-  msg('Butin tiré : '+nb(valeur(L))+' po en tout');
+  return 4;
 }
-const valeurPieces=c=>c.pc/100+c.pa/10+c.po+c.pp*10;
-const valeur=L=>valeurPieces(L.pieces)+L.gemmes.reduce((s,g)=>s+g.q*g.po,0)+L.arts.reduce((s,g)=>s+g.q*g.po,0)+L.objets.reduce((s,o)=>s+o.po,0);
 
-function detail(it){
-  if(it.k==='o'){const o=OBJ.find(x=>x.n===it.n);return o?o.h:''}
-  if(it.k==='s'){const s=SP.find(x=>x.n===it.ref);return s?'<b>'+(s.l?'Niveau '+s.l:'Tour de magie')+', '+esc(s.e)+'.</b> '+s.h:''}
+function randomMagicItem(rarity, themeId) {
+  const itemsOfRarity = itemPoolByRarity()[rarity];
+  const matchesType = (ITEM_THEMES.find(theme => theme.id === themeId) || {}).matchesType;
+  const themedItems = matchesType ? itemsOfRarity.filter(item => matchesType(item.t)) : itemsOfRarity;
+  return { ...randomElement(themedItems.length ? themedItems : itemsOfRarity) };
+}
+
+function randomValuables(totalValue, possibleValues, namesByValue) {
+  const affordableValues = possibleValues.filter(value => value <= totalValue);
+  if (!affordableValues.length) return [];
+  const unitValue = randomElement(affordableValues);
+  const count = Math.max(1, Math.min(MAX_VALUABLES_PER_LOT, Math.round(totalValue / unitValue)));
+  const quantityByName = {};
+  for (let index = 0; index < count; index++) {
+    const name = randomElement(namesByValue[unitValue]);
+    quantityByName[name] = (quantityByName[name] || 0) + 1;
+  }
+  return Object.entries(quantityByName).map(([name, quantity]) => ({ n: name, q: quantity, po: unitValue }));
+}
+
+function splitIntoCoins(goldValue, mainCoin) {
+  const coins = { pc: 0, pa: 0, po: 0, pp: 0 };
+  let remainingGold = goldValue;
+  if (mainCoin === 'pp') coins.pp = Math.floor(remainingGold * 0.8 / 10);
+  else if (remainingGold >= 2000) coins.pp = Math.floor(remainingGold * 0.25 / 10);
+  remainingGold -= coins.pp * 10;
+  coins.pa = Math.min(Math.floor(remainingGold * 10 * 0.1), randomIntegerBetween(20, 300));
+  coins.pc = remainingGold < 200 ? randomIntegerBetween(0, 99) : 0;
+  coins.po = Math.max(0, Math.round(remainingGold - coins.pa / 10 - coins.pc / 100));
+  return coins;
+}
+
+const coinsValue = coins => coins.pc / 100 + coins.pa / 10 + coins.po + coins.pp * 10;
+const valuablesValue = valuables => valuables.reduce((total, valuable) => total + valuable.q * valuable.po, 0);
+const lootValue = loot => coinsValue(loot.pieces) + valuablesValue(loot.gemmes) + valuablesValue(loot.arts) + loot.objets.reduce((total, item) => total + item.po, 0);
+
+function fillIndividualTreasure(loot, tier, challengeRating) {
+  const creatureCount = Math.max(1, Math.min(MAX_INDIVIDUAL_CREATURES, +$('#nb').value || 1));
+  const [diceCount, faces, multiplier, coin] = tier.individualCoins;
+  for (let creature = 0; creature < creatureCount; creature++) loot.pieces[coin] += rollDice(diceCount, faces) * multiplier;
+  loot.nom = 'Trésor de ' + creatureCount + ' créature' + plural(creatureCount) + ' (FP ' + challengeRating + ')';
+}
+
+function fillHoard(loot, tier, challengeRating, themeId) {
+  const [diceCount, faces, multiplier] = tier.hoardGold;
+  const totalGold = rollDice(diceCount, faces) * multiplier;
+  const coinGold = totalGold * (0.5 + randomFraction(0.25));
+  loot.pieces = splitIntoCoins(Math.round(coinGold), tier.individualCoins[3]);
+  const valuablesGold = totalGold - coinGold;
+  const gemGold = valuablesGold * (0.4 + randomFraction(0.3));
+  loot.gemmes = randomValuables(gemGold, tier.gemValues, GEMS_BY_VALUE);
+  loot.arts = randomValuables(valuablesGold - gemGold, tier.artValues, ART_OBJECTS_BY_VALUE);
+  const [itemDiceCount, itemFaces, itemModifier] = tier.magicItemCount;
+  const itemCount = Math.max(0, rollDice(itemDiceCount, itemFaces) + itemModifier);
+  for (let index = 0; index < itemCount; index++) loot.objets.push(randomMagicItem(randomRarity(tier), themeId));
+  loot.objets.sort((first, second) => first.r - second.r || first.n.localeCompare(second.n, 'fr'));
+  loot.nom = 'Magot (FP ' + challengeRating + ')';
+}
+
+function rememberLoot(loot) {
+  loots.liste.unshift(loot);
+  loots.liste = loots.liste.slice(0, MAX_SAVED_LOOTS);
+  loots.cur = loot.id;
+  Persos.save();
+  renderPage();
+}
+
+function generateLoot() {
+  if (!magicItems.length) return;
+  const challengeRating = $('#fp').value;
+  const tier = treasureTier(challengeValue(challengeRating));
+  const mode = $('#mode').value;
+  const themeId = $('#theme').value;
+  const loot = { id: 'l' + Date.now().toString(36), fp: challengeRating, mode, theme: themeId, grp: +$('#grp').value || 5, pieces: { pc: 0, pa: 0, po: 0, pp: 0 }, gemmes: [], arts: [], objets: [] };
+  if (mode === 'ind') fillIndividualTreasure(loot, tier, challengeRating);
+  else fillHoard(loot, tier, challengeRating, themeId);
+  rememberLoot(loot);
+  showMessage('Butin tiré : ' + formatNumber(lootValue(loot)) + ' po en tout');
+}
+
+function itemDetailsHtml(lootItem) {
+  if (lootItem.k === 'o') {
+    const item = magicItems.find(candidate => candidate.n === lootItem.n);
+    return item ? item.h : '';
+  }
+  if (lootItem.k === 's') {
+    const spell = spells.find(candidate => candidate.n === lootItem.ref);
+    return spell ? '<b>' + (spell.l ? 'Niveau ' + spell.l : 'Tour de magie') + ', ' + escapeHtml(spell.e) + '.</b> ' + spell.h : '';
+  }
   return '';
 }
-function render(){
-  const mj=estMJ();
-  $('#lock').hidden=mj;$('#mj').hidden=!mj;$('#bPrint').hidden=!mj;
-  if(!mj)return;
-  $('#saved').innerHTML=data.liste.length?'<span>Butins enregistrés :</span>'+data.liste.map(s=>`<span class="sv" aria-current="${s.id===data.cur}"><button type="button" data-open="${s.id}">${esc(s.nom)}</button><button type="button" class="x" data-del="${s.id}" aria-label="Supprimer ${esc(s.nom)}" title="Supprimer">×</button></span>`).join(''):'';
-  const L=data.liste.find(x=>x.id===data.cur);
-  if(!L){$('#loot').innerHTML='<section class="panel empty">Choisis le FP et le type de trésor, puis touche « Tirer le butin ».</section>';return}
-  const v=valeur(L),c=L.pieces,T=tranche(fpVal(L.fp));
-  const coins=[['pp','platine'],['po','or'],['pa','argent'],['pc','cuivre']].filter(([k])=>c[k]).map(([k,n])=>`<span class="coin"><b>${nb(c[k])}</b> ${k} <small>(${n})</small></span>`).join('');
-  const lot=(l,cls,t)=>l.map(g=>`<div class="it plain ${cls}"><summary><span class="nm">${g.q>1?g.q+' × ':''}${esc(g.n)}<small>${t} · ${nb(g.po)} po pièce</small></span><span class="pr">${nb(g.q*g.po)} po</span></summary></div>`).join('');
-  $('#loot').innerHTML=`<section class="panel loot"><div class="lhead"><input id="lnom" value="${esc(L.nom)}" aria-label="Nom du butin"><small>${esc(T.t)} · ${L.mode==='ind'?'trésor individuel':'magot'}</small></div>
-<div class="tot"><span>Valeur totale : <b>${nb(Math.round(v))} po</b></span><span>Part de chacun (${L.grp} aventurier${L.grp>1?'s':''}) : <b>${nb(Math.floor(v/L.grp))} po</b></span></div>
-${coins?`<div class="sec rc"><h2>Pièces</h2><div class="coins">${coins}</div></div>`:''}
-${L.gemmes.length?`<div class="sec rg"><h2>Pierres précieuses</h2>${lot(L.gemmes,'rg','Pierre précieuse')}</div>`:''}
-${L.arts.length?`<div class="sec ra"><h2>Objets d’art</h2>${lot(L.arts,'ra','Objet d’art')}</div>`:''}
-${L.objets.length?`<div class="sec r3"><h2>Objets magiques</h2>${L.objets.map((it,i)=>{const h=detail(it);return `<details class="it r${it.r}"><summary><span class="nm">${esc(it.n)}<small>${esc(it.t)} · ${RN[it.r]}</small></span><span class="pr">${nb(it.po)} po</span><button type="button" class="rr" data-i="${i}" title="Tirer un autre objet de même rareté">↻ Autre</button></summary>${h?'<div class="h">'+h+'</div>':''}</details>`}).join('')}</div>`:(L.mode==='mag'?'<p class="empty">Pas d’objet magique dans ce magot.</p>':'')}
+
+function savedLootsHtml() {
+  if (!loots.liste.length) return '';
+  return '<span>Butins enregistrés :</span>' + loots.liste.map(loot => `<span class="sv" aria-current="${loot.id === loots.cur}"><button type="button" data-open="${loot.id}">${escapeHtml(loot.nom)}</button><button type="button" class="x" data-del="${loot.id}" aria-label="Supprimer ${escapeHtml(loot.nom)}" title="Supprimer">×</button></span>`).join('');
+}
+
+function coinsHtml(coins) {
+  return COIN_NAMES.filter(([coin]) => coins[coin]).map(([coin, metal]) => `<span class="coin"><b>${formatNumber(coins[coin])}</b> ${coin} <small>(${metal})</small></span>`).join('');
+}
+
+function valuablesHtml(valuables, cssClass, label) {
+  return valuables.map(valuable => `<div class="it plain ${cssClass}"><summary><span class="nm">${valuable.q > 1 ? valuable.q + ' × ' : ''}${escapeHtml(valuable.n)}<small>${label} · ${formatNumber(valuable.po)} po pièce</small></span><span class="pr">${formatNumber(valuable.q * valuable.po)} po</span></summary></div>`).join('');
+}
+
+function valuablesSectionHtml(valuables, cssClass, title, label) {
+  return valuables.length ? `<div class="sec ${cssClass}"><h2>${title}</h2>${valuablesHtml(valuables, cssClass, label)}</div>` : '';
+}
+
+function magicItemHtml(item, index) {
+  const details = itemDetailsHtml(item);
+  return `<details class="it r${item.r}"><summary><span class="nm">${escapeHtml(item.n)}<small>${escapeHtml(item.t)} · ${RARITY_NAMES[item.r]}</small></span><span class="pr">${formatNumber(item.po)} po</span><button type="button" class="rr" data-i="${index}" title="Tirer un autre objet de même rareté">↻ Autre</button></summary>${details ? '<div class="h">' + details + '</div>' : ''}</details>`;
+}
+
+function magicItemsSectionHtml(loot) {
+  if (loot.objets.length) return `<div class="sec r3"><h2>Objets magiques</h2>${loot.objets.map(magicItemHtml).join('')}</div>`;
+  return loot.mode === 'mag' ? '<p class="empty">Pas d’objet magique dans ce magot.</p>' : '';
+}
+
+function lootHtml(loot) {
+  const value = lootValue(loot);
+  const tier = treasureTier(challengeValue(loot.fp));
+  const coins = coinsHtml(loot.pieces);
+  return `<section class="panel loot"><div class="lhead"><input id="lnom" value="${escapeHtml(loot.nom)}" aria-label="Nom du butin"><small>${escapeHtml(tier.label)} · ${loot.mode === 'ind' ? 'trésor individuel' : 'magot'}</small></div>
+<div class="tot"><span>Valeur totale : <b>${formatNumber(Math.round(value))} po</b></span><span>Part de chacun (${loot.grp} aventurier${plural(loot.grp)}) : <b>${formatNumber(Math.floor(value / loot.grp))} po</b></span></div>
+${coins ? `<div class="sec rc"><h2>Pièces</h2><div class="coins">${coins}</div></div>` : ''}
+${valuablesSectionHtml(loot.gemmes, 'rg', 'Pierres précieuses', 'Pierre précieuse')}
+${valuablesSectionHtml(loot.arts, 'ra', 'Objets d’art', 'Objet d’art')}
+${magicItemsSectionHtml(loot)}
 </section>`;
 }
-function desc(){
-  const fps=$('#fp').value,T=tranche(fpVal(fps)),ind=$('#mode').value==='ind',[d,f,x,p]=T.ind,[md,mf,mx]=T.mag,[od,of,om]=T.obj;
-  $('#lnb').hidden=!ind;
-  $('#tdesc').textContent=T.t+' : '+(ind
-    ?d+'d'+f+(x>1?' × '+nb(x):'')+' '+p+' par créature.'
-    :md+'d'+mf+' × '+nb(mx)+' po en pièces, pierres précieuses et objets d’art, et '+od+'d'+of+(om?' − '+(-om):'')+' objets magiques ('+T.rar.map((n,r)=>n?n+' % '+RN[r].toLowerCase():'').filter(Boolean).join(', ')+').');
+
+function renderPage() {
+  const isGameMaster = isGameMasterActive();
+  $('#lock').hidden = isGameMaster;
+  $('#mj').hidden = !isGameMaster;
+  $('#bPrint').hidden = !isGameMaster;
+  if (!isGameMaster) return;
+  $('#saved').innerHTML = savedLootsHtml();
+  const loot = currentLoot();
+  $('#loot').innerHTML = loot ? lootHtml(loot) : '<section class="panel empty">Choisis le FP et le type de trésor, puis touche « Tirer le butin ».</section>';
 }
 
-$('#fp').innerHTML=FPS.map(f=>`<option${f==='3'?' selected':''}>${f}</option>`).join('');
-$('#theme').innerHTML=THEMES.map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('');
-$('#fp').onchange=$('#mode').onchange=desc;desc();
-$('#bGen').onclick=generer;
-$('#saved').addEventListener('click',e=>{
-  const o=e.target.closest('[data-open]'),d=e.target.closest('[data-del]');
-  if(o){data.cur=o.dataset.open;Persos.save();render()}
-  if(d){const s=data.liste.find(x=>x.id===d.dataset.del);if(!s||!confirm('Supprimer « '+s.nom+' » ?'))return;
-    data.liste=data.liste.filter(x=>x!==s);if(data.cur===s.id)data.cur=data.liste[0]&&data.liste[0].id||null;Persos.save();render();msg('« '+s.nom+' » supprimé')}
-});
-$('#loot').addEventListener('click',e=>{
-  const b=e.target.closest('.rr');if(!b)return;e.preventDefault();
-  const L=data.liste.find(x=>x.id===data.cur);if(!L)return;
-  const old=L.objets[+b.dataset.i];if(!old)return;
-  L.objets[+b.dataset.i]=objet(old.r,L.theme);Persos.save();render();
-  const nb2=$(`#loot .rr[data-i="${b.dataset.i}"]`);if(nb2)nb2.focus();
-});
-$('#loot').addEventListener('input',e=>{if(e.target.id!=='lnom')return;const L=data.liste.find(x=>x.id===data.cur);if(L){L.nom=e.target.value;Persos.save()}});
-$('#loot').addEventListener('change',e=>{if(e.target.id==='lnom')render()});
-$('#bPrint').onclick=()=>window.print();
+function individualTreasureDescription(tier) {
+  const [diceCount, faces, multiplier, coin] = tier.individualCoins;
+  return diceCount + 'd' + faces + (multiplier > 1 ? ' × ' + formatNumber(multiplier) : '') + ' ' + coin + ' par créature.';
+}
 
-Persos.init({part:'butin',mount:$('#persos'),msg,
-  collect:()=>({version:1,type:'butin-dnd-5e',data}),
-  apply:o=>{const d=o&&o.data;data=d&&Array.isArray(d.liste)?{liste:d.liste,cur:d.cur}:{liste:[],cur:null};render()},
-  onName:render});
-Promise.all(['assets/json/vf/objets.json','assets/json/vf/spells.json'].map(f=>fetch(f).then(r=>r.json()))).then(([o,s])=>{OBJ=o;SP=s;POOL=null;render()})
-  .catch(()=>{$('#loot').innerHTML='<section class="panel empty">Impossible de charger les objets.</section>'});
+function hoardDescription(tier) {
+  const [diceCount, faces, multiplier] = tier.hoardGold;
+  const [itemDiceCount, itemFaces, itemModifier] = tier.magicItemCount;
+  const rarityOdds = tier.rarityChances.map((chance, rarity) => chance ? chance + ' % ' + RARITY_NAMES[rarity].toLowerCase() : '').filter(Boolean).join(', ');
+  return diceCount + 'd' + faces + ' × ' + formatNumber(multiplier) + ' po en pièces, pierres précieuses et objets d’art, et ' + itemDiceCount + 'd' + itemFaces + (itemModifier ? ' − ' + (-itemModifier) : '') + ' objets magiques (' + rarityOdds + ').';
+}
+
+function describeTreasure() {
+  const tier = treasureTier(challengeValue($('#fp').value));
+  const isIndividual = $('#mode').value === 'ind';
+  $('#lnb').hidden = !isIndividual;
+  $('#tdesc').textContent = tier.label + ' : ' + (isIndividual ? individualTreasureDescription(tier) : hoardDescription(tier));
+}
+
+function openLoot(id) {
+  loots.cur = id;
+  Persos.save();
+  renderPage();
+}
+
+function deleteLoot(id) {
+  const loot = loots.liste.find(candidate => candidate.id === id);
+  if (!loot || !confirm('Supprimer « ' + loot.nom + ' » ?')) return;
+  loots.liste = loots.liste.filter(candidate => candidate !== loot);
+  if (loots.cur === loot.id) loots.cur = loots.liste[0] && loots.liste[0].id || null;
+  Persos.save();
+  renderPage();
+  showMessage('« ' + loot.nom + ' » supprimé');
+}
+
+function handleSavedLootsClick(event) {
+  const openButton = event.target.closest('[data-open]');
+  const deleteButton = event.target.closest('[data-del]');
+  if (openButton) openLoot(openButton.dataset.open);
+  if (deleteButton) deleteLoot(deleteButton.dataset.del);
+}
+
+function rerollMagicItem(event) {
+  const button = event.target.closest('.rr');
+  if (!button) return;
+  event.preventDefault();
+  const loot = currentLoot();
+  if (!loot) return;
+  const index = +button.dataset.i;
+  const previousItem = loot.objets[index];
+  if (!previousItem) return;
+  loot.objets[index] = randomMagicItem(previousItem.r, loot.theme);
+  Persos.save();
+  renderPage();
+  const newButton = $(`#loot .rr[data-i="${button.dataset.i}"]`);
+  if (newButton) newButton.focus();
+}
+
+function renameCurrentLoot(event) {
+  if (event.target.id !== 'lnom') return;
+  const loot = currentLoot();
+  if (!loot) return;
+  loot.nom = event.target.value;
+  Persos.save();
+}
+
+function applySavedLoots(saved) {
+  const savedLoots = saved && saved.data;
+  loots = savedLoots && Array.isArray(savedLoots.liste) ? { liste: savedLoots.liste, cur: savedLoots.cur } : { liste: [], cur: null };
+  renderPage();
+}
+
+async function loadCatalogs() {
+  try {
+    [magicItems, spells] = await Promise.all(['assets/json/vf/objets.json', 'assets/json/vf/spells.json'].map(fetchJson));
+    magicItemPool = null;
+    renderPage();
+  } catch (error) {
+    $('#loot').innerHTML = '<section class="panel empty">Impossible de charger les objets.</section>';
+  }
+}
+
+$('#fp').innerHTML = CHALLENGE_RATINGS.map(rating => `<option${rating === '3' ? ' selected' : ''}>${rating}</option>`).join('');
+$('#theme').innerHTML = ITEM_THEMES.map(theme => `<option value="${theme.id}">${escapeHtml(theme.name)}</option>`).join('');
+$('#fp').onchange = $('#mode').onchange = describeTreasure;
+describeTreasure();
+$('#bGen').onclick = generateLoot;
+$('#saved').addEventListener('click', handleSavedLootsClick);
+$('#loot').addEventListener('click', rerollMagicItem);
+$('#loot').addEventListener('input', renameCurrentLoot);
+$('#loot').addEventListener('change', event => { if (event.target.id === 'lnom') renderPage(); });
+$('#bPrint').onclick = () => window.print();
+
+Persos.init({ part: 'butin', mount: $('#persos'), msg: showMessage, collect: () => ({ version: 1, type: 'butin-dnd-5e', data: loots }), apply: applySavedLoots, onName: renderPage });
+loadCatalogs();

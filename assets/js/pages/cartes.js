@@ -1,219 +1,262 @@
-// Chaque carte : [nom, nom anglais, effet (B bénéfique, N néfaste, M mitigé), texte, dans le jeu de 13 cartes]
-const DECKS=[
-{id:'dmt2014',titre:'Cartes merveilleuses (2014)',en:'Deck of Many Things',src:'SRD 5.1 (Guide du Maître 2014)',c:'#7a4fc4',
- resume:'Objet merveilleux légendaire : 13 ou 22 cartes.',
- regles:`<p><b>Objet merveilleux, légendaire.</b> Ce jeu de cartes finement illustré est rangé dans une boîte. Environ 75 % des jeux comptent 13 cartes ; les autres en comptent 22.</p>
-<ul><li>Avant de tirer, vous annoncez le nombre de cartes que vous tirez. Les cartes tirées au-delà de ce nombre n’ont aucun effet.</li>
-<li>Chaque tirage doit avoir lieu dans l’heure qui suit le précédent ; sinon, les cartes restantes s’envolent du jeu et prennent effet toutes en même temps.</li>
-<li>L’effet d’une carte s’applique dès qu’elle est tirée. La carte s’estompe puis revient dans le jeu et peut être tirée de nouveau, sauf le Fou et le Bouffon, qui disparaissent après avoir été tirés.</li></ul>`,
- cartes:[
- ['Balance','Balance','N',"Votre esprit est bouleversé et votre alignement change radicalement : loyal devient chaotique et inversement, bon devient mauvais et inversement. Les neutres stricts ne sont pas affectés.",0],
- ['Bouffon','Jester','B',"Vous gagnez 10 000 PX, ou vous pouvez tirer deux cartes en plus des tirages annoncés.",1],
- ['Chevalier','Knight','B',"Un guerrier humain de niveau 4 vous jure fidélité et vous suit jusqu’à la mort ; le joueur le contrôle.",1],
- ['Clé','Key','B',"Une arme magique rare ou plus rare, que vous maîtrisez et choisie par le MD, apparaît dans vos mains.",1],
- ['Comète','Comet','B',"Si vous venez seul à bout de la prochaine créature ou du prochain groupe de créatures hostiles que vous rencontrez, vous gagnez assez de PX pour passer un niveau. Sinon, aucun effet.",0],
- ['Crâne','Skull','N',"Vous invoquez un avatar de la Mort, un squelette fantomatique en robe noire, que vous devez vaincre seul. Les créatures qui vous aident sont tuées par l’avatar. S’il est détruit, l’effet prend fin.",1],
- ['Destins','Fates','B',"La réalité se défait et se retisse : vous pouvez éviter ou effacer un événement comme s’il ne s’était jamais produit, dès le tirage ou à tout moment avant votre mort.",0],
- ['Donjon','Donjon','N',"Vous disparaissez, emprisonné dans un espace extradimensionnel jusqu’à ce qu’on vous libère. Aucune divination ne vous localise, mais <i>souhait</i> révèle votre prison. Vous ne tirez plus de cartes.",0],
- ['Étoile','Star','B',"Augmentez une caractéristique de votre choix de 2, jusqu’à un maximum de 24.",1],
- ['Euryale','Euryale','N',"Le visage de la méduse vous maudit : malus de −2 à tous les jets de sauvegarde. Seul un dieu ou la carte des Destins peut lever la malédiction.",1],
- ['Flammes','Flames','N',"Un diable puissant devient votre ennemi : il cherche votre perte, détruit vos biens, tue vos alliés, jusqu’à ce que l’un de vous deux meure.",1],
- ['Fou','Fool','N',"Vous perdez 10 000 PX, défaussez la carte et tirez de nouveau ; les deux tirages ne comptent que pour un. Si la perte de PX vous fait perdre un niveau, vous le perdez.",0],
- ['Gemme','Gem','B',"25 bijoux de 2 000 po chacun ou 50 gemmes de 1 000 po chacune apparaissent à vos pieds.",0],
- ['Idiot','Idiot','N',"Votre Intelligence diminue définitivement de 1d4 + 1 (minimum 1). Vous pouvez tirer une carte de plus que le nombre annoncé.",0],
- ['Lune','Moon','B',"Vous pouvez lancer le sort <i>souhait</i> 1d3 fois.",1],
- ['Néant','Void','N',"Votre âme est arrachée de votre corps et enfermée dans un objet, en un lieu choisi par le MD et gardé par de puissantes entités. Seul un <i>souhait</i> peut la ramener. Votre corps est inerte et ne tire plus de cartes.",1],
- ['Ruine','Ruin','N',"Toute votre richesse non magique (argent, biens, terres) vous est enlevée. Les objets magiques ne sont pas affectés.",1],
- ['Serres','Talons','N',"Tous les objets magiques que vous portez ou transportez se désintègrent. Les artefacts ne sont pas détruits mais disparaissent.",0],
- ['Soleil','Sun','B',"Vous gagnez 50 000 PX et un objet merveilleux choisi par le MD apparaît dans vos mains.",1],
- ['Trône','Throne','B',"Vous gagnez la maîtrise de la Persuasion et doublez votre bonus de maîtrise aux tests qui l’utilisent. Vous devenez aussi propriétaire d’une petite forteresse, occupée par des monstres qu’il faut déloger.",1],
- ['Vizir','Vizier','B',"À tout moment dans l’année qui suit, vous pouvez poser une question en méditant et recevoir mentalement une réponse véridique, avec la sagesse pour résoudre votre problème.",0],
- ['Voleur','Rogue','N',"Un PNJ choisi par le MD devient hostile envers vous ; vous ignorez qui jusqu’à ce qu’il se révèle. Seul un <i>souhait</i> ou une intervention divine peut mettre fin à cette hostilité.",1]
- ]},
-{id:'tarot2024',titre:'Cartes merveilleuses (2024)',en:'Deck of Many Things (2024)',src:'Guide du Maître 2024 (résumé)',c:'#2f6fd0',
- resume:'Version 2024 : mêmes cartes, effets revus.',
- regles:`<p><b>Objet merveilleux, légendaire.</b> Version du Guide du Maître 2024. Les cartes sont en ivoire ou en vélin. Environ 75 % des jeux comptent 13 cartes ; les autres en comptent 22. Deux cartes changent de nom (Énigme remplace l’Idiot, Sage remplace le Vizir) et beaucoup d’effets changent : plus de PX, mais des avantages, désavantages et points de vie temporaires.</p>
-<ul><li>Vous annoncez d’abord combien de cartes vous tirez ; celles tirées au-delà n’ont aucun effet.</li>
-<li>Au plus une heure entre deux tirages ; si vous vous arrêtez avant, les cartes restantes s’envolent et prennent effet aussitôt.</li>
-<li>Une carte tirée disparaît puis revient dans le jeu, sauf le Fou et le Bouffon, qui quittent le jeu.</li></ul>`,
- cartes:[
- ['Balance','Balance','M',"Augmentez une caractéristique de 2 (maximum 22) et diminuez-en une autre de 2 ; une caractéristique de 5 ou moins ne peut pas être diminuée. Vous pouvez aussi ne rien changer.",0],
- ['Bouffon','Jester','B',"Avantage aux tests de d20 pendant 72 heures, ou deux cartes de plus à tirer en plus du nombre annoncé.",1],
- ['Chevalier','Knight','B',"Un chevalier de votre alignement apparaît à 9 m ou moins et vous sert loyalement jusqu’à sa mort. Vous définissez son nom et son histoire avec le MD.",1],
- ['Clé','Key','B',"Une arme magique rare ou plus rare, que vous maîtrisez et choisie par le MD, apparaît dans vos mains.",1],
- ['Comète','Comet','B',"Au prochain combat contre des créatures hostiles, désignez un ennemi en lançant l’Initiative. Si vous le réduisez à 0 PV, vous avez l’avantage aux jets de sauvegarde contre la mort pendant 1 an. Sinon, aucun effet.",0],
- ['Crâne','Skull','N',"Un avatar de la Mort apparaît et n’attaque que vous ; il disparaît à 0 PV ou à votre mort. Un allié qui le blesse en invoque un second, qui ne vise que lui. Une créature tuée par un avatar ne peut pas être ramenée à la vie.",1],
- ['Donjon','Donjon','N',"Vous êtes enfermé en animation suspendue dans une sphère extradimensionnelle ; vos affaires disparaissent (sauf les artefacts). Aucune divination ne vous trouve, mais <i>souhait</i> révèle la sphère. Vous ne tirez plus de cartes.",0],
- ['Énigme','Puzzle','N',"Votre Intelligence ou votre Sagesse diminue définitivement de 1d4 + 1 (minimum 1). Vous pouvez tirer une carte de plus que le nombre annoncé.",0],
- ['Étoile','Star','B',"Augmentez une caractéristique de 2, jusqu’à un maximum de 24.",1],
- ['Euryale','Euryale','N',"Une malédiction vous inflige un malus de −2 aux jets de sauvegarde. Seul un dieu ou la carte des Destins peut la lever.",1],
- ['Flammes','Flames','N',"Un diable puissant devient votre ennemi : il vous tourmente puis cherche à vous tuer, jusqu’à la mort de l’un de vous deux.",1],
- ['Fou','Fool','N',"Désavantage aux tests de d20 pendant 72 heures. Tirez une autre carte, qui ne compte pas dans le nombre annoncé.",0],
- ['Gemme','Gem','B',"25 bijoux de 2 000 po chacun ou 50 pierres précieuses de 1 000 po chacune apparaissent à vos pieds.",0],
- ['Lune','Moon','B',"Vous pouvez lancer le sort <i>souhait</i> 1d3 fois.",1],
- ['Néant','Void','N',"Votre âme est enfermée dans un objet, en un lieu choisi par le MD et gardé par de puissantes entités. Votre corps inerte ne vieillit plus. <i>Souhait</i> révèle où est l’objet mais ne réunit pas corps et âme. Vous ne tirez plus de cartes.",1],
- ['Destins','Fates','B',"La réalité se réécrit : vous pouvez éviter ou effacer un événement comme s’il ne s’était jamais produit, dès le tirage ou à tout moment avant votre mort.",0],
- ['Ruine','Ruin','N',"Toute votre richesse non magique disparaît : argent, biens, commerces, bâtiments et terres, ainsi que les titres de propriété.",1],
- ['Serres','Talons','N',"Chaque objet magique que vous portez ou transportez se désintègre. Les artefacts disparaissent simplement.",0],
- ['Soleil','Sun','B',"Un objet magique choisi par le MD apparaît sur vous. Chaque matin à l’aube, vous recevez 10 points de vie temporaires, et ce jusqu’à votre mort.",1],
- ['Voleur','Rogue','N',"Un PNJ choisi par le MD devient hostile envers vous ; vous ignorez qui jusqu’à ce qu’il se révèle. Seul <i>souhait</i> ou une intervention divine peut y mettre fin.",1],
- ['Trône','Throne','B',"Maîtrise et expertise dans une compétence au choix : Histoire, Intimidation, Intuition ou Persuasion. Vous devenez aussi propriétaire d’une petite forteresse, occupée par des monstres qu’il faut déloger.",1],
- ['Sage','Sage','B',"À tout moment dans l’année qui suit, vous pouvez poser une question en méditant et recevoir mentalement une réponse exacte.",0]
- ]},
-{id:'more',titre:'Cartes merveilleuses supplémentaires',en:'Deck of Many More Things',src:'The Book of Many Things, 2023 (résumé)',c:'#c8402f',
- resume:'Les 44 nouvelles cartes et les 22 du jeu de base : 66 cartes.',
- regles:`<p><b>Objet merveilleux, légendaire.</b> Le <i>Book of Many Things</i> (2023, non traduit) ajoute 44 cartes au jeu de 22 cartes. Le jeu complet compte 66 cartes, toutes listées ci-dessous : les 44 nouvelles et les 22 du jeu de base (marquées « Jeu de base », avec leurs effets de la version 2024). Mêmes règles de tirage : annoncer le nombre de cartes, au plus une heure entre deux tirages, une carte tirée revient dans le jeu (sauf le Fou et le Bouffon).</p>
-<p>Les noms français des nouvelles cartes sont des traductions maison (nom anglais à côté).</p>`,
- cartes:[
- ['Aberration','Aberration','B',"Vous obtenez la télépathie à 27 m de portée.",0],
- ['Anneau','Ring','B',"Un anneau magique rare ou plus rare, choisi par le MD, apparaît à votre doigt ; vous vous y harmonisez aussitôt si vous avez une place libre.",0],
- ['Arbre','Tree','M',"Votre peau devient écorce : sans armure, votre CA de base est 15 + modificateur de Dextérité, mais vous êtes vulnérable au feu. Seuls <i>souhait</i> ou une intervention divine l’annulent.",0],
- ['Créature artificielle','Construct','B',"Un homoncule apparaît près de vous et vous considère comme son créateur.",0],
- ['Bâton','Staff','B',"Un sceptre, un bâton ou une baguette magique rare ou plus rare, choisi par le MD, apparaît dans vos mains.",0],
- ['Bête','Beast','N',"Vous êtes métamorphosé en une bête aléatoire de FP 5 ou moins pendant 2d12 jours. Votre équipement porté se fond dans votre forme ; les objets magiques transportés tombent à terre. Seul <i>souhait</i> y met fin plus tôt.",0],
- ['Bouclier','Shield','B',"Une armure magique rare ou plus rare que vous maîtrisez, choisie par le MD, apparaît dans vos mains. Si vous ne maîtrisez aucune armure, votre CA sans armure devient 12 + modificateur de Dextérité.",0],
- ['Cadavre','Corpse','N',"Vous tombez à 0 PV, inconscient, et faites des jets de sauvegarde contre la mort ; aucun soin ne fonctionne tant que vous n’êtes pas stabilisé. Si vous mourez, seul <i>souhait</i> peut vous ramener.",0],
- ['Carrefour','Crossroads','M',"Lancez un d20 : sur un résultat pair, vous vieillissez de 1d10 ans ; sur un impair, vous rajeunissez de 1d10 ans (minimum 1 an). Seuls <i>souhait</i>, une intervention divine ou une magie similaire l’annulent.",0],
- ['Caverne','Cavern','B',"Vous obtenez une vitesse d’escalade égale à votre vitesse au sol et pouvez vous déplacer sur les murs et les plafonds en gardant les mains libres.",0],
- ['Céleste','Celestial','B',"Des ailes de plumes lumineuses vous poussent : vitesse de vol de 9 m.",0],
- ['Chemin','Path','B',"Votre vitesse au sol augmente de 3 m.",0],
- ['Dragon','Dragon','B',"Un œuf de dragon apparaît et éclot en un dragonnet (type choisi par le MD), loyal envers vous et vos alliés.",0],
- ['Élémentaire','Elemental','B',"Vous obtenez l’immunité à un type de dégâts au choix : acide, feu, foudre, froid ou tonnerre.",0],
- ['Escalier','Stairway','M',"Au choix : réduisez de 2 le nombre de cartes annoncé, ou recevez un objet merveilleux rare ou plus rare choisi par le MD.",0],
- ['Expert','Expert','B',"Votre Dextérité augmente de 2 (maximum 22).",0],
- ['Fée','Fey','M',"Vous êtes entraîné dans la Féerie par un passage. Vous ne tirez plus de cartes.",0],
- ['Feu de camp','Campfire','B',"Vous bénéficiez immédiatement des effets d’un repos long.",0],
- ['Fiélon','Fiend','M',"Un fiélon puissant vous propose un marché, en général une récompense matérielle contre une tâche. Il tient parole mais peut jouer sur les mots. Attaqué ou éconduit, il retourne sur son plan.",0],
- ['Fosse','Pit','N',"Une fosse s’ouvre sous vos pieds : vous chutez de 3d6 × 3 m, subissez les dégâts de chute et tombez à terre.",0],
- ['Géant','Giant','B',"Vous grandissez de 2d10 × 2,5 cm, et votre maximum de points de vie et vos points de vie actuels augmentent de 20.",0],
- ['Guerrier','Warrior','B',"Votre Force augmente de 2 (maximum 22).",0],
- ['Humanoïde','Humanoid','M',"Vous pouvez arrêter de tirer immédiatement, quel que soit le nombre de cartes annoncé.",0],
- ['Labyrinthe','Maze','N',"Vous subissez 1d3 niveaux d’épuisement.",0],
- ['Lance','Lance','B',"Toutes vos caractéristiques augmentent de 1 (maximum 20).",0],
- ['Livre','Book','B',"Vous apprenez à parler, lire et écrire 1d6 + 2 langues de votre choix.",0],
- ['Mage','Mage','B',"Votre Intelligence augmente de 2 (maximum 22).",0],
- ['Mine','Mine','B',"Des richesses apparaissent à vos pieds : 2d6 gemmes de 5 000 po chacune et 1d10 morceaux de minerai de 2 500 po chacun.",0],
- ['Monstruosité','Monstrosity','N',"Une monstruosité hostile de taille G ou plus et de FP 10 ou moins (choisie par le MD) apparaît et vous attaque. Elle disparaît quand elle meurt ou quand vous tombez à 0 PV. Aucun effet s’il n’y a pas la place.",0],
- ['Mort-vivant','Undead','N',"Un revenant se lève quelque part sur le plan matériel et vous traque pour se venger, jusqu’à ce qu’un an passe, qu’il vous tue ou qu’un <i>souhait</i> le bannisse.",0],
- ['Navire','Ship','B',"Vous gagnez la maîtrise de trois compétences choisies par le MD.",0],
- ['Plan','Map','B',"Une fois dans l’année qui suit, nommez mentalement un objet ou une personne que vous connaissez : vous apprenez où il se trouve et à quelle distance, même sur un autre plan, ainsi que son état.",0],
- ['Plante','Plant','B',"Vous pouvez lancer <i>communication avec les plantes</i> sans emplacement une fois par repos long, ou avec un emplacement de niveau 3 ou plus (caractéristique au choix : Intelligence, Sagesse ou Charisme).",0],
- ['Pont','Bridge','B',"Vous pouvez lancer le sort <i>arrêt du temps</i> 1d3 fois (Intelligence, Sagesse ou Charisme au choix).",0],
- ['Porte','Door','B',"Vous pouvez lancer le sort <i>portail</i> 1d4 fois, sans composante matérielle.",0],
- ['Prêtre','Priest','B',"Votre Sagesse augmente de 2 (maximum 22).",0],
- ['Prisonnier','Prisoner','N',"Des chaînes magiques vous entravent : impossible de lancer des sorts, et les propriétés de vos objets sont réprimées. Vous ne tirez plus de cartes. Un sort de <i>désintégration</i> vous libère, ou une créature qui réussit un test de Dextérité DD 30 avec des outils de voleur.",0],
- ['Puits','Well','B',"Vous apprenez trois sorts mineurs de votre choix, pris dans n’importe quelle liste.",0],
- ['Statue','Statue','N',"Vous êtes pétrifié jusqu’à ce qu’une <i>restauration supérieure</i> ou une magie similaire vous libère.",0],
- ['Taverne','Tavern','B',"Votre Charisme augmente de 2 (maximum 22).",0],
- ['Temple','Temple','B',"Une entité de puissance divine se lie à vous. Une fois, vous pouvez utiliser une action pour demander son intervention (effet décidé par le MD). Si vous mourez sans l’avoir utilisée, elle vous rend la vie par <i>résurrection</i>.",0],
- ['Tombeau','Tomb','B',"Une fois dans l’année qui suit, vous pouvez lancer <i>résurrection suprême</i> sans emplacement ni composante matérielle.",0],
- ['Tour','Tower','M',"Tirez deux cartes de plus : gardez-en une, qui prend effet aussitôt, et remettez l’autre dans le jeu.",0],
- ['Vase','Ooze','N',"Un cube gélatineux hostile apparaît dans votre espace et vous engloutit jusqu’à ce qu’il soit détruit. Aucun effet s’il n’y a pas la place.",0]
- ]}
-];
-DECKS[1].cartes.sort((a,b)=>a[0].localeCompare(b[0],'fr'));
-// Le jeu de 66 cartes contient aussi les 22 cartes du jeu de base (effets 2024)
-DECKS[2].cartes=[...DECKS[2].cartes,...DECKS[1].cartes.map(c=>[c[0],c[1],c[2],c[3],0,1])].sort((a,b)=>a[0].localeCompare(b[0],'fr'));
-// Anciens noms de cartes, pour les tirages déjà enregistrés
-const OLD={Clef:'Clé',Parques:'Destins','Traître':'Voleur',Vizir:'Sage',Artificiel:'Créature artificielle'};
-const K={B:'Bénéfique',N:'Néfaste',M:'Mitigée'};
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/<[^>]+>/g,'').toLowerCase();
-let deck=DECKS[0].id,kind='';
-try{const d=localStorage.getItem('cartes_deck');if(DECKS.some(x=>x.id===d))deck=d}catch(e){}
+const RENAMED_CARDS = { Clef: 'Clé', Parques: 'Destins', 'Traître': 'Voleur', Vizir: 'Sage', Artificiel: 'Créature artificielle' };
+const EFFECT_LABELS = { B: 'Bénéfique', N: 'Néfaste', M: 'Mitigée' };
+const DECK_STORAGE_KEY = 'cartes_deck';
+const DECK_2014_ID = 'dmt2014';
+const DECK_2024_INDEX = 1;
+const EXPANDED_DECK_INDEX = 2;
 
-$('#tabs').innerHTML=DECKS.map(d=>`<button type="button" data-d="${d.id}" style="--c:${d.c}"><b>${d.titre}</b>${d.en} · ${d.cartes.length} cartes<br><small>${d.resume}</small></button>`).join('');
-$('#decks').innerHTML=DECKS.map(d=>{
-  const has13=d.cartes.some(c=>c[4]);
-  return `<section class="panel deck" id="${d.id}" style="--c:${d.c}">
- <h2>${d.titre} <small style="font:400 13px var(--sans);opacity:.85">— ${d.en}</small></h2>
- <div class="rules">${d.regles}<p style="color:var(--soft);font-size:12.5px">Source : ${d.src}.${has13?' La mention « jeu de 13 » signale les cartes présentes dans le petit jeu ; les autres n’existent que dans le jeu de 22 cartes.':''}</p></div>
+let decks = [];
+let decksById = {};
+let selectedDeckId = '';
+let selectedEffect = '';
+let draws = [];
+
+const stripTags = html => html.replace(/<[^>]+>/g, '');
+const searchText = text => withoutAccents(text).replace(/<[^>]+>/g, '').toLowerCase();
+const byCardName = (first, second) => first.n.localeCompare(second.n, 'fr');
+const plural = count => count > 1 ? 's' : '';
+const findCard = (deckId, name) => decksById[deckId] && decksById[deckId].cartes.find(card => card.n === name);
+
+function prepareDecks(loadedDecks) {
+  decks = loadedDecks;
+  decks[DECK_2024_INDEX].cartes.sort(byCardName);
+  const baseCards = decks[DECK_2024_INDEX].cartes.map(card => ({ n: card.n, en: card.en, k: card.k, t: card.t, base: 1 }));
+  decks[EXPANDED_DECK_INDEX].cartes = [...decks[EXPANDED_DECK_INDEX].cartes, ...baseCards].sort(byCardName);
+  decksById = Object.fromEntries(decks.map(deck => [deck.id, deck]));
+}
+
+function restoreSelectedDeck() {
+  selectedDeckId = decks[0].id;
+  try {
+    const savedDeckId = localStorage.getItem(DECK_STORAGE_KEY);
+    if (decks.some(deck => deck.id === savedDeckId)) selectedDeckId = savedDeckId;
+  } catch (error) {}
+}
+
+function rememberSelectedDeck() {
+  try { localStorage.setItem(DECK_STORAGE_KEY, selectedDeckId); } catch (error) {}
+}
+
+function cardTagsHtml(card) {
+  return `<div class="tags"><span>${EFFECT_LABELS[card.k]}</span>${card.j13 ? '<span class="t13">Jeu de 13</span>' : ''}${card.base ? '<span class="t13">Jeu de base</span>' : ''}</div>`;
+}
+
+function catalogCardHtml(deck, card) {
+  return `<article class="card k-${card.k}" data-n="${card.n}" data-s="${searchText(card.n + ' ' + card.en + ' ' + card.t)}" data-k="${card.k}">
+  <h3>${card.n}<small>${card.en}</small></h3>
+  ${cardTagsHtml(card)}
+  <p>${card.t}</p>
+  <div class="act"><button type="button" class="draw" data-d="${deck.id}" data-n="${card.n}">J’ai tiré cette carte</button><span class="drawn" hidden></span></div></article>`;
+}
+
+function drawnCardHtml(card) {
+  return `<article class="card k-${card.k}"><h3>${card.n}<small>${card.en}</small></h3>${cardTagsHtml(card)}<p>${card.t}</p></article>`;
+}
+
+function deckTabHtml(deck) {
+  return `<button type="button" data-d="${deck.id}" style="--c:${deck.c}"><b>${deck.titre}</b>${deck.en} · ${deck.cartes.length} cartes<br><small>${deck.resume}</small></button>`;
+}
+
+function deckSectionHtml(deck) {
+  const hasSmallDeck = deck.cartes.some(card => card.j13);
+  const smallDeckNote = hasSmallDeck ? ' La mention « jeu de 13 » signale les cartes présentes dans le petit jeu ; les autres n’existent que dans le jeu de 22 cartes.' : '';
+  const sizeSelect = hasSmallDeck ? '<label>Jeu <select class="size" aria-label="Taille du jeu"><option value="22">de 22 cartes</option><option value="13">de 13 cartes</option></select></label>' : '';
+  return `<section class="panel deck" id="${deck.id}" style="--c:${deck.c}">
+ <h2>${deck.titre} <small style="font:400 13px var(--sans);opacity:.85">— ${deck.en}</small></h2>
+ <div class="rules">${deck.regles}<p style="color:var(--soft);font-size:12.5px">Source : ${deck.src}.${smallDeckNote}</p></div>
  <div class="drawbox">
-  ${has13?`<label>Jeu <select class="size" aria-label="Taille du jeu"><option value="22">de 22 cartes</option><option value="13">de 13 cartes</option></select></label>`:''}
-  <button type="button" class="rand" data-d="${d.id}">🎴 Tirer une carte au hasard</button>
+  ${sizeSelect}
+  <button type="button" class="rand" data-d="${deck.id}">🎴 Tirer une carte au hasard</button>
   <span class="left"></span>
   <div class="res" role="status" aria-live="polite"></div>
  </div>
- <div class="grid">${d.cartes.map(c=>`<article class="card k-${c[2]}" data-n="${c[0]}" data-s="${norm(c[0]+' '+c[1]+' '+c[3])}" data-k="${c[2]}">
-  <h3>${c[0]}<small>${c[1]}</small></h3>
-  <div class="tags"><span>${K[c[2]]}</span>${c[4]?'<span class="t13">Jeu de 13</span>':''}${c[5]?'<span class="t13">Jeu de base</span>':''}</div>
-  <p>${c[3]}</p>
-  <div class="act"><button type="button" class="draw" data-d="${d.id}" data-n="${c[0]}">J’ai tiré cette carte</button><span class="drawn" hidden></span></div></article>`).join('')}</div>
+ <div class="grid">${deck.cartes.map(card => catalogCardHtml(deck, card)).join('')}</div>
  <p class="empty" hidden>Aucune carte ne correspond.</p>
-</section>`}).join('');
+</section>`;
+}
 
-function render(){
-  $$('#tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.d===deck));
-  $$('.f').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===kind));
-  const q=norm($('#q').value.trim());
-  DECKS.forEach(d=>{
-    const sec=document.getElementById(d.id);sec.hidden=d.id!==deck;
-    let n=0;
-    sec.querySelectorAll('.grid .card').forEach(c=>{const ok=(!kind||c.dataset.k===kind)&&(!q||c.dataset.s.includes(q));c.hidden=!ok;if(ok)n++});
-    sec.querySelector('.empty').hidden=n>0;
-    if(d.id===deck)$('#cnt').textContent=n+' carte'+(n>1?'s':'')+' sur '+d.cartes.length;
-  });
+function renderDecks() {
+  $('#tabs').innerHTML = decks.map(deckTabHtml).join('');
+  $('#decks').innerHTML = decks.map(deckSectionHtml).join('');
 }
-$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;deck=b.dataset.d;try{localStorage.setItem('cartes_deck',deck)}catch(e){}render()};
-$$('.f').forEach(b=>b.onclick=()=>{kind=b.dataset.k;render()});
-$('#q').oninput=render;
-$('#bPrint').onclick=()=>window.print();
-render();
 
-/* ---------- Suivi des cartes tirées (enregistré avec le personnage) ---------- */
-let tirages=[];
-const DK=Object.fromEntries(DECKS.map(d=>[d.id,d]));
-const card=(d,n)=>DK[d]&&DK[d].cartes.find(c=>c[0]===n);
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',4000)};
-function renderTrack(){
-  const cur=Persos.current();$('#trnom').textContent=cur?cur.nom:'';
-  $('#bClearT').hidden=!tirages.length;
-  $('#trlist').innerHTML=tirages.length?tirages.map((t,i)=>{
-    const c=card(t.d,t.n),dk=DK[t.d];
-    const dt=t.t?new Date(t.t).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'';
-    return `<li class="k-${c?c[2]:'M'}"><span class="num">${i+1}.</span>
-<span class="what"><b>${esc(t.n)}</b> <small>${dk?esc(dk.titre):''}${dt?' · '+dt:''}${c?' — '+c[3].replace(/<[^>]+>/g,''):''}</small></span>
-<button type="button" class="rm" data-rm="${i}" aria-label="Retirer ce tirage" title="Retirer ce tirage">×</button>
-<input data-note="${i}" value="${esc(t.note||'')}" placeholder="Note : choix fait, objet reçu, PNJ…" aria-label="Note sur ce tirage"></li>`}).join('')
-    :'<li class="none">Aucune carte tirée pour l’instant.</li>';
-  const cnt={};tirages.forEach(t=>{const k=t.d+'|'+t.n;cnt[k]=(cnt[k]||0)+1});
-  $$('.grid .card').forEach(el=>{
-    const n=cnt[el.closest('.deck').id+'|'+el.dataset.n]||0,b=el.querySelector('.drawn');
-    el.classList.toggle('got',n>0);b.hidden=!n;b.textContent='Tirée'+(n>1?' ×'+n:'');
+function filterDeckCards(deck, searched) {
+  const section = document.getElementById(deck.id);
+  section.hidden = deck.id !== selectedDeckId;
+  let shownCount = 0;
+  section.querySelectorAll('.grid .card').forEach(cardElement => {
+    const matches = (!selectedEffect || cardElement.dataset.k === selectedEffect) && (!searched || cardElement.dataset.s.includes(searched));
+    cardElement.hidden = !matches;
+    if (matches) shownCount++;
   });
-  $$('.drawbox').forEach(box=>{
-    const r=restantes(box),b=box.querySelector('.rand');
-    b.disabled=!r.length;
-    box.querySelector('.left').textContent=r.length?r.length+' carte'+(r.length>1?'s':'')+' pas encore tirée'+(r.length>1?'s':''):'Toutes les cartes de ce jeu ont été tirées';
+  section.querySelector('.empty').hidden = shownCount > 0;
+  if (deck.id === selectedDeckId) $('#cnt').textContent = shownCount + ' carte' + plural(shownCount) + ' sur ' + deck.cartes.length;
+}
+
+function renderFilters() {
+  $$('#tabs button').forEach(button => button.setAttribute('aria-pressed', button.dataset.d === selectedDeckId));
+  $$('.f').forEach(button => button.setAttribute('aria-pressed', button.dataset.k === selectedEffect));
+  const searched = searchText($('#q').value.trim());
+  decks.forEach(deck => filterDeckCards(deck, searched));
+}
+
+function selectDeck(event) {
+  const button = event.target.closest('button');
+  if (!button) return;
+  selectedDeckId = button.dataset.d;
+  rememberSelectedDeck();
+  renderFilters();
+}
+
+function drawDateLabel(draw) {
+  return draw.t ? new Date(draw.t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
+
+function drawLineHtml(draw, index) {
+  const card = findCard(draw.d, draw.n);
+  const deck = decksById[draw.d];
+  const date = drawDateLabel(draw);
+  const details = (deck ? escapeHtml(deck.titre) : '') + (date ? ' · ' + date : '') + (card ? ' — ' + stripTags(card.t) : '');
+  return `<li class="k-${card ? card.k : 'M'}"><span class="num">${index + 1}.</span>
+<span class="what"><b>${escapeHtml(draw.n)}</b> <small>${details}</small></span>
+<button type="button" class="rm" data-rm="${index}" aria-label="Retirer ce tirage" title="Retirer ce tirage">×</button>
+<input data-note="${index}" value="${escapeHtml(draw.note || '')}" placeholder="Note : choix fait, objet reçu, PNJ…" aria-label="Note sur ce tirage"></li>`;
+}
+
+function drawCountsByCard() {
+  const counts = {};
+  draws.forEach(draw => {
+    const key = draw.d + '|' + draw.n;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return counts;
+}
+
+function markDrawnCards() {
+  const counts = drawCountsByCard();
+  $$('.grid .card').forEach(cardElement => {
+    const count = counts[cardElement.closest('.deck').id + '|' + cardElement.dataset.n] || 0;
+    const badge = cardElement.querySelector('.drawn');
+    cardElement.classList.toggle('got', count > 0);
+    badge.hidden = !count;
+    badge.textContent = 'Tirée' + (count > 1 ? ' ×' + count : '');
   });
 }
-// Cartes du jeu (taille 13 ou 22 si le jeu le permet) que le personnage n'a pas encore tirées
-function restantes(box){
-  const id=box.closest('.deck').id,sz=box.querySelector('.size'),pris=new Set(tirages.filter(t=>t.d===id).map(t=>t.n));
-  return DK[id].cartes.filter(c=>!pris.has(c[0])&&!(sz&&sz.value==='13'&&!c[4]));
+
+function remainingCards(drawBox) {
+  const deckId = drawBox.closest('.deck').id;
+  const sizeSelect = drawBox.querySelector('.size');
+  const alreadyDrawn = new Set(draws.filter(draw => draw.d === deckId).map(draw => draw.n));
+  const smallDeckOnly = sizeSelect && sizeSelect.value === '13';
+  return decksById[deckId].cartes.filter(card => !alreadyDrawn.has(card.n) && !(smallDeckOnly && !card.j13));
 }
-document.addEventListener('change',e=>{if(e.target.classList.contains('size')){e.target.closest('.drawbox').querySelector('.res').innerHTML='';renderTrack()}});
-document.addEventListener('click',e=>{
-  const b=e.target.closest('.draw,.rm,.rand');if(!b)return;
-  if(b.classList.contains('rand')){
-    const box=b.closest('.drawbox'),r=restantes(box);if(!r.length)return;
-    const a=new Uint32Array(1);crypto.getRandomValues(a);const c=r[a[0]%r.length];
-    tirages.push({d:b.dataset.d,n:c[0],t:new Date().toISOString(),note:''});
-    box.querySelector('.res').innerHTML=`<article class="card k-${c[2]}"><h3>${c[0]}<small>${c[1]}</small></h3><div class="tags"><span>${K[c[2]]}</span>${c[4]?'<span class="t13">Jeu de 13</span>':''}${c[5]?'<span class="t13">Jeu de base</span>':''}</div><p>${c[3]}</p></article>`;
-    msg('Carte tirée : « '+c[0]+' » (ajoutée aux cartes tirées)');
+
+function updateDrawBoxes() {
+  $$('.drawbox').forEach(drawBox => {
+    const remaining = remainingCards(drawBox);
+    drawBox.querySelector('.rand').disabled = !remaining.length;
+    drawBox.querySelector('.left').textContent = remaining.length
+      ? remaining.length + ' carte' + plural(remaining.length) + ' pas encore tirée' + plural(remaining.length)
+      : 'Toutes les cartes de ce jeu ont été tirées';
+  });
+}
+
+function renderDraws() {
+  const character = Persos.current();
+  $('#trnom').textContent = character ? character.nom : '';
+  $('#bClearT').hidden = !draws.length;
+  $('#trlist').innerHTML = draws.length ? draws.map(drawLineHtml).join('') : '<li class="none">Aucune carte tirée pour l’instant.</li>';
+  markDrawnCards();
+  updateDrawBoxes();
+}
+
+const newDraw = (deckId, cardName) => ({ d: deckId, n: cardName, t: new Date().toISOString(), note: '' });
+
+function drawRandomCard(button) {
+  const drawBox = button.closest('.drawbox');
+  const remaining = remainingCards(drawBox);
+  if (!remaining.length) return false;
+  const randomValues = new Uint32Array(1);
+  crypto.getRandomValues(randomValues);
+  const card = remaining[randomValues[0] % remaining.length];
+  draws.push(newDraw(button.dataset.d, card.n));
+  drawBox.querySelector('.res').innerHTML = drawnCardHtml(card);
+  showMessage('Carte tirée : « ' + card.n + ' » (ajoutée aux cartes tirées)');
+  return true;
+}
+
+function recordDrawnCard(button) {
+  draws.push(newDraw(button.dataset.d, button.dataset.n));
+  showMessage('« ' + button.dataset.n + ' » ajoutée aux cartes tirées');
+}
+
+function removeDraw(button) {
+  const removed = draws.splice(+button.dataset.rm, 1)[0];
+  if (removed) showMessage('« ' + removed.n + ' » retirée');
+}
+
+function handleDrawClick(event) {
+  const button = event.target.closest('.draw,.rm,.rand');
+  if (!button) return;
+  if (button.classList.contains('rand')) {
+    if (!drawRandomCard(button)) return;
+  } else if (button.classList.contains('draw')) recordDrawnCard(button);
+  else removeDraw(button);
+  renderDraws();
+  Persos.save();
+}
+
+function changeDeckSize(event) {
+  if (!event.target.classList.contains('size')) return;
+  event.target.closest('.drawbox').querySelector('.res').innerHTML = '';
+  renderDraws();
+}
+
+function editDrawNote(event) {
+  const index = event.target.dataset.note;
+  if (index == null || !draws[index]) return;
+  draws[index].note = event.target.value;
+  Persos.save();
+}
+
+function clearDraws() {
+  if (!draws.length || !confirm('Effacer toutes les cartes tirées de « ' + Persos.current().nom + ' » ?')) return;
+  draws = [];
+  renderDraws();
+  Persos.save();
+  showMessage('Cartes tirées effacées');
+}
+
+function applySavedDraws(saved) {
+  $$('.res').forEach(result => { result.innerHTML = ''; });
+  draws = saved && saved.data && Array.isArray(saved.data.tirages) ? saved.data.tirages.filter(draw => draw && draw.n) : [];
+  draws.forEach(draw => { if (draw.d !== DECK_2014_ID && RENAMED_CARDS[draw.n]) draw.n = RENAMED_CARDS[draw.n]; });
+  renderDraws();
+}
+
+function startDrawTracking() {
+  document.addEventListener('change', changeDeckSize);
+  document.addEventListener('click', handleDrawClick);
+  $('#trlist').addEventListener('input', editDrawNote);
+  $('#bClearT').onclick = clearDraws;
+  Persos.init({ part: 'cartes', mount: $('#persos'), msg: showMessage, collect: () => ({ version: 1, type: 'cartes-dnd-5e', data: { tirages: draws } }), apply: applySavedDraws, onName: renderDraws });
+}
+
+async function startPage() {
+  try {
+    prepareDecks(await fetchJson('assets/json/vf/cartes.json'));
+  } catch (error) {
+    $('#decks').innerHTML = '<p class="empty">Impossible de charger les cartes (ouvre le site via un serveur web).</p>';
+    return;
   }
-  else if(b.classList.contains('draw')){tirages.push({d:b.dataset.d,n:b.dataset.n,t:new Date().toISOString(),note:''});msg('« '+b.dataset.n+' » ajoutée aux cartes tirées')}
-  else{const t=tirages.splice(+b.dataset.rm,1)[0];if(t)msg('« '+t.n+' » retirée')}
-  renderTrack();Persos.save();
-});
-$('#trlist').addEventListener('input',e=>{const i=e.target.dataset.note;if(i==null||!tirages[i])return;tirages[i].note=e.target.value;Persos.save()});
-$('#bClearT').onclick=()=>{
-  if(!tirages.length||!confirm('Effacer toutes les cartes tirées de « '+Persos.current().nom+' » ?'))return;
-  tirages=[];renderTrack();Persos.save();msg('Cartes tirées effacées');
-};
-Persos.init({part:'cartes',mount:$('#persos'),msg,
-  collect:()=>({version:1,type:'cartes-dnd-5e',data:{tirages}}),
-  apply:o=>{$$('.res').forEach(r=>r.innerHTML='');tirages=o&&o.data&&Array.isArray(o.data.tirages)?o.data.tirages.filter(t=>t&&t.n):[];
-    tirages.forEach(t=>{if(t.d!=='dmt2014'&&OLD[t.n])t.n=OLD[t.n]});renderTrack()},
-  onName:renderTrack});
+  restoreSelectedDeck();
+  renderDecks();
+  $('#tabs').onclick = selectDeck;
+  $$('.f').forEach(button => { button.onclick = () => { selectedEffect = button.dataset.k; renderFilters(); }; });
+  $('#q').oninput = renderFilters;
+  renderFilters();
+  startDrawTracking();
+}
+
+$('#bPrint').onclick = () => window.print();
+startPage();

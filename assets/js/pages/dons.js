@@ -1,200 +1,407 @@
-const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[’‘`´]/g,"'").trim();
-const msg=t=>{$('#msg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('#msg').textContent='',5000)};
-const rid=()=>Math.random().toString(36).slice(2,8);
+const ABILITIES = [['for', 'Force'], ['dex', 'Dextérité'], ['con', 'Constitution'], ['int', 'Intelligence'], ['sag', 'Sagesse'], ['cha', 'Charisme']];
+const ABILITY_KEY_BY_NORMALIZED_NAME = Object.fromEntries(ABILITIES.map(([key, name]) => [normalizeText(name), key]));
+const ABILITY_NAME_BY_KEY = Object.fromEntries(ABILITIES);
+const ARMOR_TRAININGS = ['légères', 'intermédiaires', 'lourdes', 'boucliers'];
+const CATEGORY_COLORS = { 'Origine': '#2e9e5b', 'Général': '#2a3170', 'Style de combat': '#c8402f', 'Faveur épique': '#7a4fc4', 'Manifestation occulte': '#5b3a8c' };
+const DEFAULT_COLOR = '#2a3170';
+const CREATION_COLOR = '#d8791a';
+const MY_CREATIONS_CATEGORY = 'Mes créations';
+const MESSAGE_DURATION_MS = 5000;
+const REPEATABLE_FEAT_IDS = new Set(['asi', 'adepte_elem', 'initie_magie', 'qualifie', 'mo_decharge_dechirante', 'mo_lance_occulte', 'mo_decharge_repoussante', 'mo_lecons_premiers']);
+const ARMOR_TRAINING_BY_CLASS = { 'Artificier': ['légères', 'intermédiaires', 'boucliers'], 'Barbare': ['légères', 'intermédiaires', 'boucliers'], 'Barde': ['légères'], 'Chasseur de sang': ['légères', 'intermédiaires'], 'Clerc': ['légères', 'intermédiaires', 'boucliers'], 'Druide': ['légères', 'boucliers'], 'Guerrier': ARMOR_TRAININGS, 'Occultiste': ['légères'], 'Paladin': ARMOR_TRAININGS, 'Rôdeur': ['légères', 'intermédiaires', 'boucliers'], 'Roublard': ['légères'] };
+const ARMOR_TRAINING_BY_FEAT = { armure_legere: ['légères', 'boucliers'], armure_inter: ['intermédiaires', 'boucliers'], armure_lourde: ['lourdes'] };
+const FIGHTING_STYLE_LEVEL_BY_CLASS = { 'Guerrier': 1, 'Paladin': 2, 'Rôdeur': 2 };
+const PREREQUISITE_TYPES = [['none', 'Aucun prérequis'], ['niv', 'Un niveau minimum'], ['ab', 'Une valeur de caractéristique'], ['cast', 'Incantation ou Magie de pacte'], ['arm', 'Une maîtrise d’armure ou de bouclier'], ['style', 'La capacité Style de combat'], ['occ', 'Un niveau d’occultiste (manifestations occultes)'], ['other', 'Autre (à vérifier)']];
+const ABILITY_NAMES_PATTERN = 'force|dexterite|constitution|intelligence|sagesse|charisme';
+const ABILITY_PREREQUISITE_PATTERN = new RegExp(`((?:(?:${ABILITY_NAMES_PATTERN})(?:\\s*,\\s*|\\s+ou\\s+)?)+)\\s+(\\d+)\\s+ou\\s+plus`);
+const FILTER_INPUTS = [['#fq', 'q', 'input'], ['#fc', 'c', 'change'], ['#fp', 'p', 'change'], ['#fa', 'a', 'change']];
+const CHARACTERS_STORAGE_KEY = 'dnd_persos_v1';
+const CUSTOM_STORAGE_KEY = 'dnd_perso_custom_v1';
 
-const AB=[['for','Force'],['dex','Dextérité'],['con','Constitution'],['int','Intelligence'],['sag','Sagesse'],['cha','Charisme']];
-const ABK=Object.fromEntries(AB.map(([k,n])=>[norm(n),k])),ABN=Object.fromEntries(AB);
-const AR=['légères','intermédiaires','lourdes','boucliers'];
-const CATC={'Origine':'#2e9e5b','Général':'#2a3170','Style de combat':'#c8402f','Faveur épique':'#7a4fc4','Manifestation occulte':'#5b3a8c'};
-const MINE='Mes créations';
-// Dons et manifestations occultes qu'on peut prendre plusieurs fois (règles 2024)
-const REPEAT=new Set(['asi','adepte_elem','initie_magie','qualifie','mo_decharge_dechirante','mo_lance_occulte','mo_decharge_repoussante','mo_lecons_premiers']);
-// Armures maîtrisées par classe (règles 2024) et dons qui en donnent ; mêmes tables que la fiche
-const PROF={'Artificier':['légères','intermédiaires','boucliers'],'Barbare':['légères','intermédiaires','boucliers'],'Barde':['légères'],'Chasseur de sang':['légères','intermédiaires'],'Clerc':['légères','intermédiaires','boucliers'],'Druide':['légères','boucliers'],'Guerrier':AR,'Occultiste':['légères'],'Paladin':AR,'Rôdeur':['légères','intermédiaires','boucliers'],'Roublard':['légères']};
-const DONPROF={armure_legere:['légères','boucliers'],armure_inter:['intermédiaires','boucliers'],armure_lourde:['lourdes']};
-// Capacité Style de combat : Guerrier niv. 1, Paladin et Rôdeur niv. 2
-const STYLE={'Guerrier':1,'Paladin':2,'Rôdeur':2};
-const PTYPES=[['none','Aucun prérequis'],['niv','Un niveau minimum'],['ab','Une valeur de caractéristique'],['cast','Incantation ou Magie de pacte'],['arm','Une maîtrise d’armure ou de bouclier'],['style','La capacité Style de combat'],['occ','Un niveau d’occultiste (manifestations occultes)'],['other','Autre (à vérifier)']];
+let allFeats = [];
+let bookFeats = [];
+let classesByName = null;
+const filters = { q: '', c: '', p: '', a: '', ok: false, open: new Set() };
+const character = { niv: 1, ab: { for: 10, dex: 10, con: 10, int: 10, sag: 10, cha: 10 }, cast: false, style: false, occ: false, ar: new Set(), dons: [] };
 
-let DB=[],BASE=[],CLS=null;
-const st={q:'',c:'',p:'',a:'',ok:false,open:new Set()};
-const me={niv:1,ab:{for:10,dex:10,con:10,int:10,sag:10,cha:10},cast:false,style:false,occ:false,ar:new Set(),dons:[]};
+const notify = text => showMessage(text, MESSAGE_DURATION_MS);
+const plural = count => count > 1 ? 's' : '';
+const randomId = () => Math.random().toString(36).slice(2, 8);
+const clampLevel = value => Math.min(20, Math.max(1, parseInt(value) || 1));
 
-// Prérequis en texte libre -> conditions vérifiables
-function parsePre(pre){
- const t=norm(pre),r={niv:0,ab:null,cast:false,style:false,occ:false,more:false,ar:[],other:false};
- if(!t)return r;
- const n=t.match(/niveau (\d+)/);if(n)r.niv=+n[1];
- const a=t.match(/((?:(?:force|dexterite|constitution|intelligence|sagesse|charisme)(?:\s*,\s*|\s+ou\s+)?)+)\s+(\d+)\s+ou\s+plus/);
- if(a)r.ab={keys:a[1].match(/force|dexterite|constitution|intelligence|sagesse|charisme/g).map(x=>ABK[x]),min:+a[2]};
- r.cast=/incantation|magie de pacte|capacite sorts/.test(t);
- r.style=/style de combat/.test(t);
- // Manifestations occultes : niveau d'occultiste, plus parfois un pacte, un sort ou une autre manifestation (à vérifier)
- r.occ=/^occultiste/.test(t);r.more=r.occ&&t.includes(',');
- if(/armures? legeres/.test(t))r.ar.push('légères');
- if(/armures? intermediaires/.test(t))r.ar.push('intermédiaires');
- if(/armures? lourdes/.test(t))r.ar.push('lourdes');
- if(/bouclier/.test(t))r.ar.push('boucliers');
- r.other=!r.niv&&!r.ab&&!r.cast&&!r.style&&!r.occ&&!r.ar.length;
- return r;
-}
-function build(){
- const mine=(Persos.custom().dons||[]).filter(x=>x&&x.id&&x.nom);
- DB=BASE.map(x=>({...x,mine:false})).concat(mine.map(x=>({...x,mine:true}))).map(x=>{
-  const P=parsePre(x.pre),types=[];
-  if(!norm(x.pre))types.push('none');
-  if(P.niv)types.push('niv');if(P.ab)types.push('ab');if(P.cast)types.push('cast');
-  if(P.ar.length)types.push('arm');if(P.style)types.push('style');if(P.occ)types.push('occ');if(P.other&&norm(x.pre))types.push('other');
-  return Object.assign(x,{P,types,c:x.mine?'#d8791a':CATC[x.cat]||'#2a3170',idx:norm([x.nom,x.en,x.cat,x.pre,x.desc,x.src,x.ed].join(' '))});
- });
- const cats=[];BASE.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
- const keep=$('#fc').value;
- $('#fc').innerHTML='<option value="">Toutes</option>'+cats.concat(mine.length?[MINE]:[]).map(c=>`<option>${esc(c)}</option>`).join('');
- $('#fc').value=cats.includes(keep)||keep===MINE&&mine.length?keep:'';st.c=$('#fc').value;
-}
-// Conditions non remplies par le personnage ; null si le don a un prérequis qu'on ne sait pas vérifier
-function missing(x){
- const P=x.P,m=[];
- if(P.other)return null;
- if(P.niv&&me.niv<P.niv)m.push('niveau '+P.niv);
- if(P.ab&&!P.ab.keys.some(k=>me.ab[k]>=P.ab.min))m.push(P.ab.keys.map(k=>ABN[k]).join(' ou ')+' '+P.ab.min);
- if(P.cast&&!me.cast)m.push('Incantation ou Magie de pacte');
- if(P.style&&!me.style)m.push('capacité Style de combat');
- if(P.occ&&!me.occ)m.push('classe Occultiste');
- P.ar.filter(a=>!me.ar.has(a)).forEach(a=>m.push(a==='boucliers'?'maîtrise des boucliers':'maîtrise des armures '+a));
- return P.more&&!m.length?null:m;
-}
-const taken=x=>me.dons.filter(id=>id===x.id).length;
-
-function descHTML(x){
- return x.desc.split('\n').filter(l=>l.trim()).map(l=>{
-  const i=l.indexOf(' : ');
-  return i>0&&i<60?`<p><b><i>${esc(l.slice(0,i))}.</i></b> ${esc(l.slice(i+3))}</p>`:`<p>${esc(l)}</p>`;
- }).join('');
-}
-function filtered(){
- const q=norm(st.q);
- return DB.filter(x=>(!q||x.idx.includes(q))
-  &&(!st.c||(st.c===MINE?x.mine:x.cat===st.c&&!x.mine))
-  &&(!st.p||x.types.includes(st.p))
-  &&(!st.a||(st.a==='-'?!x.P.ab:x.P.ab&&x.P.ab.keys.includes(st.a)))
-  &&(!st.ok||(missing(x)||[1]).length===0));
-}
-function render(){
- const r=filtered();
- $('#cnt').textContent=r.length+' don'+(r.length>1?'s':'')+' affiché'+(r.length>1?'s':'')+' sur '+DB.length;
- $('#bAll').textContent=r.length&&r.every(x=>st.open.has(x.id))?'Tout replier':'Tout déplier';
- const who=esc(curName());
- $('#list').innerHTML=r.length?r.map(x=>{
-  const op=st.open.has(x.id),m=missing(x),n=taken(x),rep=REPEAT.has(x.id);
-  const stat=m===null?`<span class="mb" title="${esc(x.pre)}">Prérequis à vérifier : ${esc(x.pre)}</span>`
-   :m.length?`<span class="ko">Il manque : ${esc(m.join(', '))}</span>`
-   :`<span class="ok">${x.pre?'Prérequis remplis':'Sans prérequis'}</span>`;
-  const sub=[x.mine?'Création personnelle · '+x.cat:x.cat,x.pre?'Prérequis : '+x.pre:'Aucun prérequis'].join(' · ');
-  const add=n&&!rep?`<button class="b" disabled title="Déjà sur la fiche de ${who}">Sur la fiche</button>`
-   :`<button class="b" data-add="${esc(x.id)}" title="Ajoute ce don à la fiche de ${who}">Ajouter${n?' encore':''}</button>`;
-  return `<div class="item" id="${esc(x.id)}" style="--c:${x.c}"><div class="row"><div class="rmain"><div class="rt">${esc(x.nom)}${x.mine?'<span class="pill">Création</span>':''}${rep?'<span class="pill" style="background:#5f6580">Répétable</span>':''}${x.ed?`<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${esc(x.ed)}</span>`:''}${x.mine?'':VO.btn('dons',x.id,x.nom)}</div><div class="rs">${esc(sub)}</div>${stat}${n?` <span class="mb has">Sur la fiche${n>1?' ×'+n:''}</span>`:''}</div>
-  <div class="racts">${x.mine?`<button class="b" data-edit="${esc(x.id)}">Modifier</button>`:''}${add}<button class="b" data-n="${esc(x.id)}" aria-expanded="${op}">${op?'Masquer':'Détails'}</button></div></div>${op?`<div class="det"><div class="desc">${descHTML(x)}</div>${x.en?`<div class="srcn">Nom anglais : ${esc(x.en)}</div>`:''}<div class="srcn">${x.mine?'Création personnelle':'Source : '+esc(x.src||'Manuel des joueurs 2024')+(x.r_?' · reconstitué à partir d’un résumé : à vérifier dans le livre':' · reformulé : le livre fait foi')}${x.choix&&x.choix.length?' · les choix du don se font dans la fiche':''}</div></div>`:''}</div>`;
- }).join(''):'<div class="empty-msg">Aucun don ne correspond à ces filtres.</div>';
+function abilityPrerequisite(normalizedText) {
+  const match = normalizedText.match(ABILITY_PREREQUISITE_PATTERN);
+  if (!match) return null;
+  return { keys: match[1].match(new RegExp(ABILITY_NAMES_PATTERN, 'g')).map(name => ABILITY_KEY_BY_NORMALIZED_NAME[name]), min: +match[2] };
 }
 
-/* ---------- Personnage ---------- */
-const curName=()=>{const p=Persos.list().find(p=>p.actif);return p?p.nom:''};
-function fillChars(){
- $('#pp').innerHTML=Persos.list().map(p=>`<option value="${esc(p.id)}"${p.actif?' selected':''}>${esc(p.nom)}</option>`).join('');
+function armorPrerequisites(normalizedText) {
+  const trainings = [];
+  if (/armures? legeres/.test(normalizedText)) trainings.push('légères');
+  if (/armures? intermediaires/.test(normalizedText)) trainings.push('intermédiaires');
+  if (/armures? lourdes/.test(normalizedText)) trainings.push('lourdes');
+  if (/bouclier/.test(normalizedText)) trainings.push('boucliers');
+  return trainings;
 }
-function findClass(d){
- if(!CLS)return null;
- const v=norm(d.classe||d.clsel);if(!v)return null;
- for(const [n,c] of Object.entries(CLS))if(norm(n)===v||(c.alias||[]).some(a=>norm(a)===v))return [n,c];
- return null;
+
+function parsePrerequisite(prerequisiteText) {
+  const text = normalizeText(prerequisiteText);
+  const parsed = { niv: 0, ab: null, cast: false, style: false, occ: false, more: false, ar: [], other: false };
+  if (!text) return parsed;
+  const level = text.match(/niveau (\d+)/);
+  if (level) parsed.niv = +level[1];
+  parsed.ab = abilityPrerequisite(text);
+  parsed.cast = /incantation|magie de pacte|capacite sorts/.test(text);
+  parsed.style = /style de combat/.test(text);
+  parsed.occ = /^occultiste/.test(text);
+  parsed.more = parsed.occ && text.includes(',');
+  parsed.ar = armorPrerequisites(text);
+  parsed.other = !parsed.niv && !parsed.ab && !parsed.cast && !parsed.style && !parsed.occ && !parsed.ar.length;
+  return parsed;
 }
-// Reprend niveau, caractéristiques finales, incantation et maîtrises depuis la fiche du personnage actif
-function loadChar(){
- const f=Persos.part('fiche'),d=f&&f.data||{},D=d.derive;
- const ex=d.extras||{};
- me.dons=(Array.isArray(ex.dons)?ex.dons:[]).filter(g=>g&&g.id).map(g=>g.id);
- const cl=findClass(d);
- if(D&&D.tot){
-  me.niv=D.niv;AB.forEach(([k])=>me.ab[k]=D.tot[k]||10);me.cast=!!D.cast;me.ar=new Set(D.ar||[]);
- }else{   // fiche jamais rouverte depuis l'ajout de cette page : valeurs de base
-  me.niv=Math.min(20,Math.max(1,parseInt(d.niveau)||1));
-  AB.forEach(([k])=>me.ab[k]=parseInt(d['ab_'+k])||10);
-  me.cast=!!(cl&&(cl[1].lanceur||cl[1].sous_classe&&d.sclance));
-  me.ar=new Set(cl&&PROF[cl[0]]||[]);me.dons.forEach(id=>(DONPROF[id]||[]).forEach(a=>me.ar.add(a)));
- }
- const cn=D&&D.cl||cl&&cl[0]||'';
- me.style=!!(STYLE[cn]&&me.niv>=STYLE[cn]);me.occ=cn==='Occultiste';
- $('#pn').value=me.niv;
- AB.forEach(([k])=>$('#a_'+k).value=me.ab[k]);
- $('#c_cast').checked=me.cast;$('#c_style').checked=me.style;$('#c_occ').checked=me.occ;
- AR.forEach(a=>$('#c_'+a).checked=me.ar.has(a));
- $('#phint').textContent=!f?'Ce personnage n’a pas encore de fiche : indique son niveau et ses caractéristiques ici, ou remplis sa fiche.'
-  :(D?'Valeurs reprises de la fiche (caractéristiques finales, bonus compris)':'Valeurs de base reprises de la fiche (ouvre la fiche une fois pour inclure les bonus d’espèce, d’historique et de dons)')
-   +(cn?' · '+cn+' niveau '+me.niv:'')+'. Tu peux les modifier ici pour tester, sans changer la fiche.';
+
+function prerequisiteTypes(feat, parsed) {
+  const hasPrerequisite = !!normalizeText(feat.pre);
+  const types = [];
+  if (!hasPrerequisite) types.push('none');
+  if (parsed.niv) types.push('niv');
+  if (parsed.ab) types.push('ab');
+  if (parsed.cast) types.push('cast');
+  if (parsed.ar.length) types.push('arm');
+  if (parsed.style) types.push('style');
+  if (parsed.occ) types.push('occ');
+  if (parsed.other && hasPrerequisite) types.push('other');
+  return types;
 }
-function readInputs(){
- me.niv=Math.min(20,Math.max(1,parseInt($('#pn').value)||1));
- AB.forEach(([k])=>me.ab[k]=parseInt($('#a_'+k).value)||10);
- me.cast=$('#c_cast').checked;me.style=$('#c_style').checked;me.occ=$('#c_occ').checked;
- me.ar=new Set(AR.filter(a=>$('#c_'+a).checked));
- render();
+
+function indexedFeat(feat) {
+  const parsed = parsePrerequisite(feat.pre);
+  return Object.assign(feat, {
+    P: parsed, types: prerequisiteTypes(feat, parsed),
+    c: feat.mine ? CREATION_COLOR : CATEGORY_COLORS[feat.cat] || DEFAULT_COLOR,
+    idx: normalizeText([feat.nom, feat.en, feat.cat, feat.pre, feat.desc, feat.src, feat.ed].join(' '))
+  });
 }
-document.querySelector('.pgrid').addEventListener('input',e=>{if(e.target.id!=='pp')readInputs()});
-document.querySelector('.chk').addEventListener('change',readInputs);
-$('#pp').addEventListener('change',e=>{Persos.activate(e.target.value);loadChar();render()});
-// Fiche modifiée dans un autre onglet : on suit
-addEventListener('storage',e=>{
- if(e.key==='dnd_persos_v1'){fillChars();loadChar();render()}
- else if(e.key==='dnd_perso_custom_v1'&&BASE.length){build();render()}
+
+const customFeats = () => (Persos.custom().dons || []).filter(feat => feat && feat.id && feat.nom);
+
+function bookCategories() {
+  const categories = [];
+  bookFeats.forEach(feat => { if (!categories.includes(feat.cat)) categories.push(feat.cat); });
+  return categories;
+}
+
+function fillCategoryFilter(hasCustomFeats) {
+  const categories = bookCategories();
+  const previousCategory = $('#fc').value;
+  const options = categories.concat(hasCustomFeats ? [MY_CREATIONS_CATEGORY] : []);
+  $('#fc').innerHTML = '<option value="">Toutes</option>' + options.map(category => `<option>${escapeHtml(category)}</option>`).join('');
+  const keepPrevious = categories.includes(previousCategory) || previousCategory === MY_CREATIONS_CATEGORY && hasCustomFeats;
+  $('#fc').value = keepPrevious ? previousCategory : '';
+  filters.c = $('#fc').value;
+}
+
+function buildFeatList() {
+  const mine = customFeats();
+  allFeats = bookFeats.map(feat => ({ ...feat, mine: false })).concat(mine.map(feat => ({ ...feat, mine: true }))).map(indexedFeat);
+  fillCategoryFilter(mine.length > 0);
+}
+
+function missingPrerequisites(feat) {
+  const parsed = feat.P;
+  if (parsed.other) return null;
+  const missing = [];
+  if (parsed.niv && character.niv < parsed.niv) missing.push('niveau ' + parsed.niv);
+  if (parsed.ab && !parsed.ab.keys.some(key => character.ab[key] >= parsed.ab.min)) missing.push(parsed.ab.keys.map(key => ABILITY_NAME_BY_KEY[key]).join(' ou ') + ' ' + parsed.ab.min);
+  if (parsed.cast && !character.cast) missing.push('Incantation ou Magie de pacte');
+  if (parsed.style && !character.style) missing.push('capacité Style de combat');
+  if (parsed.occ && !character.occ) missing.push('classe Occultiste');
+  parsed.ar.filter(training => !character.ar.has(training)).forEach(training => missing.push(training === 'boucliers' ? 'maîtrise des boucliers' : 'maîtrise des armures ' + training));
+  return parsed.more && !missing.length ? null : missing;
+}
+
+const timesTaken = feat => character.dons.filter(id => id === feat.id).length;
+const meetsAllPrerequisites = feat => (missingPrerequisites(feat) || [1]).length === 0;
+
+function descriptionHtml(feat) {
+  return feat.desc.split('\n').filter(line => line.trim()).map(line => {
+    const separator = line.indexOf(' : ');
+    if (separator > 0 && separator < 60) return `<p><b><i>${escapeHtml(line.slice(0, separator))}.</i></b> ${escapeHtml(line.slice(separator + 3))}</p>`;
+    return `<p>${escapeHtml(line)}</p>`;
+  }).join('');
+}
+
+function matchesCategory(feat) {
+  if (!filters.c) return true;
+  return filters.c === MY_CREATIONS_CATEGORY ? feat.mine : feat.cat === filters.c && !feat.mine;
+}
+
+function matchesAbility(feat) {
+  if (!filters.a) return true;
+  return filters.a === '-' ? !feat.P.ab : feat.P.ab && feat.P.ab.keys.includes(filters.a);
+}
+
+function filteredFeats() {
+  const searchedText = normalizeText(filters.q);
+  return allFeats.filter(feat => (!searchedText || feat.idx.includes(searchedText))
+    && matchesCategory(feat)
+    && (!filters.p || feat.types.includes(filters.p))
+    && matchesAbility(feat)
+    && (!filters.ok || meetsAllPrerequisites(feat)));
+}
+
+const allShownAreOpen = shown => shown.length && shown.every(feat => filters.open.has(feat.id));
+
+function prerequisiteStatusHtml(feat) {
+  const missing = missingPrerequisites(feat);
+  if (missing === null) return `<span class="mb" title="${escapeHtml(feat.pre)}">Prérequis à vérifier : ${escapeHtml(feat.pre)}</span>`;
+  if (missing.length) return `<span class="ko">Il manque : ${escapeHtml(missing.join(', '))}</span>`;
+  return `<span class="ok">${feat.pre ? 'Prérequis remplis' : 'Sans prérequis'}</span>`;
+}
+
+function addButtonHtml(feat, characterName) {
+  const count = timesTaken(feat);
+  if (count && !REPEATABLE_FEAT_IDS.has(feat.id)) return `<button class="b" disabled title="Déjà sur la fiche de ${characterName}">Sur la fiche</button>`;
+  return `<button class="b" data-add="${escapeHtml(feat.id)}" title="Ajoute ce don à la fiche de ${characterName}">Ajouter${count ? ' encore' : ''}</button>`;
+}
+
+function featPillsHtml(feat) {
+  return (feat.mine ? '<span class="pill">Création</span>' : '')
+    + (REPEATABLE_FEAT_IDS.has(feat.id) ? '<span class="pill" style="background:#5f6580">Répétable</span>' : '')
+    + (feat.ed ? `<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${escapeHtml(feat.ed)}</span>` : '')
+    + (feat.mine ? '' : VO.btn('dons', feat.id, feat.nom));
+}
+
+function sourceNoteHtml(feat) {
+  const origin = feat.mine ? 'Création personnelle' : 'Source : ' + escapeHtml(feat.src || 'Manuel des joueurs 2024') + (feat.r_ ? ' · reconstitué à partir d’un résumé : à vérifier dans le livre' : ' · reformulé : le livre fait foi');
+  const choices = feat.choix && feat.choix.length ? ' · les choix du don se font dans la fiche' : '';
+  return `<div class="srcn">${origin}${choices}</div>`;
+}
+
+function featDetailsHtml(feat) {
+  return `<div class="det"><div class="desc">${descriptionHtml(feat)}</div>${feat.en ? `<div class="srcn">Nom anglais : ${escapeHtml(feat.en)}</div>` : ''}${sourceNoteHtml(feat)}</div>`;
+}
+
+function featRowHtml(feat, characterName) {
+  const isOpen = filters.open.has(feat.id);
+  const count = timesTaken(feat);
+  const subtitle = [feat.mine ? 'Création personnelle · ' + feat.cat : feat.cat, feat.pre ? 'Prérequis : ' + feat.pre : 'Aucun prérequis'].join(' · ');
+  const takenBadge = count ? ` <span class="mb has">Sur la fiche${count > 1 ? ' ×' + count : ''}</span>` : '';
+  const editButton = feat.mine ? `<button class="b" data-edit="${escapeHtml(feat.id)}">Modifier</button>` : '';
+  return `<div class="item" id="${escapeHtml(feat.id)}" style="--c:${feat.c}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(feat.nom)}${featPillsHtml(feat)}</div><div class="rs">${escapeHtml(subtitle)}</div>${prerequisiteStatusHtml(feat)}${takenBadge}</div>
+  <div class="racts">${editButton}${addButtonHtml(feat, characterName)}<button class="b" data-n="${escapeHtml(feat.id)}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button></div></div>${isOpen ? featDetailsHtml(feat) : ''}</div>`;
+}
+
+function renderFeats() {
+  const shown = filteredFeats();
+  $('#cnt').textContent = shown.length + ' don' + plural(shown.length) + ' affiché' + plural(shown.length) + ' sur ' + allFeats.length;
+  $('#bAll').textContent = allShownAreOpen(shown) ? 'Tout replier' : 'Tout déplier';
+  const characterName = escapeHtml(activeCharacterName());
+  $('#list').innerHTML = shown.length ? shown.map(feat => featRowHtml(feat, characterName)).join('') : '<div class="empty-msg">Aucun don ne correspond à ces filtres.</div>';
+}
+
+function activeCharacterName() {
+  const active = Persos.list().find(entry => entry.actif);
+  return active ? active.nom : '';
+}
+
+function fillCharacterSelect() {
+  $('#pp').innerHTML = Persos.list().map(entry => `<option value="${escapeHtml(entry.id)}"${entry.actif ? ' selected' : ''}>${escapeHtml(entry.nom)}</option>`).join('');
+}
+
+function findClass(sheetData) {
+  if (!classesByName) return null;
+  const className = normalizeText(sheetData.classe || sheetData.clsel);
+  if (!className) return null;
+  for (const [name, classData] of Object.entries(classesByName)) {
+    if (normalizeText(name) === className || (classData.alias || []).some(alias => normalizeText(alias) === className)) return [name, classData];
+  }
+  return null;
+}
+
+function takeDerivedValues(derived) {
+  character.niv = derived.niv;
+  ABILITIES.forEach(([key]) => { character.ab[key] = derived.tot[key] || 10; });
+  character.cast = !!derived.cast;
+  character.ar = new Set(derived.ar || []);
+}
+
+function takeBaseValues(sheetData, classEntry) {
+  character.niv = clampLevel(sheetData.niveau);
+  ABILITIES.forEach(([key]) => { character.ab[key] = parseInt(sheetData['ab_' + key]) || 10; });
+  character.cast = !!(classEntry && (classEntry[1].lanceur || classEntry[1].sous_classe && sheetData.sclance));
+  character.ar = new Set(classEntry && ARMOR_TRAINING_BY_CLASS[classEntry[0]] || []);
+  character.dons.forEach(id => (ARMOR_TRAINING_BY_FEAT[id] || []).forEach(training => character.ar.add(training)));
+}
+
+function showCharacterInInputs() {
+  $('#pn').value = character.niv;
+  ABILITIES.forEach(([key]) => { $('#a_' + key).value = character.ab[key]; });
+  $('#c_cast').checked = character.cast;
+  $('#c_style').checked = character.style;
+  $('#c_occ').checked = character.occ;
+  ARMOR_TRAININGS.forEach(training => { $('#c_' + training).checked = character.ar.has(training); });
+}
+
+function characterHint(sheet, derived, className) {
+  if (!sheet) return 'Ce personnage n’a pas encore de fiche : indique son niveau et ses caractéristiques ici, ou remplis sa fiche.';
+  const origin = derived ? 'Valeurs reprises de la fiche (caractéristiques finales, bonus compris)' : 'Valeurs de base reprises de la fiche (ouvre la fiche une fois pour inclure les bonus d’espèce, d’historique et de dons)';
+  return origin + (className ? ' · ' + className + ' niveau ' + character.niv : '') + '. Tu peux les modifier ici pour tester, sans changer la fiche.';
+}
+
+function loadActiveCharacter() {
+  const sheet = Persos.part('fiche');
+  const sheetData = sheet && sheet.data || {};
+  const derived = sheetData.derive;
+  const extras = sheetData.extras || {};
+  character.dons = (Array.isArray(extras.dons) ? extras.dons : []).filter(feat => feat && feat.id).map(feat => feat.id);
+  const classEntry = findClass(sheetData);
+  if (derived && derived.tot) takeDerivedValues(derived);
+  else takeBaseValues(sheetData, classEntry);
+  const className = derived && derived.cl || classEntry && classEntry[0] || '';
+  character.style = !!(FIGHTING_STYLE_LEVEL_BY_CLASS[className] && character.niv >= FIGHTING_STYLE_LEVEL_BY_CLASS[className]);
+  character.occ = className === 'Occultiste';
+  showCharacterInInputs();
+  $('#phint').textContent = characterHint(sheet, derived, className);
+}
+
+function readCharacterInputs() {
+  character.niv = clampLevel($('#pn').value);
+  ABILITIES.forEach(([key]) => { character.ab[key] = parseInt($('#a_' + key).value) || 10; });
+  character.cast = $('#c_cast').checked;
+  character.style = $('#c_style').checked;
+  character.occ = $('#c_occ').checked;
+  character.ar = new Set(ARMOR_TRAININGS.filter(training => $('#c_' + training).checked));
+  renderFeats();
+}
+
+function followOtherTabChanges(event) {
+  if (event.key === CHARACTERS_STORAGE_KEY) {
+    fillCharacterSelect();
+    loadActiveCharacter();
+    renderFeats();
+  } else if (event.key === CUSTOM_STORAGE_KEY && bookFeats.length) {
+    buildFeatList();
+    renderFeats();
+  }
+}
+
+function ensureFeatList(characterEntry) {
+  if (!characterEntry.fiche || !characterEntry.fiche.data) characterEntry.fiche = { version: 5, type: 'fiche-dnd-5e', data: { nom: characterEntry.nom } };
+  const sheetData = characterEntry.fiche.data;
+  if (!sheetData.extras || typeof sheetData.extras !== 'object') sheetData.extras = {};
+  if (!Array.isArray(sheetData.extras.dons)) sheetData.extras.dons = [];
+  return sheetData.extras.dons;
+}
+
+function addFeatToSheet(feat) {
+  Persos.edit(characterEntry => ensureFeatList(characterEntry).push({ u: randomId(), id: feat.id, ch: {} }));
+  character.dons.push(feat.id);
+  renderFeats();
+  notify('« ' + feat.nom + ' » ajouté à la fiche de ' + activeCharacterName() + (feat.choix && feat.choix.length ? ' : fais ses choix dans la fiche' : ''));
+}
+
+function editMessage(saved, previous) {
+  if (!saved) return 'Don supprimé';
+  return previous ? 'Don modifié' : 'Don « ' + saved.nom + ' » créé';
+}
+
+function editCustomFeat(feat) {
+  Custom.edit({
+    kind: 'dons', item: feat, cats: bookCategories(),
+    taken: name => allFeats.some(candidate => candidate.id !== (feat && feat.id) && normalizeText(candidate.nom) === normalizeText(name)),
+    done: (saved, previous) => {
+      buildFeatList();
+      renderFeats();
+      notify(editMessage(saved, previous));
+    }
+  });
+}
+
+function toggleFeatDetails(id) {
+  if (filters.open.has(id)) filters.open.delete(id);
+  else filters.open.add(id);
+  renderFeats();
+}
+
+function handleListClick(event) {
+  const button = event.target.closest('button');
+  if (!button) return;
+  const { n: detailsId, add: addId, edit: editId } = button.dataset;
+  if (detailsId) toggleFeatDetails(detailsId);
+  else if (addId) {
+    const feat = allFeats.find(candidate => candidate.id === addId);
+    if (feat) addFeatToSheet(feat);
+  } else if (editId) {
+    const feat = customFeats().find(candidate => candidate.id === editId);
+    if (feat) editCustomFeat(feat);
+  }
+}
+
+function resetFilters() {
+  Object.assign(filters, { q: '', c: '', p: '', a: '', ok: false });
+  FILTER_INPUTS.forEach(([selector]) => { $(selector).value = ''; });
+  $('#fok').checked = false;
+  renderFeats();
+}
+
+function toggleAllShown() {
+  const shown = filteredFeats();
+  const closeAll = allShownAreOpen(shown);
+  shown.forEach(feat => closeAll ? filters.open.delete(feat.id) : filters.open.add(feat.id));
+  renderFeats();
+}
+
+function fillFilterOptions() {
+  $('#fp').innerHTML = '<option value="">Tous</option>' + PREREQUISITE_TYPES.map(([key, label]) => `<option value="${key}">${escapeHtml(label)}</option>`).join('');
+  $('#fa').innerHTML = '<option value="">Toutes</option><option value="-">Aucune</option>' + ABILITIES.map(([key, name]) => `<option value="${key}">${name}</option>`).join('');
+}
+
+function openRequestedFeat() {
+  const requestedId = decodeURIComponent(location.hash.slice(1));
+  if (requestedId && allFeats.some(feat => feat.id === requestedId)) filters.open.add(requestedId);
+  renderFeats();
+  if (!requestedId) return;
+  const row = document.getElementById(requestedId);
+  if (row) row.scrollIntoView();
+}
+
+const fetchOptionalJson = url => fetchJson(url).catch(() => null);
+
+async function loadFeats() {
+  try {
+    const [feats, classes] = await Promise.all([fetchJson('assets/json/vf/dons.json'), fetchOptionalJson('assets/json/vf/classes.json')]);
+    bookFeats = feats;
+    classesByName = classes && classes.classes || null;
+    buildFeatList();
+    loadActiveCharacter();
+    openRequestedFeat();
+  } catch (error) {
+    $('#list').innerHTML = '<div class="empty-msg">Impossible de charger les dons (ouvre le site via un serveur web).</div>';
+  }
+}
+
+document.querySelector('.pgrid').addEventListener('input', event => { if (event.target.id !== 'pp') readCharacterInputs(); });
+document.querySelector('.chk').addEventListener('change', readCharacterInputs);
+$('#pp').addEventListener('change', event => {
+  Persos.activate(event.target.value);
+  loadActiveCharacter();
+  renderFeats();
 });
-
-/* ---------- Actions ---------- */
-function addDon(x){
- Persos.edit(q=>{
-  if(!q.fiche||!q.fiche.data)q.fiche={version:5,type:'fiche-dnd-5e',data:{nom:q.nom}};
-  const d=q.fiche.data;
-  if(!d.extras||typeof d.extras!=='object')d.extras={};
-  if(!Array.isArray(d.extras.dons))d.extras.dons=[];
-  d.extras.dons.push({u:rid(),id:x.id,ch:{}});
- });
- me.dons.push(x.id);render();
- msg('« '+x.nom+' » ajouté à la fiche de '+curName()+(x.choix&&x.choix.length?' : fais ses choix dans la fiche':''));
-}
-function editDon(it){
- const cats=[];BASE.forEach(x=>{if(!cats.includes(x.cat))cats.push(x.cat)});
- Custom.edit({kind:'dons',item:it,cats,
-  taken:n=>DB.some(x=>x.id!==(it&&it.id)&&norm(x.nom)===norm(n)),
-  done:(x,old)=>{build();render();msg(x?(old?'Don modifié':'Don « '+x.nom+' » créé'):'Don supprimé')}});
-}
-$('#bNew').onclick=()=>editDon(null);
-$('#list').addEventListener('click',e=>{
- const b=e.target.closest('button');if(!b)return;
- if(b.dataset.n){const n=b.dataset.n;st.open.has(n)?st.open.delete(n):st.open.add(n);render()}
- else if(b.dataset.add){const x=DB.find(y=>y.id===b.dataset.add);if(x)addDon(x)}
- else if(b.dataset.edit){const x=(Persos.custom().dons||[]).find(y=>y.id===b.dataset.edit);if(x)editDon(x)}
+addEventListener('storage', followOtherTabChanges);
+$('#bNew').onclick = () => editCustomFeat(null);
+$('#list').addEventListener('click', handleListClick);
+fillFilterOptions();
+FILTER_INPUTS.forEach(([selector, key, eventType]) => $(selector).addEventListener(eventType, event => {
+  filters[key] = event.target.value;
+  renderFeats();
+}));
+$('#fok').addEventListener('change', event => {
+  filters.ok = event.target.checked;
+  renderFeats();
 });
+$('#bReset').onclick = resetFilters;
+$('#bAll').onclick = toggleAllShown;
 
-/* ---------- Filtres ---------- */
-$('#fp').innerHTML='<option value="">Tous</option>'+PTYPES.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('');
-$('#fa').innerHTML='<option value="">Toutes</option><option value="-">Aucune</option>'+AB.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
-[['#fq','q','input'],['#fc','c','change'],['#fp','p','change'],['#fa','a','change']].forEach(([s,k,ev])=>$(s).addEventListener(ev,e=>{st[k]=e.target.value;render()}));
-$('#fok').addEventListener('change',e=>{st.ok=e.target.checked;render()});
-$('#bReset').onclick=()=>{Object.assign(st,{q:'',c:'',p:'',a:'',ok:false});['#fq','#fc','#fp','#fa'].forEach(s=>$(s).value='');$('#fok').checked=false;render()};
-$('#bAll').onclick=()=>{const r=filtered(),all=r.length&&r.every(x=>st.open.has(x.id));r.forEach(x=>all?st.open.delete(x.id):st.open.add(x.id));render()};
-
-fillChars();
-Promise.all([fetch('assets/json/vf/dons.json').then(r=>{if(!r.ok)throw new Error('dons');return r.json()}),
-             fetch('assets/json/vf/classes.json').then(r=>r.ok?r.json():null).catch(()=>null)])
- .then(([D,C])=>{
-  BASE=D;CLS=C&&C.classes||null;
-  build();loadChar();
-  // Lien direct : dons.html#vigilant ouvre le don
-  const h=decodeURIComponent(location.hash.slice(1));
-  if(h&&DB.some(x=>x.id===h))st.open.add(h);
-  render();
-  if(h){const el=document.getElementById(h);if(el)el.scrollIntoView()}
- })
- .catch(()=>{$('#list').innerHTML='<div class="empty-msg">Impossible de charger les dons (ouvre le site via un serveur web).</div>'});
+fillCharacterSelect();
+loadFeats();
