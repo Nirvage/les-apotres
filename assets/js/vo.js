@@ -10,14 +10,7 @@ const SRD_ATTRIBUTION_BY_VERSION = {
   '52': 'This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.',
   '51': 'This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC, available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.'
 };
-const AIDEDD_PATHS_BY_KIND = {
-  sorts: { edition2024: 'spell/', edition2014: 'dnd/sorts.php?vo=' },
-  objets: { edition2024: 'magic-item/', edition2014: 'dnd/om.php?vo=' },
-  monstres: { edition2024: 'monster/', edition2014: 'dnd/monstres.php?vo=' },
-  familiers: { edition2024: 'monster/', edition2014: 'dnd/monstres.php?vo=' },
-  dons: { edition2024: 'feat/', edition2014: 'dnd/dons.php?vo=' }
-};
-const BOOKS_2024 = /Player's Handbook \(2024\)|Dungeon Master's Guide \(2024\)|Monster Manual \(2025\)/;
+const FIVE_E_TOOLS_URL = 'https://5e.tools/';
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 
 const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"]/g, character => HTML_ESCAPES[character]);
@@ -86,15 +79,14 @@ function createDialog() {
   document.body.appendChild(dialog);
 }
 
-function urlSlug(englishName) {
-  return String(englishName).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function fiveEToolsHash(name, source) {
+  return encodeURIComponent(String(name).toLowerCase()).replace(/'/g, '%27') + '_' + String(source).toLowerCase();
 }
 
-function aideddUrl(kind, entry) {
-  const paths = AIDEDD_PATHS_BY_KIND[kind];
-  if (!paths || entry.i || !entry.s) return '';
-  const path = BOOKS_2024.test(entry.s) ? paths.edition2024 : paths.edition2014;
-  return 'https://www.aidedd.org/' + path + urlSlug(entry.n);
+function fiveEToolsUrl(entry) {
+  if (!entry.t) return '';
+  const [page, name, source] = entry.t;
+  return FIVE_E_TOOLS_URL + page + '#' + fiveEToolsHash(name, source);
 }
 
 function openDialog() {
@@ -118,23 +110,23 @@ function featureListHtml(entry) {
   return '<p class="vo-sub">Capacités (noms et niveaux du livre d’origine)</p><p lang="en">' + lines.join('<br>') + '</p>';
 }
 
-function whereToReadHtml(kind, entry) {
+function whereToReadHtml(entry) {
   if (entry.x) return 'Il se trouve dans le livre indiqué ci-dessus.';
-  const aidedd = aideddUrl(kind, entry);
-  if (aidedd) return '<a href="' + aidedd + '" target="_blank" rel="noopener">Lire la version originale sur AideDD</a>.';
+  const fiveETools = fiveEToolsUrl(entry);
+  if (fiveETools) return '<a href="' + escapeHtml(fiveETools) + '" target="_blank" rel="noopener">Lire la version originale sur 5e.tools</a>.';
   return '<a href="https://www.dndbeyond.com/search?q=' + encodeURIComponent(entry.n) + '" target="_blank" rel="noopener">Lire la version originale sur D&amp;D Beyond</a> (livre requis pour le contenu payant).';
 }
 
-function nonFreeTextHtml(kind, entry) {
+function nonFreeTextHtml(entry) {
   return featureListHtml(entry)
     + '<div class="vo-note">Le texte anglais de cet élément n’est pas sous licence libre (hors SRD), il ne peut donc pas être reproduit ici. '
-    + whereToReadHtml(kind, entry) + '</div>';
+    + whereToReadHtml(entry) + '</div>';
 }
 
-function showVoEntry(kind, entry, frenchName) {
+function showVoEntry(entry, frenchName) {
   dialogTitle.textContent = entry.n;
   dialogSubtitle.textContent = (frenchName ? frenchName + ' · ' : '') + (entry.s || 'Source anglaise');
-  dialogBody.innerHTML = entry.h ? srdTextHtml(entry) : nonFreeTextHtml(kind, entry);
+  dialogBody.innerHTML = entry.h ? srdTextHtml(entry) : nonFreeTextHtml(entry);
   dialogBody.scrollTop = 0;
 }
 
@@ -146,7 +138,7 @@ function showVo(kind, id, frenchName) {
   openDialog();
   loadVoData(kind).then(data => {
     const entry = findVoEntry(data, kind, id);
-    if (entry) showVoEntry(kind, entry, frenchName);
+    if (entry) showVoEntry(entry, frenchName);
     else showMissingVo();
   }).catch(() => {
     dialogBody.innerHTML = '<p>Impossible de charger la version originale. Vérifie ta connexion, puis réessaie.</p>';

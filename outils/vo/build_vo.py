@@ -21,6 +21,8 @@ BOOKS.update({'PSA': 'Plane Shift: Amonkhet', 'PSK': 'Plane Shift: Kaladesh', 'T
               'HF': "Heliana's Field Notes 2025 (Loot Tavern)", 'AL': "L'Arsène's Ledger of Treasures and Trinkets (Loot Tavern)",
               'RY': "Ryoko's Guide to the Yokai Realms (Loot Tavern)"})
 STATS = collections.Counter()
+TOOLS_PAGE = {'page': None}
+NOT_ON_5ETOOLS = {'', 'TDR', 'MM', 'HG', 'HF', 'AL', 'RY', 'BH'}
 
 
 def out(name, src, html=None, lic=None, nolink=False, extra=None):
@@ -30,6 +32,8 @@ def out(name, src, html=None, lic=None, nolink=False, extra=None):
         o['l'] = lic
     if nolink:
         o['x'] = 1
+    if not html and TOOLS_PAGE['page'] and src not in NOT_ON_5ETOOLS:
+        o['t'] = [TOOLS_PAGE['page'], name, src]
     if extra:
         o.update(extra)
     return o
@@ -137,6 +141,7 @@ def build_spells():
     for f in glob.glob(ET + '/spells/spells-*.json'):
         for s in J(f)['spell']:
             EN[s['name']].append(s)
+    TOOLS_PAGE['page'] = 'spells.html'
     site = J(REPO + '/assets/json/vf/spells.json')
     names = {}
     for l in open(os.path.join(os.path.dirname(__file__), 'sorts_en.txt'), encoding='utf-8'):
@@ -262,6 +267,7 @@ def pick_item(pool, en, ed):
 
 
 def build_objets(pool):
+    TOOLS_PAGE['page'] = 'items.html'
     res = {}
     for o in J(REPO + '/assets/json/vf/objets.json'):
         x = pick_item(pool, o['en'], o.get('ed'))
@@ -276,6 +282,7 @@ def build_objets(pool):
 
 
 def build_equipement(pool):
+    TOOLS_PAGE['page'] = 'items.html'
     res = {}
     for o in J(REPO + '/assets/json/vf/equipement.json'):
         x = pick_item(pool, o['en'], None)
@@ -467,6 +474,7 @@ def build_monsters():
                 if x['source'] == p:
                     return x
         return c[0]
+    TOOLS_PAGE['page'] = 'bestiary.html'
     res = {}
     for m in J(REPO + '/assets/json/vf/bestiaire.json'):
         x = pick(m['en'], m.get('v'))
@@ -540,6 +548,7 @@ def build_feats():
     pool = collections.defaultdict(list)
     for x in J(ET + '/feats.json')['feat'] + J(ET + '/optionalfeatures.json')['optionalfeature']:
         pool[x['name'].lower()].append(x)
+    TOOLS_PAGE['page'] = 'feats.html'
     res = {}
     for d in J(REPO + '/assets/json/vf/dons.json'):
         en = d.get('en') or FEATS.get(d['nom'])
@@ -550,7 +559,7 @@ def build_feats():
             STATS['dons-absent'] += 1; continue
         lic = lic_of(x)
         res[d['id']] = out(srd_name(x) if lic else x['name'], x['source'], feat_html(x) if lic else None, lic, False,
-                           {'i': 1} if 'EI' in x.get('featureType', []) else None)
+                           {'i': 1, 't': ['optionalfeatures.html', x['name'], x['source']]} if 'EI' in x.get('featureType', []) and not lic else ({'i': 1} if 'EI' in x.get('featureType', []) else None))
         STATS['dons-srd' if lic else 'dons-nom'] += 1
     return res
 
@@ -591,6 +600,7 @@ def build_classes():
 
     info = J(REPO + '/assets/json/vf/classes_infos.json')
     caps = J(REPO + '/assets/json/vf/capacites.json')
+    TOOLS_PAGE['page'] = None
     res = {'classes': {}, 'capacites': {}, 'sous': {}}
     for fr, en in CLASSES.items():
         src = 'EFA' if en == 'Artificer' else ('BH' if en == 'Blood Hunter' else 'XPHB')
@@ -620,8 +630,9 @@ def build_classes():
             chtml = '<h4>Core %s Traits</h4><table class="vo-t">%s</table><h4>%s Features</h4><p>%s</p>' % (
                 en, ''.join('<tr><th>%s</th><td>%s</td></tr>' % (a, b) for a, b in rows if b), en,
                 '<br>'.join('Level %d: %s' % (lv, esc(nm)) for lv, nm in fl_))
+        class_page = None if en == 'Blood Hunter' else ['classes.html', en, csrc]
         res['classes'][fr] = out(en, csrc if en != 'Blood Hunter' else 'BH', chtml, lic, False,
-                                 None if lic else {'f': [[lv, nm] for lv, nm in fl_]})
+                                 None if lic else {'f': [[lv, nm] for lv, nm in fl_], 't': class_page})
         feats = [x for x in cf if x['className'] == en and x['classSource'] == csrc]
         picks = {}
         for i, f in enumerate(caps.get(fr, [])):
@@ -651,7 +662,8 @@ def build_classes():
                     for x in feats:
                         if x['level'] == pick['level'] and id(x) not in used and 'Subclass' not in x['name'] and x['name'] != 'Subclass Feature':
                             html += '<p><b><i>%s.</i></b> %s</p>' % (tags(x['name']), feat_entries(x))
-            res['capacites'][k] = out(pick['name'], csrc if en != 'Blood Hunter' else 'BH', html, fl)
+            res['capacites'][k] = out(pick['name'], csrc if en != 'Blood Hunter' else 'BH', html, fl, False,
+                                      None if fl else {'t': class_page})
             STATS['capacite-srd' if fl else 'capacite-nom'] += 1
         for sfr, meta in info['sous'].get(fr, {}).items():
             sen = SUBCLASSES.get(sfr)
@@ -679,7 +691,7 @@ def build_classes():
             # liste des noms de capacités par niveau (sans texte) pour le contenu hors SRD
             names = None if lic else [[lv, nm] for lv, nm in fs if nm != s['name']]
             o = out(s['name'], ssrc if ssrc in ('TDR', 'MM', 'HG', 'HF', 'AL', 'RY') else s['source'], html, lic, nolink,
-                    {'f': names} if names else None)
+                    None if lic else {'f': names, 't': None if nolink or ssrc in NOT_ON_5ETOOLS else ['classes.html', en, s.get('classSource') or csrc]})
             res['sous'][fr + '|' + sfr] = o
             STATS['sous-srd' if lic else 'sous-nom'] += 1
     return res
@@ -691,6 +703,7 @@ def build_species():
     for x in races:
         pool[x['name'].lower()].append(x)
     res = {}
+    TOOLS_PAGE['page'] = 'races.html'
     site = list(J(REPO + '/assets/json/vf/especes.json')) + list(J(REPO + '/assets/json/vf/especes_infos.json').get('extra', {}))
     for fr in site:
         en = SPECIES.get(fr)
@@ -712,10 +725,12 @@ def build_species():
 
 
 def build_backgrounds():
+    TOOLS_PAGE['page'] = 'backgrounds.html'
     return simple(J(ET + '/backgrounds.json')['background'], BACKGROUNDS, 'historiques', list(J(REPO + '/assets/json/vf/historiques.json')))
 
 
 def build_conditions():
+    TOOLS_PAGE['page'] = 'conditionsdiseases.html'
     return simple(J(ET + '/conditionsdiseases.json')['condition'], CONDITIONS, 'etats', list(CONDITIONS))
 
 
