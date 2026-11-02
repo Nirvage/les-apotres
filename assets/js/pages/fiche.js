@@ -293,7 +293,14 @@ function shortRestRecoveryNames() {
   return names;
 }
 
+const longRestItemNames = () => attunedItems().filter(name => (findMagicItem(name) || {}).rl);
+
 function renderRestHint() {
+  const longRestItems = longRestItemNames();
+  if (longRestItems.length) {
+    setHtmlIfChanged($('#restHint'), '<b>Repos court</b> : comme un repos long (' + escapeHtml(longRestItems.join(', ')) + '). <b>Repos long</b> : tout.');
+    return;
+  }
   const shortRestNames = shortRestRecoveryNames();
   const shortRestPart = shortRestNames.length ? ', ' + escapeHtml(shortRestNames.join(', ')) : '';
   const chargesPart = chargedItems.some(item => item.recharge) ? ', charges des objets' : '';
@@ -1814,8 +1821,17 @@ function clearSpellSlotUsage() {
   SPELL_LEVELS.forEach(level => { if (fieldValue('sl' + level + '_u')) setFieldAndNotify('sl' + level + '_u', ''); });
 }
 
+const LONG_REST_EFFECTS = 'PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés, objets à charges rechargés comme à l’aube';
+
 function takeLongRest() {
-  if (!confirm('Repos long : PV au maximum, tous les dés de vie récupérés, emplacements de sorts et capacités rechargés, objets à charges rechargés comme à l’aube. Continuer ?')) return;
+  if (confirm('Repos long : ' + LONG_REST_EFFECTS + '. Continuer ?')) applyLongRest('Repos long terminé');
+}
+
+function takeShortRestAsLongRest(itemNames) {
+  if (confirm('Repos court avec ' + itemNames.join(', ') + ' : il a les effets d’un repos long (' + LONG_REST_EFFECTS + '). Continuer ?')) applyLongRest('Repos court terminé (effets d’un repos long)');
+}
+
+function applyLongRest(doneMessage) {
   const maximumHitPoints = parseInt(fieldValue('pvmax'));
   if (!isNaN(maximumHitPoints)) setFieldAndNotify('pv', maximumHitPoints);
   setFieldAndNotify('pvtemp', '');
@@ -1826,7 +1842,7 @@ function takeLongRest() {
   replaceResourceState(resourceState);
   recalculateSheet();
   autosave();
-  showSheetMessage('Repos long terminé' + recoveredSuffix(recovered));
+  showSheetMessage(doneMessage + recoveredSuffix(recovered));
 }
 
 function shortRestDialogHtml(hitDice, constitutionModifier, hitPoints, maximumHitPoints) {
@@ -1855,6 +1871,12 @@ function spendHitDice(dialog, hitDice, constitutionModifier, hitPoints, maximumH
   closeAndRemove(dialog);
   const diceReport = diceCount ? 'Dés : ' + rolls.join(' + ') + ' ' + (constitutionModifier ? '(' + signed(constitutionModifier) + ' chacun) ' : '') + '→ +' + healing + ' PV' : 'Repos court terminé';
   showSheetMessage(diceReport + recoveredSuffix(recovered));
+}
+
+function startShortRest() {
+  const longRestItems = longRestItemNames();
+  if (longRestItems.length) takeShortRestAsLongRest(longRestItems);
+  else openShortRestDialog();
 }
 
 function openShortRestDialog() {
@@ -2156,7 +2178,7 @@ document.addEventListener('input', handleLanguageToggle, true);
 $('#clsel').addEventListener('change', handleClassSelection);
 document.addEventListener('click', handleImportClick);
 $('#bLong').onclick = takeLongRest;
-$('#bShort').onclick = openShortRestDialog;
+$('#bShort').onclick = startShortRest;
 window.addEventListener('pageshow', recalculateWhenRestoredFromCache);
 document.addEventListener('input', handleSheetEdit);
 document.addEventListener('change', handleSheetEdit);

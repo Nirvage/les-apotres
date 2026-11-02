@@ -46,6 +46,9 @@ const signedNumber = number => (number < 0 ? '' : '+') + number;
 const isConsumableType = type => /^(Potion|Parchemin|Munition)$/.test(type);
 const isSelected = item => state.sel.has(item.n);
 const isAttuned = item => state.har.has(item.n);
+const countsTowardAttunementLimit = name => !(findItemByName(name) || {}).hl;
+const limitedAttunedCount = () => [...state.har].filter(countsTowardAttunementLimit).length;
+const hasFreeAttunementSlot = item => item.hl || limitedAttunedCount() < MAX_ATTUNED_ITEMS;
 
 function raritiesNamedIn(normalizedText) {
   const rarities = [];
@@ -339,7 +342,7 @@ function listRowHtml(item) {
 
 function renderList() {
   const shown = filteredItems();
-  const attunedCount = state.har.size;
+  const attunedCount = limitedAttunedCount();
   $('#cnt').textContent = shown.length + ' objet' + plural(shown.length) + ' affiché' + plural(shown.length) + ' · ' + state.sel.size + ' dans mon inventaire · ' + attunedCount + '/' + MAX_ATTUNED_ITEMS + ' harmonisé' + plural(attunedCount);
   $('#list').innerHTML = shown.length ? shown.map(listRowHtml).join('') : '<div class="empty-msg">Aucun objet ne correspond à ces filtres.</div>';
 }
@@ -363,7 +366,7 @@ function bookSummary() {
   const selectedCount = state.sel.size;
   if (!selectedCount) return 'Aucun objet sélectionné';
   const needingAttunement = allItems.filter(item => item.a && isSelected(item)).length;
-  const attunedCount = state.har.size;
+  const attunedCount = limitedAttunedCount();
   const hint = attunedCount < needingAttunement && attunedCount < MAX_ATTUNED_ITEMS ? ' (choisis avec « S’harmoniser » les objets à importer dans la fiche)' : '';
   const attunement = needingAttunement ? ' · harmonisation : ' + attunedCount + '/' + MAX_ATTUNED_ITEMS + hint : '';
   return selectedCount + ' objet' + plural(selectedCount) + ' magique' + plural(selectedCount) + attunement;
@@ -412,7 +415,7 @@ function restoreSelection(savedNames, savedAttunedNames) {
   });
   (savedAttunedNames || []).forEach(name => {
     const item = findItemByName(name);
-    if (item && item.a && state.sel.has(item.n) && state.har.size < MAX_ATTUNED_ITEMS) state.har.add(item.n);
+    if (item && item.a && state.sel.has(item.n) && hasFreeAttunementSlot(item)) state.har.add(item.n);
   });
   return unknownCount;
 }
@@ -457,7 +460,7 @@ function toggleSelected(item) {
 
 function toggleAttunement(item) {
   if (isAttuned(item)) state.har.delete(item.n);
-  else if (state.har.size >= MAX_ATTUNED_ITEMS) {
+  else if (!hasFreeAttunementSlot(item)) {
     notify('Tu ne peux t’harmoniser qu’avec ' + MAX_ATTUNED_ITEMS + ' objets à la fois : mets fin à une autre harmonisation d’abord');
     return;
   } else state.har.add(item.n);
