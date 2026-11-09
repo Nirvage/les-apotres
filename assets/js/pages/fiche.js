@@ -2194,6 +2194,7 @@ document.addEventListener('change', handleSheetEdit);
 $('#bSave').onclick = saveSheetToFile;
 $('#bLoad').onclick = () => $('#file').click();
 $('#file').onchange = loadSheetFromFile;
+$('#bPhoto').onclick = () => ImportPhoto.open({ onImported: () => location.reload() });
 addEventListener('beforeprint', shrinkTextareasToFit);
 addEventListener('afterprint', restoreTextareaFontSize);
 $('#bPrint').onclick = () => window.print();

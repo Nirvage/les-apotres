@@ -67,6 +67,11 @@ function importCharacterFile(event) {
   event.target.value = '';
 }
 
+function showPhotoImportedCharacter(character) {
+  renderCharacterChips();
+  notify('« ' + character.nom + ' » créé depuis la photo : ouvre la fiche pour compléter');
+}
+
 function toBase64Url(bytes) {
   let binary = '';
   for (let start = 0; start < bytes.length; start += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(start, start + 0x8000));
@@ -314,6 +319,7 @@ $('#bDel').onclick = deleteActiveCharacter;
 $('#bExp').onclick = exportActiveCharacter;
 $('#bImp').onclick = () => $('#file').click();
 $('#file').onchange = importCharacterFile;
+$('#bPhoto').onclick = () => ImportPhoto.open({ onImported: showPhotoImportedCharacter });
 $('#bShare').onclick = openShareDialog;
 $('#bPrintAll').onclick = printWholeCharacter;
 importCharacterFromSharedLink();
