@@ -203,7 +203,7 @@ function renderClassPage(className) {
   const subclassTotal = subclasses.filter(entry => entry.cl === className).length;
   $('#cnt').textContent = shownSubclasses.length + ' sous-classe' + plural(shownSubclasses.length) + ' affichée' + plural(shownSubclasses.length) + ' sur ' + subclassTotal;
   $('#view').innerHTML = otherClassesNavigationHtml(className)
-    + `\n <article class="cls" style="--c:${info.c || DEFAULT_CLASS_COLOR}"><header class="chead"><h2>${escapeHtml(className)}${VO.btn('classes', 'classes§' + className, className)}</h2>${info.pitch ? `<p>${escapeHtml(info.pitch)}</p>` : ''}</header><div class="cbody">`
+    + `\n <article class="cls" style="--c:${info.c || DEFAULT_CLASS_COLOR}"><header class="chead"><h2>${escapeHtml(className)}${VO.btn('classes', 'classes§' + className, className)}${EntryLinks.button(encodeURIComponent(className), className)}</h2>${info.pitch ? `<p>${escapeHtml(info.pitch)}</p>` : ''}</header><div class="cbody">`
     + classMetaHtml(info) + classAdviceHtml(info)
     + '<div class="nav"><a class="b" href="creation.html">Créer un personnage</a><a class="b" href="grimoire.html">Voir les sorts</a><a class="b" href="dons.html">Voir les dons</a></div>'
     + `<h3>Progression</h3>${progressionTableHtml(className)}` + classFeaturesHtml(className)
@@ -221,13 +221,15 @@ function subclassDetailsHtml(entry) {
   return `<div class="det">${features}<div class="srcn">${entry.src.l ? 'Source : ' + escapeHtml(entry.src.l) + ' · ' : ''}reformulé : le livre fait foi · <a href="fiche.html">utilisable dans la fiche</a></div></div>`;
 }
 
+const subclassFragment = entry => encodeURIComponent(entry.cl) + '/' + encodeURIComponent(entry.n);
+
 function subclassItemHtml(entry, showClassName) {
   const key = entry.cl + '/' + entry.n;
   const isOpen = openSubclassKeys.has(key);
   const summary = [showClassName ? entry.cl : '', entry.src.l, entry.c ? COMPLEXITY_LABELS[entry.c] : ''].filter(Boolean).join(' · ');
   const roles = entry.r.length ? `<div class="tags">${entry.r.map(role => `<span class="tag">${escapeHtml(role)}</span>`).join('')}</div>` : '';
   const tip = entry.i.t ? `<div class="tip">${escapeHtml(entry.i.t)}</div>` : '';
-  return `<div class="item" id="${escapeHtml(encodeURIComponent(key))}" style="--c:${classColor(entry.cl)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(entry.n)}${VO.btn('classes', 'sous§' + entry.cl + '|' + entry.n, entry.n)}${sourcePillHtml(entry.src)}</div><div class="rs">${escapeHtml(summary)}</div>${roles}${tip}</div>
+  return `<div class="item" id="${escapeHtml(encodeURIComponent(key))}" style="--c:${classColor(entry.cl)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(entry.n)}${VO.btn('classes', 'sous§' + entry.cl + '|' + entry.n, entry.n)}${EntryLinks.button(subclassFragment(entry), entry.n)}${sourcePillHtml(entry.src)}</div><div class="rs">${escapeHtml(summary)}</div>${roles}${tip}</div>
   <div class="racts"><button class="b" data-k="${escapeHtml(key)}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Capacités'}</button></div></div>${isOpen ? subclassDetailsHtml(entry) : ''}</div>`;
 }
 
@@ -252,14 +254,19 @@ function renderCurrentView() {
   else renderOverview();
 }
 
+function revealSubclassIfFiltered(className, key) {
+  const isShown = filteredSubclasses(className).some(entry => entry.cl + '/' + entry.n === key);
+  if (!isShown) resetFilters();
+}
+
 function followRoute(scrollToTop) {
   const route = currentRoute();
   if (route.className && route.subclassName) {
     const key = route.className + '/' + route.subclassName;
+    revealSubclassIfFiltered(route.className, key);
     openSubclassKeys.add(key);
     renderCurrentView();
-    const item = document.getElementById(encodeURIComponent(key));
-    if (item) item.scrollIntoView();
+    EntryLinks.reveal(encodeURIComponent(key));
     return;
   }
   renderCurrentView();

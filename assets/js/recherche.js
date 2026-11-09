@@ -6,6 +6,7 @@ const escapeHtml = text => String(text == null ? '' : text).replace(/[&<>"]/g, c
 const plainText = html => String(html == null ? '' : html).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 const withLineBreaks = text => escapeHtml(text).replace(/\n/g, '<br>');
 const searchLink = (page, query) => page + '?q=' + encodeURIComponent(query);
+const entryLink = (page, name) => page + '#' + EntryLinks.slug(name);
 const labeledLine = (label, value) => value ? '<div><b>' + escapeHtml(label) + '</b> : ' + escapeHtml(value) + '</div>' : '';
 const namedParagraphs = entries => (entries || []).map(entry => '<p><b>' + escapeHtml(entry.n || entry.nom) + '.</b> ' + (entry.d != null ? entry.d : escapeHtml(entry.desc)) + '</p>').join('');
 const paragraph = text => '<p>' + escapeHtml(text) + '</p>';
@@ -100,7 +101,7 @@ function addSpells(results, spells) {
     const [name, ...otherNames] = String(spell.n).split('|');
     addResult(results, {
       t: 'sort', n: name, vo: ['sorts', spell.n], alt: otherNames.join(' '), s: spellSubtitle(spell),
-      body: plainText(spell.h), href: searchLink('grimoire.html', name), d: () => spellDetailHtml(spell, otherNames)
+      body: plainText(spell.h), href: entryLink('grimoire.html', name), d: () => spellDetailHtml(spell, otherNames)
     });
   });
 }
@@ -109,7 +110,7 @@ function addMagicItems(results, magicItems) {
   (magicItems || []).forEach(item => {
     addResult(results, {
       t: 'objet', n: item.n, vo: ['objets', item.n], alt: item.en, s: joinPresent([item.t, item.q, item.a], ' · '), body: plainText(item.h),
-      href: searchLink('objets.html', item.n), d: () => '<div>' + item.h + '</div>' + labeledLine('Source', item.src)
+      href: entryLink('objets.html', item.n), d: () => '<div>' + item.h + '</div>' + labeledLine('Source', item.src)
     });
   });
 }
@@ -122,7 +123,7 @@ function addEquipment(results, equipment) {
   (equipment || []).forEach(item => {
     addResult(results, {
       t: 'equip', n: item.n, vo: ['equipement', item.n], alt: item.en, s: joinPresent([item.c || item.t, item.p], ' · '), body: plainText(item.h),
-      href: searchLink('equipement.html', item.n), d: () => labeledLine('Prix', item.p) + labeledLine('Poids', weightLabel(item)) + '<div>' + (item.h || '') + '</div>'
+      href: entryLink('equipement.html', item.n), d: () => labeledLine('Prix', item.p) + labeledLine('Poids', weightLabel(item)) + '<div>' + (item.h || '') + '</div>'
     });
   });
 }
@@ -147,7 +148,7 @@ function addCreatures(results, creatures, type, page) {
     addResult(results, {
       t: type, n: creature.n, vo: [type === 'monstre' ? 'monstres' : 'familiers', creature.n], alt: creature.en,
       s: joinPresent([creature.tail, creature.typ, creature.fp != null ? 'FP ' + creature.fp : '', creature.o], ' · '),
-      body: [creature.typ].concat(names(creature.traits), names(creature.actions)).join(' '), href: searchLink(page, creature.n),
+      body: [creature.typ].concat(names(creature.traits), names(creature.actions)).join(' '), href: entryLink(page, creature.n),
       d: () => creatureDetailHtml(creature)
     });
   });

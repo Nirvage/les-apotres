@@ -110,7 +110,7 @@ function speciesRowHtml(entry) {
   const isOpen = openSpeciesNames.has(entry.n);
   const summary = [entry.tail, meters(entry.s.vit) + (entry.mv.length ? ' (' + entry.mv.join(', ') + ')' : ''), entry.typ, entry.src].join(' · ');
   const tags = entry.feats.length ? `<div class="tags">${entry.feats.map(feature => `<span class="tag">${escapeHtml(feature)}</span>`).join('')}</div>` : '';
-  return `<div class="item" id="${escapeHtml(encodeURIComponent(entry.n))}" style="--c:${RULE_EDITIONS[entry.ed].color}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(entry.n)}${entry.ed === '2014' ? '<span class="pill">2014</span>' : ''}${VO.btn('especes', entry.n, entry.n)}</div><div class="rs">${escapeHtml(summary)}</div>${tags}</div>
+  return `<div class="item" id="${EntryLinks.slug(entry.n)}" style="--c:${RULE_EDITIONS[entry.ed].color}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(entry.n)}${entry.ed === '2014' ? '<span class="pill">2014</span>' : ''}${VO.btn('especes', entry.n, entry.n)}${EntryLinks.button(EntryLinks.slug(entry.n), entry.n)}</div><div class="rs">${escapeHtml(summary)}</div>${tags}</div>
   <div class="racts"><button class="b" data-n="${escapeHtml(entry.n)}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button></div></div>${isOpen ? `<div class="det">${speciesDetailsHtml(entry)}</div>` : ''}</div>`;
 }
 
@@ -148,26 +148,26 @@ function toggleAllShown() {
   renderSpecies();
 }
 
-function openSpeciesFromUrlHash() {
-  const requestedName = decodeURIComponent(location.hash.slice(1));
-  if (requestedName && allSpecies.some(entry => entry.n === requestedName)) openSpeciesNames.add(requestedName);
+function openLinkedSpecies() {
+  const linked = allSpecies.find(entry => EntryLinks.isRequested(entry.n));
+  if (linked && !filteredSpecies().includes(linked)) resetFilters();
+  if (linked) openSpeciesNames.add(linked.n);
   renderSpecies();
-  if (!requestedName) return;
-  const row = document.getElementById(encodeURIComponent(requestedName));
-  if (row) row.scrollIntoView();
+  if (linked) EntryLinks.reveal(EntryLinks.slug(linked.n));
 }
 
 async function loadSpecies() {
   try {
     const [species, speciesInfo] = await Promise.all([fetchJson('assets/json/vf/especes.json'), fetchJson('assets/json/vf/especes_infos.json')]);
     buildSpeciesList(species, speciesInfo);
-    openSpeciesFromUrlHash();
+    openLinkedSpecies();
   } catch (error) {
     $('#list').innerHTML = '<div class="empty-msg">Impossible de charger les espèces (ouvre le site via un serveur web).</div>';
   }
 }
 
 $('#list').addEventListener('click', toggleSpeciesDetails);
+addEventListener('hashchange', openLinkedSpecies);
 FILTER_INPUTS.forEach(([selector, key, eventType]) => $(selector).addEventListener(eventType, event => {
   filters[key] = event.target.value;
   renderSpecies();

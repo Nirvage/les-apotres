@@ -336,7 +336,7 @@ function listDetailsHtml(item) {
 function listRowHtml(item) {
   const selected = isSelected(item);
   const isOpen = state.open.has(item.n);
-  return `<div class="item" style="--c:${rarityColor(item)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(item.n)}${itemPillsHtml(item)}${voButtonHtml(item)}</div><div class="rs">${listSubtitle(item)}</div></div>
+  return `<div class="item" id="${EntryLinks.slug(item.n)}" style="--c:${rarityColor(item)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(item.n)}${itemPillsHtml(item)}${voButtonHtml(item)}${EntryLinks.button(EntryLinks.slug(item.n), item.n)}</div><div class="rs">${listSubtitle(item)}</div></div>
     <div class="racts">${attuneButtonHtml(item)}<button class="b" style="--c:${DEFAULT_COLOR}" data-act="det" data-i="${item.i}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button><button class="b add${selected ? ' on' : ''}" data-act="tog" data-i="${item.i}" aria-pressed="${selected}">${selected ? '✓ Ajouté' : '+ Ajouter'}</button></div></div>${isOpen ? listDetailsHtml(item) : ''}</div>`;
 }
 
@@ -615,6 +615,16 @@ function showLoadingError() {
   $('#list').innerHTML = '<div class="empty-msg">Impossible de charger la liste des objets (objets.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
 }
 
+function openLinkedItem() {
+  const linked = allItems.find(item => EntryLinks.isRequested(item.n));
+  if (!linked) return;
+  if (!filteredItems().includes(linked)) resetFilters();
+  state.open.add(linked.n);
+  setMode('choose');
+  renderList();
+  EntryLinks.reveal(EntryLinks.slug(linked.n));
+}
+
 async function startPage() {
   let items;
   try {
@@ -625,9 +635,11 @@ async function startPage() {
   }
   setupCatalog(items);
   Persos.init({ part: 'objets', mount: $('#persos'), title: $('#titre'), collect: collectItems, apply: showCharacterItems, msg: notify });
+  openLinkedItem();
 }
 
 document.addEventListener('click', handleActionClick);
+addEventListener('hashchange', openLinkedItem);
 $('#fq').addEventListener('input', onFilterChange('q'));
 FILTER_SELECTS.forEach(([selector, key]) => $(selector).addEventListener('change', onFilterChange(key)));
 $('#titre').addEventListener('input', () => Persos.save());

@@ -393,7 +393,7 @@ function listPrepareButtonHtml(spell) {
 function listRowHtml(spell) {
   const inBook = isInBook(spell);
   const isOpen = state.open.has(spell.n);
-  return `<div class="item" style="--c:${schoolColor(spell)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(spell.name)}${spellPillsHtml(spell)}${VO.btn('sorts', spell.n, spell.name)}</div><div class="rs">${escapeHtml(spell.e)} · ${levelLabel(spell.l)} · ${escapeHtml(spell.c.join(', '))} · ${escapeHtml(spell.t)} · ${escapeHtml(spell.r)}</div></div>
+  return `<div class="item" id="${EntryLinks.slug(spell.name)}" style="--c:${schoolColor(spell)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(spell.name)}${spellPillsHtml(spell)}${VO.btn('sorts', spell.n, spell.name)}${EntryLinks.button(EntryLinks.slug(spell.name), spell.name)}</div><div class="rs">${escapeHtml(spell.e)} · ${levelLabel(spell.l)} · ${escapeHtml(spell.c.join(', '))} · ${escapeHtml(spell.t)} · ${escapeHtml(spell.r)}</div></div>
     <div class="racts"><button class="b" style="--c:${DEFAULT_COLOR}" data-act="det" data-i="${spell.i}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button>${listPrepareButtonHtml(spell)}<button class="b add${inBook ? ' on' : ''}" data-act="tog" data-i="${spell.i}" aria-pressed="${inBook}">${inBook ? '✓ Ajouté' : '+ Ajouter'}</button></div></div>${isOpen ? `<div class="det">${cardHtml(spell, false)}</div>` : ''}</div>`;
 }
 
@@ -657,6 +657,16 @@ async function loadRulesData() {
   featDefinitions = await fetchJson('assets/json/vf/dons.json').catch(() => []);
 }
 
+function openLinkedSpell() {
+  const linked = allSpells.find(spell => EntryLinks.isRequested(spell.name));
+  if (!linked) return;
+  if (!filteredSpells().includes(linked)) resetFilters();
+  state.open.add(linked.n);
+  setMode('choose');
+  renderList();
+  EntryLinks.reveal(EntryLinks.slug(linked.name));
+}
+
 async function startPage() {
   let spells;
   try {
@@ -668,9 +678,11 @@ async function startPage() {
   setupCatalog(spells);
   await loadRulesData();
   Persos.init({ part: 'grimoire', mount: $('#persos'), title: $('#titre'), collect: collectSpellbook, apply: showCharacterSpellbook, msg: notify });
+  openLinkedSpell();
 }
 
 document.addEventListener('click', handleActionClick);
+addEventListener('hashchange', openLinkedSpell);
 $('#fq').addEventListener('input', onFilterChange('q'));
 FILTER_SELECTS.forEach(([selector, key]) => $(selector).addEventListener('change', onFilterChange(key)));
 $('#titre').addEventListener('input', () => Persos.save());

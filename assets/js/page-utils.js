@@ -26,8 +26,7 @@ function showMessage(text, durationMs = 4000) {
 
 function scrollToRequestedAnchor() {
   if (!location.hash) return;
-  const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-  if (target) target.scrollIntoView();
+  EntryLinks.reveal(decodeURIComponent(location.hash.slice(1)));
 }
 
 async function fetchJson(url) {

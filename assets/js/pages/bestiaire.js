@@ -98,7 +98,7 @@ function filteredMonsters() {
 function monsterRowHtml(monster) {
   const isOpen = openMonsterIndexes.has(monster.i);
   const badges = (monster.v === '2014' ? '<span class="pill" title="Pas de version 2024 dans le SRD">2014</span>' : '') + (monster.leg ? '<span class="pill leg">légendaire</span>' : '');
-  return `<div class="item" style="--c:${creatureColor(monster)}"><div class="row" data-act="det" data-i="${monster.i}" role="button" tabindex="0" aria-expanded="${isOpen}"><div class="rmain"><div class="rt">${escapeHtml(monster.n)}<span class="en">${escapeHtml(monster.en)}</span>${badges}${VO.btn('monstres', monster.n, monster.n)}</div><div class="rs">${escapeHtml(monster.tail)} · ${escapeHtml(monster.typ)} · CA ${escapeHtml(monster.ca)} · PV ${escapeHtml(monster.pv.split(' ')[0])}</div></div>
+  return `<div class="item" id="${EntryLinks.slug(monster.n)}" style="--c:${creatureColor(monster)}"><div class="row" data-act="det" data-i="${monster.i}" role="button" tabindex="0" aria-expanded="${isOpen}"><div class="rmain"><div class="rt">${escapeHtml(monster.n)}<span class="en">${escapeHtml(monster.en)}</span>${badges}${VO.btn('monstres', monster.n, monster.n)}${EntryLinks.button(EntryLinks.slug(monster.n), monster.n)}</div><div class="rs">${escapeHtml(monster.tail)} · ${escapeHtml(monster.typ)} · CA ${escapeHtml(monster.ca)} · PV ${escapeHtml(monster.pv.split(' ')[0])}</div></div>
     <div class="fpb">FP ${escapeHtml(monster.fp)}<small>${escapeHtml(monster.px.split(',')[0])} PX</small></div></div>${isOpen ? `<div class="det">${statBlockHtml(monster)}</div>` : ''}</div>`;
 }
 
@@ -160,6 +160,15 @@ function openRandomMonster() {
   showMessage('Monstre tiré : ' + monster.n, MESSAGE_DURATION_MS);
 }
 
+function openLinkedMonster() {
+  const linked = bestiary.find(monster => EntryLinks.isRequested(monster.n));
+  if (!linked) return;
+  if (!filteredMonsters().includes(linked)) resetFilters();
+  openMonsterIndexes.add(linked.i);
+  renderMonsterList();
+  EntryLinks.reveal(EntryLinks.slug(linked.n));
+}
+
 function showLoadingError() {
   $('#cnt').textContent = '';
   $('#list').innerHTML = '<div class="empty-msg">Impossible de charger le bestiaire (bestiaire.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
@@ -178,14 +187,16 @@ async function loadBestiary() {
   restoreFilters();
   syncFilterInputs();
   renderMonsterList();
+  openLinkedMonster();
 }
 
+addEventListener('hashchange', openLinkedMonster);
 document.addEventListener('click', event => {
   const row = event.target.closest('[data-act=det]');
   if (row) toggleMonsterDetails(+row.dataset.i);
 });
 document.addEventListener('keydown', event => {
-  const row = event.target.closest && event.target.closest('[data-act=det]');
+  const row = event.target.matches && event.target.matches('[data-act=det]') ? event.target : null;
   if (!row || (event.key !== 'Enter' && event.key !== ' ')) return;
   event.preventDefault();
   toggleMonsterDetails(+row.dataset.i);

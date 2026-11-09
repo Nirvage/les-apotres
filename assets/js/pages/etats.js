@@ -23,7 +23,7 @@ function conditionTagsHtml(condition) {
 }
 
 function conditionSectionHtml(condition) {
-  return `<section class="panel box" id="${anchorId(condition.n)}" style="--k:${condition.k}"><h2>${escapeHtml(condition.n)}${VO.btn('etats', condition.n, condition.n)}</h2>
+  return `<section class="panel box" id="${anchorId(condition.n)}" style="--k:${condition.k}"><h2>${escapeHtml(condition.n)}${VO.btn('etats', condition.n, condition.n)}${EntryLinks.button(anchorId(condition.n), condition.n)}</h2>
 <p class="sum">${escapeHtml(condition.s)}</p><ul>${condition.e.map(effect => '<li>' + effect + '</li>').join('')}</ul><p class="fin">${condition.f}</p>
 ${conditionTagsHtml(condition)}</section>`;
 }

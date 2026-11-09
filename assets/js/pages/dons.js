@@ -170,7 +170,8 @@ function featPillsHtml(feat) {
   return (feat.mine ? '<span class="pill">Création</span>' : '')
     + (REPEATABLE_FEAT_IDS.has(feat.id) ? '<span class="pill" style="background:#5f6580">Répétable</span>' : '')
     + (feat.ed ? `<span class="pill" style="background:#9a6b2f" title="Absente des règles 2024">${escapeHtml(feat.ed)}</span>` : '')
-    + (feat.mine ? '' : VO.btn('dons', feat.id, feat.nom));
+    + (feat.mine ? '' : VO.btn('dons', feat.id, feat.nom))
+    + EntryLinks.button(feat.id, feat.nom);
 }
 
 function sourceNoteHtml(feat) {
@@ -359,13 +360,12 @@ function fillFilterOptions() {
   $('#fa').innerHTML = '<option value="">Toutes</option><option value="-">Aucune</option>' + ABILITIES.map(([key, name]) => `<option value="${key}">${name}</option>`).join('');
 }
 
-function openRequestedFeat() {
-  const requestedId = decodeURIComponent(location.hash.slice(1));
-  if (requestedId && allFeats.some(feat => feat.id === requestedId)) filters.open.add(requestedId);
+function openLinkedFeat() {
+  const feat = allFeats.find(candidate => EntryLinks.isRequested(candidate.id));
+  if (feat && !filteredFeats().includes(feat)) resetFilters();
+  if (feat) filters.open.add(feat.id);
   renderFeats();
-  if (!requestedId) return;
-  const row = document.getElementById(requestedId);
-  if (row) row.scrollIntoView();
+  if (feat) EntryLinks.reveal(feat.id);
 }
 
 const fetchOptionalJson = url => fetchJson(url).catch(() => null);
@@ -377,7 +377,7 @@ async function loadFeats() {
     classesByName = classes && classes.classes || null;
     buildFeatList();
     loadActiveCharacter();
-    openRequestedFeat();
+    openLinkedFeat();
   } catch (error) {
     $('#list').innerHTML = '<div class="empty-msg">Impossible de charger les dons (ouvre le site via un serveur web).</div>';
   }
@@ -391,6 +391,7 @@ $('#pp').addEventListener('change', event => {
   renderFeats();
 });
 addEventListener('storage', followOtherTabChanges);
+addEventListener('hashchange', openLinkedFeat);
 $('#bNew').onclick = () => editCustomFeat(null);
 $('#list').addEventListener('click', handleListClick);
 fillFilterOptions();

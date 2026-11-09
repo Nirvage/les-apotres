@@ -230,7 +230,7 @@ function filteredCreatures() {
 function listRowHtml(creature) {
   const chosen = isChosen(creature);
   const isOpen = state.open.has(creature.n);
-  return `<div class="item" style="--c:${originColor(creature)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(creature.n)}${VO.btn('familiers', creature.n, creature.n)}</div><div class="rs">${escapeHtml(creature.tail)} · ${escapeHtml(creature.typ)} · CA ${escapeHtml(creature.ca)} · PV ${escapeHtml(creature.pv)} · ${escapeHtml(ORIGIN_SHORT_NAMES[creature.o] || '')}</div></div>
+  return `<div class="item" id="${EntryLinks.slug(creature.n)}" style="--c:${originColor(creature)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(creature.n)}${VO.btn('familiers', creature.n, creature.n)}${EntryLinks.button(EntryLinks.slug(creature.n), creature.n)}</div><div class="rs">${escapeHtml(creature.tail)} · ${escapeHtml(creature.typ)} · CA ${escapeHtml(creature.ca)} · PV ${escapeHtml(creature.pv)} · ${escapeHtml(ORIGIN_SHORT_NAMES[creature.o] || '')}</div></div>
     <div class="racts"><button class="b" style="--c:${DEFAULT_COLOR}" data-act="det" data-i="${creature.i}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button><button class="b add${chosen ? ' on' : ''}" data-act="tog" data-i="${creature.i}" aria-pressed="${chosen}">${chosen ? 'Choisi ✓' : 'Choisir'}</button></div></div>${isOpen ? `<div class="det">${statBlockHtml(creature, false)}</div>` : ''}</div>`;
 }
 
@@ -560,6 +560,16 @@ function showLoadingError() {
   $('#list').innerHTML = '<div class="empty-msg">Impossible de charger la liste (familiers.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
 }
 
+function openLinkedCreature() {
+  const linked = allCreatures.find(creature => EntryLinks.isRequested(creature.n));
+  if (!linked) return;
+  if (!filteredCreatures().includes(linked)) resetFilters();
+  state.open.add(linked.n);
+  setMode('choose');
+  renderList();
+  EntryLinks.reveal(EntryLinks.slug(linked.n));
+}
+
 async function startPage() {
   let creatures;
   try {
@@ -570,9 +580,11 @@ async function startPage() {
   }
   setupCatalog(creatures);
   Persos.init({ part: 'familiers', mount: $('#persos'), title: $('#titre'), collect: collectFamiliars, apply: showCharacterFamiliars, msg: notify });
+  openLinkedCreature();
 }
 
 document.addEventListener('click', handleActionClick);
+addEventListener('hashchange', openLinkedCreature);
 document.addEventListener('input', handleTrackerTyping);
 document.addEventListener('change', handleTrackerSelect);
 document.addEventListener('keydown', damageOnEnter);

@@ -143,7 +143,7 @@ function listQuantityControlHtml(gear) {
 
 function listRowHtml(gear) {
   const isOpen = state.open.has(gear.n);
-  return `<div class="item" style="--c:${typeColor(gear)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(gear.n)}${nameBadgeHtml(gear)}</div><div class="rs">${escapeHtml(gear.c)}${gear.kg ? ' · ' + formatKilograms(gear.kg) : ''}</div></div><span class="pr" title="Prix d’achat">${escapeHtml(gear.p || '—')}</span>
+  return `<div class="item" id="${EntryLinks.slug(gear.n)}" style="--c:${typeColor(gear)}"><div class="row"><div class="rmain"><div class="rt">${escapeHtml(gear.n)}${nameBadgeHtml(gear)}${EntryLinks.button(EntryLinks.slug(gear.n), gear.n)}</div><div class="rs">${escapeHtml(gear.c)}${gear.kg ? ' · ' + formatKilograms(gear.kg) : ''}</div></div><span class="pr" title="Prix d’achat">${escapeHtml(gear.p || '—')}</span>
     <div class="racts"><button class="b" style="--c:${DEFAULT_COLOR}" data-act="det" data-i="${gear.i}" aria-expanded="${isOpen}">${isOpen ? 'Masquer' : 'Détails'}</button>${listQuantityControlHtml(gear)}</div></div>${isOpen ? `<div class="det">${cardHtml(gear, false)}</div>` : ''}</div>`;
 }
 
@@ -376,6 +376,16 @@ function showLoadingError() {
   $('#list').innerHTML = '<div class="empty-msg">Impossible de charger la liste (equipement.json). Vérifie ta connexion, puis recharge la page. En local, ouvre le site via un serveur web (pas en double-cliquant sur le fichier).</div>';
 }
 
+function openLinkedEquipment() {
+  const linked = allEquipment.find(gear => EntryLinks.isRequested(gear.n));
+  if (!linked) return;
+  if (!filteredEquipment().includes(linked)) resetFilters();
+  state.open.add(linked.n);
+  setMode('choose');
+  renderList();
+  EntryLinks.reveal(EntryLinks.slug(linked.n));
+}
+
 async function startPage() {
   let equipment;
   try {
@@ -386,9 +396,11 @@ async function startPage() {
   }
   setupCatalog(equipment);
   Persos.init({ part: 'equipement', mount: $('#persos'), title: $('#titre'), collect: collectEquipment, apply: showCharacterEquipment, msg: notify });
+  openLinkedEquipment();
 }
 
 document.addEventListener('click', handleActionClick);
+addEventListener('hashchange', openLinkedEquipment);
 document.addEventListener('change', handleQuantityInput);
 $('#fq').addEventListener('input', onFilterChange('q'));
 $('#fc').addEventListener('change', onFilterChange('cls', true));
