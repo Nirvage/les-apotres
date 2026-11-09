@@ -262,12 +262,20 @@ function chargedItemRestText(item) {
   return 'Ne se recharge pas tout seul : voir la description de l’objet.';
 }
 
+function declaredChargePools(itemName, chargePools) {
+  return chargePools.map(([poolName, max, recharge]) => ({ name: itemName + ' : ' + poolName, key: 'ch_' + itemName + '|' + poolName, max, recharge, when: 'à l’aube' }));
+}
+
+function itemChargePools(name) {
+  const item = findMagicItem(name);
+  if (!item) return [];
+  if (Array.isArray(item.chg)) return declaredChargePools(name, item.chg);
+  const charges = itemCharges(item.h);
+  return charges ? [Object.assign(charges, { name, key: 'ch_' + name })] : [];
+}
+
 function findChargedItems() {
-  return [...new Set(ownedMagicItemNames())].map(name => {
-    const item = findMagicItem(name);
-    const charges = item && itemCharges(item.h);
-    return charges ? Object.assign(charges, { name, key: 'ch_' + name }) : null;
-  }).filter(Boolean);
+  return [...new Set(ownedMagicItemNames())].flatMap(name => itemChargePools(name));
 }
 
 function renderChargedItems() {
@@ -1317,7 +1325,7 @@ function recalculateSheet() {
   const spellcasting = characterClass ? spellcastingOf(characterClass.data) : null;
   derivedValues = { niv: level, tot: { ...scores.totals }, cl: characterClass ? characterClass.name : '', cast: !!spellcasting, ar: [], ca: armorClass, init: initiative, pp: passivePerception };
   renderSpellcastingNumbers(spellcastingAbility(spellcasting), proficiencyBonus, modifiers, effects);
-  latestScores = { modifiers, proficiencyBonus };
+  latestScores = { modifiers, proficiencyBonus, castingAbility: spellcastingAbility(spellcasting) };
   sheetField('vitesse').placeholder = speedPlaceholder(effects);
   renderSpellcastingSection(modifiers, proficiencyBonus, level, characterClass, spellcasting);
   renderClassChoiceList(characterClass, level);
@@ -1471,21 +1479,22 @@ function magicWeaponBonus(item) {
   return match ? +match[1] : 0;
 }
 
-function attackAbilityModifier(weapon, properties) {
+function attackAbilityModifier(weapon, properties, usesCastingAbility) {
   const modifiers = latestScores.modifiers;
+  if (usesCastingAbility && latestScores.castingAbility) return modifiers[latestScores.castingAbility];
   if (/à distance/.test(weapon.c)) return modifiers.dex;
   if (/Finesse/.test(properties)) return Math.max(modifiers.for, modifiers.dex);
   return modifiers.for;
 }
 
-function attackLine(name, weapon, magicBonus, proficient) {
-  const damage = (weapon.h.match(/Dégâts : ([^.]*)\./) || [])[1] || '';
+function attackLine(candidate, weapon, proficient) {
+  const damage = candidate.damage || (weapon.h.match(/Dégâts : ([^.]*)\./) || [])[1] || '';
   const properties = (weapon.h.match(/Propriétés : ([^.]*)\./) || [])[1] || '';
-  const abilityBonus = attackAbilityModifier(weapon, properties);
-  const toHit = abilityBonus + (proficient ? latestScores.proficiencyBonus : 0) + magicBonus;
-  const damageBonus = abilityBonus + magicBonus;
+  const abilityBonus = attackAbilityModifier(weapon, properties, candidate.usesCastingAbility);
+  const toHit = abilityBonus + (proficient ? latestScores.proficiencyBonus : 0) + candidate.mb;
+  const damageBonus = abilityBonus + candidate.mb;
   const damageParts = damage.match(/^(\S+)\s+(.*)$/);
-  return [name, signed(toHit), damageParts ? damageParts[1] + (damageBonus ? signed(damageBonus) : '') + ' ' + damageParts[2] : damage];
+  return [candidate.nom, signed(toHit), damageParts ? damageParts[1] + (damageBonus ? signed(damageBonus) : '') + ' ' + damageParts[2] : damage];
 }
 
 async function loadImportLists() {
@@ -1529,7 +1538,7 @@ function importableWeapons(equipmentItems, weapons, magicItemsByName) {
     if (!item || !item.h) return;
     if (item.t !== 'Arme' && !/b[aâ]ton de combat/i.test(item.h)) return;
     const options = baseWeaponChoices(item, weapons);
-    if (options.length) candidates.push({ nom: name, opts: options, mb: magicWeaponBonus(item), magic: 1 });
+    if (options.length) candidates.push({ nom: name, opts: options, mb: magicWeaponBonus(item), magic: 1, damage: item.dg, usesCastingAbility: !!item.mi });
   });
   return candidates;
 }
@@ -1632,7 +1641,7 @@ function importWeapons(sources, dialog, isChecked, report) {
     if (!isChecked(`[data-u="${index}"]`)) return;
     const baseSelect = dialog.querySelector(`[data-w="${index}"]`);
     const weapon = candidate.opts[baseSelect ? +baseSelect.value : 0];
-    const line = attackLine(candidate.nom, weapon, candidate.mb, isChecked(`[data-p="${index}"]`));
+    const line = attackLine(candidate, weapon, isChecked(`[data-p="${index}"]`));
     const row = attackRows.find(cells => cells[0].value.trim() === candidate.nom) || attackRows.find(cells => cells.every(cell => !cell.value.trim()));
     if (!row) {
       skippedCount++;
