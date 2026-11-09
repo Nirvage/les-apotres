@@ -117,6 +117,15 @@ function valueForLooseKey(object, key) {
   return found ? object[found] : null;
 }
 
+const EXTRA_SUBCLASS_FEAT_ID = 'sous_classe_supp';
+
+function extraSubclassNames(context) {
+  const takenFeats = context.d.extras && Array.isArray(context.d.extras.dons) ? context.d.extras.dons : [];
+  return takenFeats
+    .filter(takenFeat => takenFeat.id === EXTRA_SUBCLASS_FEAT_ID && takenFeat.ch && takenFeat.ch.sc && takenFeat.ch.sc !== context.sub)
+    .map(takenFeat => takenFeat.ch.sc);
+}
+
 const isLandDruid = context => context.cl === 'Druide' && /terre/i.test(context.sub);
 
 function grantedSpellsFromRules(context) {
@@ -132,6 +141,7 @@ function grantedSpellsFromRules(context) {
     addGranted(alwaysPreparedRules.classes[context.cl], context.cl);
     const subclass = valueForLooseKey(alwaysPreparedRules.sousclasses[context.cl], context.sub);
     if (subclass) addGranted(subclass, context.sub);
+    extraSubclassNames(context).forEach(name => addGranted(valueForLooseKey(alwaysPreparedRules.sousclasses[context.cl], name), name));
     if (isLandDruid(context) && state.terrain) {
       const terrains = alwaysPreparedRules.terrains[LAND_CIRCLE];
       if (terrains && terrains[state.terrain]) addGranted(terrains[state.terrain], 'Terrain : ' + state.terrain);

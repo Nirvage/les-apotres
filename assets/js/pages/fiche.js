@@ -11,6 +11,7 @@ const UNARMORED_SOURCE = 'Sans armure';
 const BONUS_MODE_TWO_AND_ONE = '+2 / +1';
 const BONUS_MODE_THREE_ONES = '+1 / +1 / +1';
 const THIRD_CASTER_SUBCLASS_PATTERN = 'occult|arcanique';
+const EXTRA_SUBCLASS_EFFECT = 'sousclasse';
 const AUTOMATIC_CHECK_TITLE = 'Accordée par un effet (espèce, don…)';
 
 const ABILITIES = [
@@ -643,9 +644,32 @@ function selectedSubclassDefinition(characterClass) {
   return characterClass && subclassData && subclassData[characterClass.name] && subclassData[characterClass.name][fieldValue('sclasse')];
 }
 
+function classSubclasses(characterClass) {
+  return characterClass && subclassData && subclassData[characterClass.name] || {};
+}
+
+function grantsExtraSubclass(feat) {
+  return !!feat && feat.fx.some(effect => effect.t === EXTRA_SUBCLASS_EFFECT);
+}
+
+function extraSubclassName(takenFeat) {
+  const feat = featList && featList.find(entry => entry.id === takenFeat.id);
+  const choice = grantsExtraSubclass(feat) && feat.fx.find(effect => effect.t === EXTRA_SUBCLASS_EFFECT).c;
+  return choice ? takenFeat.ch[choice] || '' : '';
+}
+
+function extraSubclasses(characterClass) {
+  const subclasses = classSubclasses(characterClass);
+  return extras.dons
+    .map(takenFeat => ({ takenFeat, name: extraSubclassName(takenFeat) }))
+    .filter(entry => entry.name && entry.name !== fieldValue('sclasse') && subclasses[entry.name])
+    .map(entry => ({ ...entry, definition: subclasses[entry.name], keyPrefix: 'd' + entry.takenFeat.u + '_s_' }));
+}
+
 function applySubclassEffects(totals) {
   const subclass = selectedSubclassDefinition(totals.characterClass);
   if (subclass) applyEffects(totals, subclass.fx || [], {}, fieldValue('sclasse'), 's_');
+  extraSubclasses(totals.characterClass).forEach(extra => applyEffects(totals, extra.definition.fx || [], {}, extra.name, extra.keyPrefix));
 }
 
 function applyMagicItemEffects(totals) {
@@ -687,6 +711,7 @@ function selectOptionsHtml(options, currentValue) {
 function choiceOptionPairs(choice) {
   if (choice.t === 'carac') return choice.opts.map(key => [key, ABILITY_NAMES[key]]);
   if (choice.t === 'comp') return (choice.opts || SKILL_NAMES).map(name => [name, name]);
+  if (choice.t === EXTRA_SUBCLASS_EFFECT) return Object.keys(classSubclasses(findCharacterClass())).map(name => [name, name]);
   return choice.opts.map(asOption).map(option => [option.v, option.v]);
 }
 
@@ -771,10 +796,15 @@ function renderBackgroundCard(background) {
   setHtmlIfChanged($('#xBg'), backgroundCardHtml(background));
 }
 
+function subclassCardTitle() {
+  const extraNames = extraSubclasses(findCharacterClass()).map(extra => extra.name);
+  return 'Sous-classe — ' + fieldValue('sclasse') + (extraNames.length ? ' (+ ' + extraNames.join(', ') + ')' : '');
+}
+
 function renderSubclassCard(subclass, level, pools) {
   $('#xSubC').hidden = !subclass;
   if (!subclass) return;
-  $('#xSubT').textContent = 'Sous-classe — ' + fieldValue('sclasse');
+  $('#xSubT').textContent = subclassCardTitle();
   setHtmlIfChanged($('#xSub'), featuresByLevelHtml(subclass.feats, level) + poolsWithPrefix(pools, 's_'));
 }
 
@@ -787,6 +817,15 @@ function renderClassFeaturesPage(characterClass, level) {
   setHtmlIfChanged($('#xCls'), featuresByLevelHtml(features, level));
 }
 
+function extraSubclassFeaturesHtml(takenFeat) {
+  const name = extraSubclassName(takenFeat);
+  if (!name) return '';
+  const definition = classSubclasses(findCharacterClass())[name];
+  if (!definition) return '<p class="xh">Cette sous-classe n’existe pas pour la classe choisie dans les Paramètres.</p>';
+  if (name === fieldValue('sclasse')) return '<p class="xh">C’est déjà la sous-classe principale : choisis-en une autre.</p>';
+  return `<p><b>Sous-classe supplémentaire — ${escapeHtml(name)}</b></p>` + featuresByLevelHtml(definition.feats, currentLevel());
+}
+
 function takenFeatHtml(takenFeat, pools) {
   const feat = featList.find(entry => entry.id === takenFeat.id);
   if (!feat) return '';
@@ -795,7 +834,7 @@ function takenFeatHtml(takenFeat, pools) {
   const removeButton = takenFeat.bg ? '' : `<button type="button" class="noprint" data-del="${takenFeat.u}">Retirer</button>`;
   const choices = feat.choix.length ? `<div class="chs">${choiceFieldsHtml('d' + takenFeat.u, feat.choix, takenFeat.ch)}</div>` : '';
   return `<div class="don" style="--c:#c8402f"><div class="dh"><b>${escapeHtml(feat.nom)}</b><span>${details}</span>${editButton}${removeButton}</div><p>${escapeHtml(feat.desc)}</p>`
-    + choices + poolsWithPrefix(pools, 'd' + takenFeat.u + '_') + '</div>';
+    + choices + extraSubclassFeaturesHtml(takenFeat) + poolsWithPrefix(pools, 'd' + takenFeat.u + '_') + '</div>';
 }
 
 function renderFeatsCard(pools) {

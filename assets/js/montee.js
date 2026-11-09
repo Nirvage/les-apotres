@@ -91,12 +91,15 @@ function describeLevelUp() {
   const subclassLevel = subclasses ? Math.min(...Object.values(subclasses).flatMap(subclass => subclass.feats.map(feature => feature.niv))) : DEFAULT_SUBCLASS_LEVEL;
   const newFeatures = (className && classFeaturesData && classFeaturesData[className] || []).filter(feature => feature.niv === toLevel);
   const newSubclassFeatures = subclassName && subclasses && subclasses[subclassName] ? subclasses[subclassName].feats.filter(feature => feature.niv === toLevel) : [];
+  const newExtraSubclassFeatures = extraSubclasses(characterClass)
+    .map(extra => ({ name: extra.name, features: extra.definition.feats.filter(feature => feature.niv === toLevel) }))
+    .filter(extra => extra.features.length);
   return {
-    fromLevel, toLevel, characterClass, className, hitDie, subclassName, subclasses, subclassLevel, newFeatures, newSubclassFeatures,
+    fromLevel, toLevel, characterClass, className, hitDie, subclassName, subclasses, subclassLevel, newFeatures, newSubclassFeatures, newExtraSubclassFeatures,
     constitutionModifier: latestScores.modifiers.con || 0,
     needsSubclass: !!subclasses && !subclassName && toLevel >= subclassLevel,
     grantsFeat: newFeatures.some(feature => ABILITY_SCORE_IMPROVEMENT_PATTERN.test(feature.nom)),
-    grantsFightingStyle: [...newFeatures, ...newSubclassFeatures].some(feature => FIGHTING_STYLE_PATTERN.test(feature.nom)),
+    grantsFightingStyle: [...newFeatures, ...newSubclassFeatures, ...newExtraSubclassFeatures.flatMap(extra => extra.features)].some(feature => FIGHTING_STYLE_PATTERN.test(feature.nom)),
     abilityTotals: derivedValues && derivedValues.tot || {},
     averageHitDie: Math.floor(hitDie / 2) + 1
   };
@@ -245,7 +248,8 @@ function featuresStepHtml(levelUp) {
   return `<h4>Ce que tu gagnes au niveau ${levelUp.toLevel}</h4>
     ${shownFeatures.length ? featureListHtml(shownFeatures) : ''}
     ${subclassFeatures.length ? `<p><b>${escapeHtml(levelUp.subclassName)}</b></p>` + featureListHtml(subclassFeatures) : ''}
-    ${!shownFeatures.length && !subclassFeatures.length ? '<p class="hint">Pas de nouvelle capacité de classe à ce niveau, en dehors des choix des étapes suivantes.</p>' : ''}
+    ${levelUp.newExtraSubclassFeatures.map(extra => `<p><b>${escapeHtml(extra.name)}</b> (sous-classe supplémentaire)</p>` + featureListHtml(extra.features)).join('')}
+    ${!shownFeatures.length && !subclassFeatures.length && !levelUp.newExtraSubclassFeatures.length ? '<p class="hint">Pas de nouvelle capacité de classe à ce niveau, en dehors des choix des étapes suivantes.</p>' : ''}
     ${changeTableHtml(classProgressRows(levelUp))}
     <p class="hint">Tout cela s'affiche tout seul sur la fiche (capacités de classe, sous-classe, réserves) dès que le niveau change.</p>`;
 }

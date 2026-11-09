@@ -11,6 +11,7 @@ const REPEATABLE_FEAT_IDS = new Set(['asi', 'adepte_elem', 'initie_magie', 'qual
 const ARMOR_TRAINING_BY_CLASS = { 'Artificier': ['légères', 'intermédiaires', 'boucliers'], 'Barbare': ['légères', 'intermédiaires', 'boucliers'], 'Barde': ['légères'], 'Chasseur de sang': ['légères', 'intermédiaires'], 'Clerc': ['légères', 'intermédiaires', 'boucliers'], 'Druide': ['légères', 'boucliers'], 'Guerrier': ARMOR_TRAININGS, 'Occultiste': ['légères'], 'Paladin': ARMOR_TRAININGS, 'Rôdeur': ['légères', 'intermédiaires', 'boucliers'], 'Roublard': ['légères'] };
 const ARMOR_TRAINING_BY_FEAT = { armure_legere: ['légères', 'boucliers'], armure_inter: ['intermédiaires', 'boucliers'], armure_lourde: ['lourdes'] };
 const FIGHTING_STYLE_LEVEL_BY_CLASS = { 'Guerrier': 1, 'Paladin': 2, 'Rôdeur': 2 };
+const HOUSE_FEAT_SOURCE = 'Don maison';
 const PREREQUISITE_TYPES = [['none', 'Aucun prérequis'], ['niv', 'Un niveau minimum'], ['ab', 'Une valeur de caractéristique'], ['cast', 'Incantation ou Magie de pacte'], ['arm', 'Une maîtrise d’armure ou de bouclier'], ['style', 'La capacité Style de combat'], ['occ', 'Un niveau d’occultiste (manifestations occultes)'], ['other', 'Autre (à vérifier)']];
 const ABILITY_NAMES_PATTERN = 'force|dexterite|constitution|intelligence|sagesse|charisme';
 const ABILITY_PREREQUISITE_PATTERN = new RegExp(`((?:(?:${ABILITY_NAMES_PATTERN})(?:\\s*,\\s*|\\s+ou\\s+)?)+)\\s+(\\d+)\\s+ou\\s+plus`);
@@ -173,7 +174,8 @@ function featPillsHtml(feat) {
 }
 
 function sourceNoteHtml(feat) {
-  const origin = feat.mine ? 'Création personnelle' : 'Source : ' + escapeHtml(feat.src || 'Manuel des joueurs 2024') + (feat.r_ ? ' · reconstitué à partir d’un résumé : à vérifier dans le livre' : ' · reformulé : le livre fait foi');
+  const bookNote = feat.src === HOUSE_FEAT_SOURCE ? '' : feat.r_ ? ' · reconstitué à partir d’un résumé : à vérifier dans le livre' : ' · reformulé : le livre fait foi';
+  const origin = feat.mine ? 'Création personnelle' : 'Source : ' + escapeHtml(feat.src || 'Manuel des joueurs 2024') + bookNote;
   const choices = feat.choix && feat.choix.length ? ' · les choix du don se font dans la fiche' : '';
   return `<div class="srcn">${origin}${choices}</div>`;
 }
