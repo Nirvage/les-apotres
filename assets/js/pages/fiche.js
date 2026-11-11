@@ -190,8 +190,8 @@ function classInfoValue(info, level, modifiers, proficiencyBonus) {
   return info.val[level - 1];
 }
 
-function classInfoTilesHtml(classDefinition, level, modifiers, proficiencyBonus) {
-  return (classDefinition.infos || []).map((info, index) => {
+function classInfoTilesHtml(infos, level, modifiers, proficiencyBonus) {
+  return infos.map((info, index) => {
     const value = classInfoValue(info, level, modifiers, proficiencyBonus);
     if (value == null) return '';
     return `<div class="tile" style="--c:${RESOURCE_COLORS[(index + 3) % RESOURCE_COLORS.length]}"><span class="lbl">${escapeHtml(info.nom)}</span><span class="calc">${escapeHtml(value)}</span></div>`;
@@ -363,7 +363,8 @@ function renderSpellcastingSection(modifiers, proficiencyBonus, level, character
     $('#nprep').textContent = valueAtLevel(spellcasting.prepares, level) || '—';
     setHtmlIfChanged($('#slotsAuto'), spellSlotsHtml(spellcasting, level));
   }
-  const infoTiles = classInfoTilesHtml(classDefinition, level, modifiers, proficiencyBonus);
+  const subclass = selectedSubclassDefinition(characterClass) || {};
+  const infoTiles = classInfoTilesHtml([...(classDefinition.infos || []), ...(subclass.infos || [])], level, modifiers, proficiencyBonus);
   const resources = classResourcesHtml(classDefinition, level, modifiers);
   setHtmlIfChanged($('#clsInfos'), infoTiles);
   setHtmlIfChanged($('#clsRes'), resources);
@@ -751,9 +752,14 @@ function traitsListHtml(traits) {
   return `<ul class="xl">${traits.map(trait => `<li><b>${escapeHtml(trait.nom)}</b> — ${formattedDescription(trait.desc)}</li>`).join('')}</ul>`;
 }
 
+function valueAtYourLevelHtml(feature, level) {
+  const value = (feature.auniv || [])[level - 1];
+  return value ? `<br><span class="auniv">À votre niveau : ${escapeHtml(value)}</span>` : '';
+}
+
 function featuresByLevelHtml(features, level) {
   return '<ul class="xl">' + features.map(feature => feature.niv <= level
-    ? `<li><b>Niv. ${feature.niv} · ${escapeHtml(feature.nom)}</b> — ${formattedDescription(feature.desc)}</li>`
+    ? `<li><b>Niv. ${feature.niv} · ${escapeHtml(feature.nom)}</b> — ${formattedDescription(feature.desc)}${valueAtYourLevelHtml(feature, level)}</li>`
     : `<li class="fut"><b>Niv. ${feature.niv} · ${escapeHtml(feature.nom)}</b> (pas encore acquis)</li>`).join('') + '</ul>';
 }
 

@@ -132,6 +132,7 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2
 .xl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:11px}
 .xl b{font-family:var(--serif);font-style:italic}
 .xl .fut{color:var(--soft);opacity:.7}
+.xl .auniv{font-weight:700;color:#8b1e1e}
 .xh{font-size:11px;color:var(--soft);margin:0}
 .chs{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0}
 .ch{display:block;min-width:30mm;flex:1}
