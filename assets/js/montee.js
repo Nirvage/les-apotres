@@ -47,6 +47,8 @@ const DEFAULT_SUBCLASS_LEVEL = 3;
 const HIT_POINTS_AVERAGE = 'moy';
 const HIT_POINTS_ROLL = 'jet';
 const CREATED_FEATS_GROUP = 'Mes créations';
+const PER_LEVEL_HIT_POINTS_EFFECT = 'pv_niv';
+const PER_LEVEL_HIT_POINTS_LINE = /^PV max \+\d+ \(\d+ par niveau\)$/;
 
 function addLevelUpButton() {
   document.head.insertAdjacentHTML('beforeend', '<style>' + LEVEL_UP_STYLES + '</style>');
@@ -101,6 +103,8 @@ function describeLevelUp() {
     grantsFeat: newFeatures.some(feature => ABILITY_SCORE_IMPROVEMENT_PATTERN.test(feature.nom)),
     grantsFightingStyle: [...newFeatures, ...newSubclassFeatures, ...newExtraSubclassFeatures.flatMap(extra => extra.features)].some(feature => FIGHTING_STYLE_PATTERN.test(feature.nom)),
     abilityTotals: derivedValues && derivedValues.tot || {},
+    perLevelHitPointsGain: hitPointsPerLevelAt(toLevel) - hitPointsPerLevelAt(fromLevel),
+    perLevelHitPointsSources: hitPointsPerLevelSources(toLevel),
     averageHitDie: Math.floor(hitDie / 2) + 1
   };
 }
@@ -196,6 +200,24 @@ function hitPointGain(state, levelUp) {
   return Math.max(1, hitDieResult(state, levelUp) + levelUp.constitutionModifier);
 }
 
+function chosenFeatHitPointsGain(state, levelUp) {
+  const feat = findFeat(state.featId);
+  const perLevelEffects = feat ? (feat.fx || []).filter(effect => effect.t === PER_LEVEL_HIT_POINTS_EFFECT) : [];
+  return perLevelEffects.reduce((total, effect) => total + effect.n * levelUp.toLevel, 0);
+}
+
+function totalHitPointGain(state, levelUp) {
+  const gain = hitPointGain(state, levelUp);
+  return gain == null ? null : gain + levelUp.perLevelHitPointsGain + chosenFeatHitPointsGain(state, levelUp);
+}
+
+function perLevelHitPointsHint(state, levelUp) {
+  const chosenFeat = chosenFeatHitPointsGain(state, levelUp) ? findFeat(state.featId) : null;
+  const sources = [...levelUp.perLevelHitPointsSources, ...(chosenFeat ? [chosenFeat.nom] : [])];
+  const bonus = levelUp.perLevelHitPointsGain + chosenFeatHitPointsGain(state, levelUp);
+  return bonus ? `<br><span class="hint">dont +${bonus} : ${escapeHtml(sources.join(', '))}</span>` : '';
+}
+
 function featChoiceOptions(choice, abilityTotals) {
   if (choice.t === 'carac') return choice.opts.map(key => [key, ABILITY_NAMES[key] + (abilityTotals[key] != null ? ' (' + abilityTotals[key] + ')' : '')]);
   if (choice.t === 'comp') return (choice.opts || SKILL_NAMES).map(name => [name, name]);
@@ -227,7 +249,7 @@ function featChoicesSummary(feat, state) {
 
 function hitPointsStepHtml(levelUp, state) {
   const { hitDie, className, constitutionModifier, averageHitDie } = levelUp;
-  const gain = hitPointGain(state, levelUp);
+  const gain = totalHitPointGain(state, levelUp);
   return `
     <h4>Points de vie</h4>
     <p>Dé de vie : <b>d${hitDie}</b>${className ? ' (' + escapeHtml(className) + ')' : ''} · modificateur de Constitution <b>${signed(constitutionModifier)}</b></p>
@@ -235,7 +257,7 @@ function hitPointsStepHtml(levelUp, state) {
     <label class="opt"><input type="radio" name="hp" value="${HIT_POINTS_ROLL}"${state.hitPointsMethod === HIT_POINTS_ROLL ? ' checked' : ''}><span><b>Lancer le d${hitDie}</b>
       <span class="roll"><button type="button" id="lvRoll">Lancer</button><input type="number" id="lvRollV" min="1" max="${hitDie}" value="${escapeHtml(state.rolledHitDie)}" placeholder="1–${hitDie}" aria-label="Résultat du dé"></span>
       <span class="hint">Ou saisis le résultat de ton propre dé.</span></span></label>
-    <p>Gain : <span class="big">${gain == null ? '—' : '+' + gain}</span> PV max <span class="hint">(au moins 1 ; tu gagnes aussi un dé de vie)</span></p>`;
+    <p>Gain : <span class="big">${gain == null ? '—' : '+' + gain}</span> PV max <span class="hint">(au moins 1 ; tu gagnes aussi un dé de vie)</span>${perLevelHitPointsHint(state, levelUp)}</p>`;
 }
 
 function isAutomaticFeature(feature) {
@@ -316,7 +338,7 @@ function missingChoices(levelUp, state, gain, feat) {
 }
 
 function summaryStepHtml(levelUp, state) {
-  const gain = hitPointGain(state, levelUp);
+  const gain = totalHitPointGain(state, levelUp);
   const maximumHitPoints = parseInt(fieldValue('pvmax'));
   const hitDice = hitDiceInfo();
   const rows = [
@@ -371,7 +393,15 @@ function raiseLevelAndHitDice(levelUp, previousHitDice, previousRemainingText) {
   if (previousRemainingText !== '') sheetField('dvrest').value = Math.min(previousHitDice.total + 1, (parseInt(previousRemainingText) || 0) + 1);
 }
 
-const hitPointsPerLevelAt = level => computeEffects(level, proficiencyBonusAt(level)).hitPointsPerLevel;
+function hitPointsPerLevelAt(level) {
+  return computeEffects(level, proficiencyBonusAt(level)).hitPointsPerLevel;
+}
+
+function hitPointsPerLevelSources(level) {
+  return computeEffects(level, proficiencyBonusAt(level)).lines
+    .filter(([, text]) => PER_LEVEL_HIT_POINTS_LINE.test(text))
+    .map(([source]) => source);
+}
 
 function maximumHitPointsFromScratch(levelUp, state) {
   const constitutionModifier = latestScores.modifiers.con || 0;
