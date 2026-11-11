@@ -412,6 +412,12 @@ const plusOneToThree = buildEffects => [1, 2, 3].map(bonus => ['+' + bonus, buil
 const spellAttackAndSaveBonus = bonus => [{ t: 'satk', n: bonus }, { t: 'sdd', n: bonus }];
 const setAbility = (ability, score) => ({ t: 'set', v: ability, n: score });
 const raiseAbility = (ability, bonus, cap) => ({ t: 'carac', v: ability, n: bonus, max: cap });
+const damageResistance = (...damageTypes) => ({ t: 'rd', v: damageTypes });
+const damageImmunity = (...damageTypes) => ({ t: 'imd', v: damageTypes });
+const ENERGY_DAMAGE_TYPES = ['acide', 'froid', 'feu', 'force', 'foudre', 'nécrotique', 'poison', 'psychique', 'radiant', 'tonnerre'];
+const capitalized = text => text.charAt(0).toUpperCase() + text.slice(1);
+const resistanceToOneEnergyType = () => ENERGY_DAMAGE_TYPES.map(damageType => [capitalized(damageType), [damageResistance(damageType)]]);
+const DRAGON_SCALE_RESISTANCES = [['Noir', 'acide'], ['Bleu', 'foudre'], ['Airain', 'feu'], ['Bronze', 'foudre'], ['Cuivre', 'acide'], ['Or', 'feu'], ['Vert', 'poison'], ['Rouge', 'feu'], ['Argent', 'froid'], ['Blanc', 'froid']];
 
 const MAGIC_ITEM_EFFECTS = {
   "Amulette de bonne santé": [setAbility('con', 19)],
@@ -425,7 +431,7 @@ const MAGIC_ITEM_EFFECTS = {
     ['Géant des nuages (Force 27)', [setAbility('for', 27)]],
     ['Géant des tempêtes (Force 29)', [setAbility('for', 29)]]
   ] },
-  "Ceinturon des nains": [raiseAbility('con', 2, 20)],
+  "Ceinturon des nains": [raiseAbility('con', 2, 20), damageResistance('poison')],
   "Éclat de Xeluan": [raiseAbility('for', 4, 22), { t: 'satk', n: 1 }],
   "Pierre de Ioun": { choices: [
     ['Agilité (Dextérité +2)', [raiseAbility('dex', 2, 20)]],
@@ -439,10 +445,30 @@ const MAGIC_ITEM_EFFECTS = {
   ] },
   "Anneau de protection": [{ t: 'ca', n: 1 }, { t: 'sv', n: 1 }],
   "Cape de protection": [{ t: 'ca', n: 1 }, { t: 'sv', n: 1 }],
-  "Armure d'écailles de dragon": [{ t: 'ca', n: 1 }],
+  "Armure d'écailles de dragon": { choices: DRAGON_SCALE_RESISTANCES.map(([color, damageType]) => [color + ' (' + damageType + ')', [{ t: 'ca', n: 1 }, damageResistance(damageType)]]) },
   "Armure démoniaque": [{ t: 'ca', n: 1 }],
-  "Armure de golem de cuir": [{ t: 'ca', n: 1 }],
-  "Mailles de l'éfrit": [{ t: 'ca', n: 3 }],
+  "Armure de golem de cuir": [{ t: 'ca', n: 1 }, damageResistance('foudre')],
+  "Mailles de l'éfrit": [{ t: 'ca', n: 3 }, damageImmunity('feu')],
+  "Anneau de résistance": { choices: resistanceToOneEnergyType() },
+  "Armure de résistance": { choices: resistanceToOneEnergyType() },
+  "Anneau de maîtrise élémentaire": { choices: [['Air', [damageResistance('foudre')]], ['Terre', [damageResistance('acide')]], ['Feu', [damageImmunity('feu')]], ['Eau', []]] },
+  "Amulette de protection contre le poison": [damageImmunity('poison')],
+  "Armure d'invulnérabilité": [damageResistance('contondant', 'perforant', 'tranchant')],
+  "Broche de défense": [damageResistance('force')],
+  "Bottes des terres gelées": [damageResistance('froid')],
+  "Cape de l'arachnide": [damageResistance('poison')],
+  "Bâton de feu": [damageResistance('feu')],
+  "Bâton de gel": [damageResistance('froid')],
+  "Fer gelé": [damageResistance('feu')],
+  "Piwafwi de résistance au feu": [damageResistance('feu')],
+  "Robe d'été": [damageResistance('froid')],
+  "Peau de bronze en fusion": [damageResistance('feu')],
+  "Peau de démon": [damageResistance('poison')],
+  "Heaume scintillant": [damageResistance('feu')],
+  "Sceptre de déflagration": [damageResistance('feu', 'foudre')],
+  "Sceptre des flammes infernales": [damageResistance('feu', 'nécrotique')],
+  "Opale de la rune d'Ild": [damageResistance('froid')],
+  "Matalotok": [damageImmunity('froid')],
   "Armure de scorpion": [{ t: 'init', n: 5 }],
   "Bâton de défense": [{ t: 'ca', n: 1 }],
   "Bouclier du cavalier": [{ t: 'ca', n: 2 }],
@@ -507,6 +533,19 @@ function magicItemEffects(name) {
   return chosenVersion ? chosenVersion[1] : [];
 }
 
+const DAMAGE_DEFENSE_LABELS = { rd: 'résistance', imd: 'immunité', vd: 'vulnérabilité' };
+const emptyDamageDefenses = () => ({ rd: {}, imd: {}, vd: {} });
+
+function addDamageDefense(damageDefenses, kind, damageTypes, source) {
+  damageTypes.forEach(damageType => { (damageDefenses[kind][damageType] = damageDefenses[kind][damageType] || []).push(source); });
+}
+
+function applyDamageDefenseEffect(totals, effect, damageTypes, choices, source) {
+  if (!damageTypes) return;
+  addDamageDefense(totals.damageDefenses, effect.t, damageTypes, source);
+  totals.lines.push([source, DAMAGE_DEFENSE_LABELS[effect.t] + ' aux dégâts : ' + damageTypes.join(', ')]);
+}
+
 function createEffectTotals(level, proficiencyBonus) {
   return {
     level, proficiencyBonus,
@@ -514,7 +553,7 @@ function createEffectTotals(level, proficiencyBonus) {
     initiativeBonus: 0, hitPointsPerLevel: 0, speedBonus: 0, armorClassBonus: 0,
     conditionalArmorClassBonuses: [], unarmoredBases: [],
     savingThrowBonus: 0, abilityCheckBonus: 0, spellAttackBonus: 0, spellSaveDcBonus: 0,
-    resources: [], lines: [],
+    resources: [], lines: [], damageDefenses: emptyDamageDefenses(),
     species: findSpecies(), characterClass: findCharacterClass()
   };
 }
@@ -605,6 +644,9 @@ const EFFECT_APPLIERS = {
   cab(totals, effect, target, choices, source) {
     totals.unarmoredBases.push({ source, base: effect.b || 10, abilities: effect.m || [], noShield: effect.noS, condition: effect.cond });
   },
+  rd: applyDamageDefenseEffect,
+  imd: applyDamageDefenseEffect,
+  vd: applyDamageDefenseEffect,
   res(totals, effect, target, choices, source, keyPrefix) {
     totals.resources.push({ key: keyPrefix + effect.id, name: effect.nom, maximumRule: effect.max, restText: effect.repos, level: effect.niv });
   }
@@ -1379,6 +1421,7 @@ function recalculateSheet() {
   renderExtras(effects, level, proficiencyBonus, modifiers, scores.totals);
   renderChargedItems();
   renderRestHint();
+  renderDamageDefenses(effects);
 }
 
 function updateHitDiceTotal() {
@@ -1890,6 +1933,7 @@ function applyLongRest(doneMessage) {
   if (!isNaN(maximumHitPoints)) setFieldAndNotify('pv', maximumHitPoints);
   setFieldAndNotify('pvtemp', '');
   clearDeathSaves();
+  clearActiveStates();
   setFieldAndNotify('dvrest', hitDiceInfo().total);
   clearSpellSlotUsage();
   const recovered = restoreResources('long');
@@ -1918,6 +1962,7 @@ function spendHitDice(dialog, hitDice, constitutionModifier, hitPoints, maximumH
     setFieldAndNotify('dvrest', hitDice.remaining - diceCount);
   }
   Object.keys(resourceState).forEach(key => { if (/^pc_/.test(key)) delete resourceState[key]; });
+  clearActiveStates();
   const recovered = restoreResources('court');
   replaceResourceState(resourceState);
   recalculateSheet();
@@ -1942,6 +1987,240 @@ function openShortRestDialog() {
   const dialog = createDialog('border:0;border-radius:12px;padding:16px 20px;width:min(420px,94vw);box-shadow:0 10px 40px #0008', shortRestDialogHtml(hitDice, constitutionModifier, hitPoints, maximumHitPoints));
   dialog.querySelector('#rsc').onclick = () => closeAndRemove(dialog);
   dialog.querySelector('#rsk').onclick = () => spendHitDice(dialog, hitDice, constitutionModifier, hitPoints, maximumHitPoints);
+}
+
+const DAMAGE_TYPES = ['acide', 'contondant', 'feu', 'force', 'foudre', 'froid', 'nécrotique', 'perforant', 'poison', 'psychique', 'radiant', 'tonnerre', 'tranchant'];
+const PHYSICAL_DAMAGE_TYPES = ['contondant', 'perforant', 'tranchant'];
+const DAMAGE_DEFENSE_TITLES = { imd: 'Immunités', rd: 'Résistances', vd: 'Vulnérabilités' };
+const ACTIVE_STATE_PREFIX = 'actif_';
+const MINIMUM_CONCENTRATION_DC = 10;
+const MAXIMUM_CONCENTRATION_DC = 30;
+const DEATH_SAVE_FAILURE_KEYS = ['df1', 'df2', 'df3'];
+let lastDamageType = 'tranchant';
+
+const damageTypesExcept = excludedTypes => DAMAGE_TYPES.filter(damageType => !excludedTypes.includes(damageType));
+const hasClassAtLevel = (className, minimumLevel) => { const characterClass = findCharacterClass(); return !!characterClass && characterClass.name === className && currentLevel() >= minimumLevel; };
+const hasSubclassAtLevel = (className, subclassName, minimumLevel) => hasClassAtLevel(className, minimumLevel) && fieldValue('sclasse') === subclassName;
+
+const TEMPORARY_DEFENSES = [
+  { id: 'rage', label: 'En rage', source: 'Rage', isAvailable: () => hasClassAtLevel('Barbare', 1), effect: damageResistance(...PHYSICAL_DAMAGE_TYPES) },
+  { id: 'ours', label: 'Rage de la nature : Ours (pendant la rage)', source: 'Rage de la nature (Ours)', requires: 'rage', isAvailable: () => hasSubclassAtLevel('Barbare', 'Voie du Cœur sauvage', 3), effect: damageResistance(...damageTypesExcept(['force', 'nécrotique', 'psychique', 'radiant'])) },
+  { id: 'dieux', label: 'Rage des dieux (pendant la rage)', source: 'Rage des dieux', requires: 'rage', isAvailable: () => hasSubclassAtLevel('Barbare', 'Voie du Fanatique', 14), effect: damageResistance('nécrotique', 'psychique', 'radiant') },
+  { id: 'defsup', label: 'Défense supérieure', source: 'Défense supérieure', isAvailable: () => hasClassAtLevel('Moine', 18), effect: damageResistance(...damageTypesExcept(['force'])) }
+];
+
+const activeStateKey = defenseId => ACTIVE_STATE_PREFIX + defenseId;
+const isDefenseActive = defense => !!resourceState[activeStateKey(defense.id)] && (!defense.requires || !!resourceState[activeStateKey(defense.requires)]);
+const availableTemporaryDefenses = () => TEMPORARY_DEFENSES.filter(defense => defense.isAvailable());
+
+function clearActiveStates() {
+  Object.keys(resourceState).forEach(key => { if (key.startsWith(ACTIVE_STATE_PREFIX)) delete resourceState[key]; });
+}
+
+function withActiveTemporaryDefenses(damageDefenses) {
+  availableTemporaryDefenses().filter(isDefenseActive).forEach(defense => addDamageDefense(damageDefenses, defense.effect.t, defense.effect.v, defense.source));
+  return damageDefenses;
+}
+
+function currentDamageDefenses() {
+  const level = currentLevel();
+  return withActiveTemporaryDefenses(computeEffects(level, proficiencyBonusAt(level)).damageDefenses);
+}
+
+function damageDefensesSummary(damageDefenses) {
+  return Object.keys(DAMAGE_DEFENSE_TITLES)
+    .filter(kind => Object.keys(damageDefenses[kind]).length)
+    .map(kind => DAMAGE_DEFENSE_TITLES[kind] + ' : ' + Object.keys(damageDefenses[kind]).sort().join(', '))
+    .join(' · ');
+}
+
+function renderDamageDefenses(effects) {
+  $('#defenses').textContent = damageDefensesSummary(withActiveTemporaryDefenses(effects.damageDefenses));
+}
+
+function mergeDamageByType(damageEntries) {
+  const amountByType = new Map();
+  damageEntries.filter(entry => entry.amount > 0).forEach(entry => amountByType.set(entry.type, (amountByType.get(entry.type) || 0) + entry.amount));
+  return [...amountByType].map(([type, amount]) => ({ type, amount }));
+}
+
+const defenseSources = (damageDefenses, kind, damageType) => damageDefenses[kind][damageType];
+const defenseReason = (label, sources) => label + ' (' + sources.join(', ') + ')';
+
+function adjustedDamage(entry, damageDefenses) {
+  const immunitySources = defenseSources(damageDefenses, 'imd', entry.type);
+  if (immunitySources) return { ...entry, final: 0, reasons: [defenseReason('immunité', immunitySources)] };
+  const resistanceSources = defenseSources(damageDefenses, 'rd', entry.type);
+  const vulnerabilitySources = defenseSources(damageDefenses, 'vd', entry.type);
+  const halved = resistanceSources ? Math.floor(entry.amount / 2) : entry.amount;
+  const reasons = [resistanceSources && defenseReason('résistance', resistanceSources), vulnerabilitySources && defenseReason('vulnérabilité', vulnerabilitySources)].filter(Boolean);
+  return { ...entry, final: vulnerabilitySources ? halved * 2 : halved, reasons };
+}
+
+function currentHitPointState() {
+  const maximum = parseInt(fieldValue('pvmax'));
+  const current = parseInt(fieldValue('pv'));
+  return {
+    maximum: isNaN(maximum) ? 0 : maximum,
+    hitPoints: isNaN(current) ? (isNaN(maximum) ? 0 : maximum) : current,
+    temporary: Math.max(0, parseInt(fieldValue('pvtemp')) || 0)
+  };
+}
+
+function damageOutcome(totalDamage, state) {
+  const absorbed = Math.min(state.temporary, totalDamage);
+  const damageToHitPoints = totalDamage - absorbed;
+  return {
+    totalDamage, absorbed, damageToHitPoints,
+    temporary: state.temporary - absorbed,
+    hitPoints: Math.max(0, state.hitPoints - damageToHitPoints),
+    overflow: Math.max(0, damageToHitPoints - state.hitPoints)
+  };
+}
+
+const concentrationDc = totalDamage => Math.min(MAXIMUM_CONCENTRATION_DC, Math.max(MINIMUM_CONCENTRATION_DC, Math.floor(totalDamage / 2)));
+
+function consequenceNotes(outcome, state) {
+  if (!outcome.damageToHitPoints) return [];
+  if (state.hitPoints === 0) return ['Dégâts à 0 PV : 1 échec au jet de sauvegarde contre la mort (2 si coup critique)'];
+  if (outcome.hitPoints > 0) return [];
+  if (state.maximum && outcome.overflow >= state.maximum) return ['Mort instantanée : ' + outcome.overflow + ' dégâts restants ≥ PV maximum (' + state.maximum + ')'];
+  return ['Tombe à 0 PV : inconscient, jets de sauvegarde contre la mort'];
+}
+
+function damageCalculation(damageEntries) {
+  const damageDefenses = currentDamageDefenses();
+  const adjustedEntries = mergeDamageByType(damageEntries).map(entry => adjustedDamage(entry, damageDefenses));
+  const state = currentHitPointState();
+  const outcome = damageOutcome(adjustedEntries.reduce((total, entry) => total + entry.final, 0), state);
+  return { adjustedEntries, state, outcome, notes: consequenceNotes(outcome, state) };
+}
+
+const damageTypeOptionsHtml = selectedType => DAMAGE_TYPES.map(damageType => `<option value="${damageType}"${damageType === selectedType ? ' selected' : ''}>${capitalized(damageType)}</option>`).join('');
+
+function damageRowHtml() {
+  return `<div class="dmg-row"><input type="number" class="dmg-amount" min="0" inputmode="numeric" placeholder="Dégâts" aria-label="Montant des dégâts"><select class="dmg-type" aria-label="Type de dégâts">${damageTypeOptionsHtml(lastDamageType)}</select></div>`;
+}
+
+function temporaryDefensesHtml() {
+  const defenses = availableTemporaryDefenses();
+  if (!defenses.length) return '';
+  const checkboxes = defenses.map(defense => `<label><input type="checkbox" data-defense="${defense.id}"${resourceState[activeStateKey(defense.id)] ? ' checked' : ''}> ${escapeHtml(defense.label)}</label>`).join('');
+  return `<fieldset class="dmg-states"><legend>Effets en cours</legend>${checkboxes}</fieldset>`;
+}
+
+function damageDialogHtml() {
+  return `<h3>Subir des dégâts</h3>
+   <div id="dmgRows">${damageRowHtml()}</div>
+   <button type="button" class="dmg-more" id="dmgMore">+ Autre type de dégâts</button>
+   ${temporaryDefensesHtml()}
+   <p class="dmg-defenses" id="dmgDefenses"></p>
+   <div class="dmg-preview" id="dmgPreview"></div>
+   <div class="dmg-actions"><button type="button" id="dmgCancel">Annuler</button><button type="button" class="primary" id="dmgApply">Appliquer</button></div>`;
+}
+
+function damageEntriesFrom(dialog) {
+  return [...dialog.querySelectorAll('.dmg-row')].map(row => ({ amount: Math.max(0, parseInt(row.querySelector('.dmg-amount').value) || 0), type: row.querySelector('.dmg-type').value }));
+}
+
+function adjustedEntryHtml(entry) {
+  const change = entry.final === entry.amount ? entry.amount : entry.amount + ' → <b>' + entry.final + '</b>';
+  const reasons = entry.reasons.length ? ' <small>' + escapeHtml(entry.reasons.join(', ')) + '</small>' : '';
+  return `<li>${change} ${escapeHtml(entry.type)}${reasons}</li>`;
+}
+
+function outcomeLinesHtml(calculation) {
+  const { state, outcome } = calculation;
+  const lines = ['Total : <b>' + outcome.totalDamage + '</b> dégât' + (outcome.totalDamage > 1 ? 's' : '')];
+  if (outcome.absorbed) lines.push('PV temporaires : ' + state.temporary + ' → ' + outcome.temporary);
+  lines.push('PV : ' + state.hitPoints + ' → <b>' + outcome.hitPoints + '</b>' + (state.maximum ? ' / ' + state.maximum : ''));
+  if (outcome.totalDamage) lines.push('Concentration : JS de Constitution DD ' + concentrationDc(outcome.totalDamage));
+  return lines.concat(calculation.notes.map(note => '<span class="dmg-alert">' + escapeHtml(note) + '</span>')).join('<br>');
+}
+
+function damagePreviewHtml(calculation) {
+  if (!calculation.adjustedEntries.length) return '<p class="xh">Saisissez le montant des dégâts.</p>';
+  return '<ul>' + calculation.adjustedEntries.map(adjustedEntryHtml).join('') + '</ul><p>' + outcomeLinesHtml(calculation) + '</p>';
+}
+
+function refreshDamageDialog(dialog) {
+  dialog.querySelector('#dmgDefenses').textContent = damageDefensesSummary(currentDamageDefenses()) || 'Aucune résistance ni immunité connue.';
+  dialog.querySelector('#dmgPreview').innerHTML = damagePreviewHtml(damageCalculation(damageEntriesFrom(dialog)));
+}
+
+function toggleTemporaryDefense(checkbox) {
+  if (checkbox.checked) resourceState[activeStateKey(checkbox.dataset.defense)] = 1;
+  else delete resourceState[activeStateKey(checkbox.dataset.defense)];
+  recalculateSheet();
+  autosave();
+}
+
+function addDeathSaveFailure() {
+  const nextFailure = DEATH_SAVE_FAILURE_KEYS.map(sheetField).find(checkbox => checkbox && !checkbox.checked);
+  if (!nextFailure) return;
+  nextFailure.checked = true;
+  dispatchInputEvent(nextFailure);
+}
+
+function damageReport(calculation) {
+  const { state, outcome } = calculation;
+  const parts = ['−' + outcome.totalDamage + ' dégâts (' + calculation.adjustedEntries.map(entry => entry.final + ' ' + entry.type).join(', ') + ')'];
+  if (outcome.absorbed) parts.push(outcome.absorbed + ' absorbés par les PV temporaires');
+  parts.push('PV ' + state.hitPoints + ' → ' + outcome.hitPoints);
+  return parts.concat(calculation.notes).join(' · ');
+}
+
+function applyDamage(dialog) {
+  const damageEntries = damageEntriesFrom(dialog);
+  const calculation = damageCalculation(damageEntries);
+  if (!calculation.adjustedEntries.length) return;
+  const { state, outcome } = calculation;
+  setFieldAndNotify('pvtemp', outcome.temporary || '');
+  setFieldAndNotify('pv', outcome.hitPoints);
+  if (state.hitPoints === 0 && outcome.damageToHitPoints) addDeathSaveFailure();
+  lastDamageType = damageEntries[damageEntries.length - 1].type;
+  recalculateSheet();
+  autosave();
+  closeAndRemove(dialog);
+  showSheetMessage(damageReport(calculation));
+}
+
+function handleDamageDialogInput(event, dialog) {
+  event.stopPropagation();
+  refreshDamageDialog(dialog);
+}
+
+function handleDamageDialogChange(event, dialog) {
+  event.stopPropagation();
+  if (!event.target.dataset.defense) return;
+  toggleTemporaryDefense(event.target);
+  refreshDamageDialog(dialog);
+}
+
+function applyDamageOnEnter(event, dialog) {
+  if (event.key !== 'Enter' || !event.target.classList.contains('dmg-amount')) return;
+  event.preventDefault();
+  applyDamage(dialog);
+}
+
+function addDamageRow(dialog) {
+  dialog.querySelector('#dmgRows').insertAdjacentHTML('beforeend', damageRowHtml());
+  dialog.querySelector('.dmg-row:last-child .dmg-amount').focus();
+}
+
+function openDamageDialog() {
+  recalculateSheet();
+  const dialog = createDialog('', damageDialogHtml());
+  dialog.className = 'dmg';
+  dialog.addEventListener('close', () => dialog.remove());
+  dialog.addEventListener('input', event => handleDamageDialogInput(event, dialog));
+  dialog.addEventListener('change', event => handleDamageDialogChange(event, dialog));
+  dialog.addEventListener('keydown', event => applyDamageOnEnter(event, dialog));
+  dialog.querySelector('#dmgMore').onclick = () => addDamageRow(dialog);
+  dialog.querySelector('#dmgCancel').onclick = () => closeAndRemove(dialog);
+  dialog.querySelector('#dmgApply').onclick = () => applyDamage(dialog);
+  refreshDamageDialog(dialog);
+  dialog.querySelector('.dmg-amount').focus();
 }
 
 function handleResourceEdit(input) {
@@ -2233,6 +2512,7 @@ $('#clsel').addEventListener('change', handleClassSelection);
 document.addEventListener('click', handleImportClick);
 $('#bLong').onclick = takeLongRest;
 $('#bShort').onclick = startShortRest;
+$('#bDamage').onclick = openDamageDialog;
 window.addEventListener('pageshow', recalculateWhenRestoredFromCache);
 document.addEventListener('input', handleSheetEdit);
 document.addEventListener('change', handleSheetEdit);
