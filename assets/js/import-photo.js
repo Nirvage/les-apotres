@@ -17,6 +17,13 @@ const METERS_PER_FOOT = 0.3;
 const SPEED_IN_FEET_THRESHOLD = 20;
 const NAME_MAXIMUM_LENGTH = 48;
 const DEFAULT_HIT_DIE = 8;
+const SUBCLASS_WORD_MINIMUM = 5;
+const PAGE_SEGMENTATION_SINGLE_BLOCK = '6';
+const PAGE_SEGMENTATION_SPARSE_TEXT = '11';
+const PAGE_SEGMENTATION_MODES = [PAGE_SEGMENTATION_SINGLE_BLOCK, PAGE_SEGMENTATION_SPARSE_TEXT];
+const PAGE_GAP = 100;
+const FEAT_SECTION_LINE_COUNT = 8;
+const INVOCATION_CATEGORY = 'Manifestation occulte';
 
 const ABILITIES = [
   { key: 'for', name: 'Force', labels: ['force', 'strength'], abbreviations: ['FOR', 'STR'] },
@@ -82,8 +89,8 @@ const LABELS = {
   maximumHitPoints: /(?:points de vie max\w*|pv max\w*|hit point maximum|maximum de points de vie|max hp)\D{0,20}(\d{1,3})\b/,
   currentAndMaximumHitPoints: /(?:points de vie|\bpv\b|hit points)\D{0,12}\d{1,3}\s*\/\s*(\d{1,3})\b/,
   speed: /(?:vitesse|speed)/,
-  speedWithUnit: /(?:^|[^\d+-])(\d{1,3}(?:[.,]\d)?)\s*(m\b|ft\b|pieds\b|')/,
-  speedWithoutUnit: /^[^\d+-]{0,12}(\d{1,3}(?:[.,]\d)?)\b/,
+  speedWithUnit: /(?:^|[^\d.,+-])(\d{1,3}(?:[.,]\d{1,2})?)\s*(m\b|ft\b|pieds\b|')/,
+  speedWithoutUnit: /^[^\d+-]{0,12}(\d{1,3}(?:[.,]\d{1,2})?)\b/,
   languages: /(?:langues|languages)\s*:?\s*(.*)/,
   goldAfterNumber: /\b(\d{1,6})\s*(?:po|gp|pieces? d'or)\b/,
   goldBeforeNumber: /\b(?:po|gp)\s*:?\s*(\d{1,6})\b/,
@@ -94,6 +101,7 @@ const LABELS = {
   speciesSection: /(espece|race|species)/,
   backgroundSection: /(historique|background|passe)/,
   alignmentSection: /(alignement|alignment)/,
+  featSection: /\b(dons|feats)\b/,
   otherHeaders: /(nom du personnage|character name|espece|alignement|alignment|historique|background|classe|class|niveau|level|joueur|player)/
 };
 
@@ -251,7 +259,7 @@ function readSpeed(text) {
   const value = parseFloat(match[1].replace(',', '.'));
   const unit = match[2] || '';
   const inFeet = /ft|pieds|'/.test(unit) || (!unit && value >= SPEED_IN_FEET_THRESHOLD);
-  const meters = inFeet ? Math.round(value * METERS_PER_FOOT * 2) / 2 : value;
+  const meters = Math.round((inFeet ? value * METERS_PER_FOOT : value) * 2) / 2;
   return frenchDecimal(meters) + ' m';
 }
 
@@ -284,8 +292,12 @@ function signedNumberInLine(line, label) {
   return found ? parseSigned(found[0]) : null;
 }
 
+function lostMinusSign(value, modifier) {
+  return modifier < 0 && value === -modifier;
+}
+
 function proficiencyFromValue(value, modifier, proficiencyBonus) {
-  if (value == null) return 0;
+  if (value == null || lostMinusSign(value, modifier)) return 0;
   if (value - modifier === 2 * proficiencyBonus) return 2;
   return value - modifier === proficiencyBonus ? 1 : 0;
 }
@@ -326,7 +338,7 @@ function readSavingThrows(lines, text, upperText, scores, proficiencyBonus) {
   ABILITIES.forEach(ability => {
     const modifier = abilityModifier(scores[ability.key] || DEFAULT_SCORE);
     const values = [...saveValuesInsideAbilityBoxes(text, upperText, ability), ...saveValuesInSaveSection(lines, ability)];
-    saves[ability.key] = values.some(value => value - modifier === proficiencyBonus);
+    saves[ability.key] = values.some(value => proficiencyFromValue(value, modifier, proficiencyBonus) === 1);
   });
   return saves;
 }
@@ -337,6 +349,13 @@ function readBackground(lines, text, backgroundNames) {
   return nearLabel || findKnownName(text, entries.filter(entry => !BACKGROUNDS_TOO_COMMON_TO_GUESS.includes(entry.name)));
 }
 
+function readFeats(lines, feats) {
+  const index = lines.findIndex(line => LABELS.featSection.test(line));
+  if (index < 0) return [];
+  const region = lines.slice(index, index + FEAT_SECTION_LINE_COUNT).join('\n');
+  return feats.filter(feat => wordPattern(feat.name).test(region)).map(feat => feat.name);
+}
+
 function readGold(text) {
   return firstMatchNumber(text, [LABELS.goldAfterNumber, LABELS.goldBeforeNumber]);
 }
@@ -345,7 +364,7 @@ function readMaximumHitPoints(text) {
   return firstMatchNumber(text, [LABELS.maximumHitPoints, LABELS.currentAndMaximumHitPoints]);
 }
 
-function readCharacterSheet(ocrText, names) {
+function readCharacterSheetFromText(ocrText, names) {
   const rawText = normalizeDashes(ocrText);
   const rawLines = rawText.split('\n');
   const lines = rawLines.map(normalizeText);
@@ -367,9 +386,63 @@ function readCharacterSheet(ocrText, names) {
     vitesse: readSpeed(text),
     langues: readLanguages(rawLines, lines),
     po: readGold(text),
+    dons: readFeats(lines, names.feats),
     saves: readSavingThrows(lines, text, upperText, scores, proficiencyBonus),
     skills: readSkillProficiencies(lines, scores, proficiencyBonus)
   };
+}
+
+function firstKnownName(candidates, entries) {
+  return candidates.map(candidate => findKnownName(normalizeText(candidate), entries)).find(Boolean) || '';
+}
+
+function closestSubclass(candidates, subclassNames) {
+  const candidateWords = candidates.flatMap(candidate => normalizeText(candidate).split(/[^a-z]+/)).filter(word => word.length >= SUBCLASS_WORD_MINIMUM);
+  const nameWords = name => normalizeText(name).split(/[^a-z]+/).filter(word => word.length >= SUBCLASS_WORD_MINIMUM);
+  const matches = name => nameWords(name).some(word => candidateWords.some(candidate => word.startsWith(candidate) || candidate.startsWith(word)));
+  return subclassNames.find(matches) || '';
+}
+
+function mergedProficiencies(spatialValues, textProficiencies, abilityOf, scores, proficiencyBonus) {
+  return textProficiencies.map((textProficiency, index) => {
+    const value = spatialValues[index];
+    return value == null ? textProficiency : proficiencyFromValue(value, abilityModifier(scores[abilityOf(index)] || DEFAULT_SCORE), proficiencyBonus);
+  });
+}
+
+function mergedSaves(spatial, textSaves, scores, proficiencyBonus) {
+  return Object.fromEntries(ABILITIES.map(ability => {
+    const value = spatial.saveValues[ability.key];
+    const modifier = abilityModifier(scores[ability.key] || DEFAULT_SCORE);
+    return [ability.key, value == null ? textSaves[ability.key] : proficiencyFromValue(value, modifier, proficiencyBonus) === 1];
+  }));
+}
+
+function mergeSpatialReading(sheet, spatial, names) {
+  const className = firstKnownName(spatial.texts.className, aliasEntries(names.classes, CLASS_ALIASES)) || sheet.classe;
+  const backgroundText = spatial.texts.background[0] || '';
+  const level = spatial.level || sheet.niveau;
+  const scores = Object.assign({}, sheet.scores, spatial.scores);
+  const proficiencyBonus = proficiencyBonusAt(level);
+  const skillProficiencies = mergedProficiencies(spatial.skillValues, sheet.skills, index => SKILLS[index].ability, scores, proficiencyBonus);
+  return Object.assign({}, sheet, {
+    nom: spatial.texts.name[0] || sheet.nom,
+    classe: className,
+    sousclasse: closestSubclass(spatial.texts.subclass, names.subclassesOf(className)) || spatial.texts.subclass[0] || '',
+    niveau: level,
+    espece: firstKnownName(spatial.texts.species, aliasEntries(names.species, SPECIES_ALIASES)) || sheet.espece,
+    historique: firstKnownName(spatial.texts.background, aliasEntries(names.backgrounds, BACKGROUND_ALIASES)) || backgroundText || sheet.historique,
+    scores,
+    pvmax: spatial.maximumHitPoints || sheet.pvmax,
+    vitesse: (spatial.speedText && readSpeed('vitesse ' + normalizeText(spatial.speedText))) || sheet.vitesse,
+    saves: mergedSaves(spatial, sheet.saves, scores, proficiencyBonus),
+    skills: skillProficiencies
+  });
+}
+
+function readCharacterSheet(ocrText, names, words) {
+  const sheet = Object.assign({ sousclasse: '' }, readCharacterSheetFromText(ocrText, names));
+  return words && words.length ? mergeSpatialReading(sheet, LectureSpatiale.read(words), names) : sheet;
 }
 
 function loadTesseract() {
@@ -390,17 +463,26 @@ function loadTesseract() {
 
 async function loadGameData() {
   if (gameData) return gameData;
-  const [classes, species, backgrounds] = await Promise.all([
+  const [classes, species, backgrounds, subclasses, feats] = await Promise.all([
     fetchJson('assets/json/vf/classes.json'),
     fetchJson('assets/json/vf/especes.json'),
-    fetchJson('assets/json/vf/historiques.json')
+    fetchJson('assets/json/vf/historiques.json'),
+    fetchJson('assets/json/vf/sousclasses.json'),
+    fetchJson('assets/json/vf/dons.json')
   ]);
-  gameData = { classes, species, backgrounds };
+  gameData = { classes, species, backgrounds, subclasses, feats };
   return gameData;
 }
 
 function knownNames(data) {
-  return { classes: Object.keys(data.classes.classes), species: Object.keys(data.species), backgrounds: Object.keys(data.backgrounds) };
+  return {
+    classes: Object.keys(data.classes.classes),
+    species: Object.keys(data.species),
+    backgrounds: Object.keys(data.backgrounds),
+    subclassesOf: className => Object.keys(data.subclasses[className] || {}),
+    allSubclasses: [...new Set(Object.values(data.subclasses).flatMap(Object.keys))],
+    feats: data.feats.filter(feat => feat.cat !== INVOCATION_CATEGORY).map(feat => ({ id: feat.id, name: feat.nom }))
+  };
 }
 
 function scaledSize(width, height) {
@@ -438,24 +520,37 @@ async function preparedImage(file) {
   return canvas;
 }
 
+function shiftedWords(words, verticalOffset) {
+  return words.map(word => ({ text: word.text, confidence: word.confidence, bbox: { x0: word.bbox.x0, x1: word.bbox.x1, y0: word.bbox.y0 + verticalOffset, y1: word.bbox.y1 + verticalOffset } }));
+}
+
 async function recognizeImages(files, onProgress) {
   const Tesseract = await loadTesseract();
-  let currentImage = 0;
+  const passCount = files.length * PAGE_SEGMENTATION_MODES.length;
+  let currentPass = 0;
   const reportProgress = message => {
-    if (message.status === 'recognizing text') onProgress((currentImage + message.progress) / files.length, 'Lecture de la photo ' + (currentImage + 1) + ' sur ' + files.length + '…');
+    if (message.status === 'recognizing text') onProgress((currentPass + message.progress) / passCount, 'Lecture de la photo ' + (Math.floor(currentPass / PAGE_SEGMENTATION_MODES.length) + 1) + ' sur ' + files.length + ' (passe ' + (currentPass % PAGE_SEGMENTATION_MODES.length + 1) + ')…');
     else onProgress(0, 'Préparation de la lecture (téléchargement la première fois)…');
   };
   const worker = await Tesseract.createWorker(OCR_LANGUAGES, 1, { logger: reportProgress });
-  const texts = [];
+  const reading = { text: '', words: [] };
+  let verticalOffset = 0;
   try {
-    for (currentImage = 0; currentImage < files.length; currentImage++) {
-      const result = await worker.recognize(await preparedImage(files[currentImage]));
-      texts.push(result.data.text);
+    for (const file of files) {
+      const image = await preparedImage(file);
+      for (const mode of PAGE_SEGMENTATION_MODES) {
+        await worker.setParameters({ tessedit_pageseg_mode: mode });
+        const result = await worker.recognize(image);
+        if (mode === PAGE_SEGMENTATION_SINGLE_BLOCK) reading.text += result.data.text + '\n';
+        reading.words.push(...shiftedWords(result.data.words || [], verticalOffset));
+        currentPass++;
+      }
+      verticalOffset += image.height + PAGE_GAP;
     }
   } finally {
     await worker.terminate();
   }
-  return texts.join('\n');
+  return reading;
 }
 
 function optionsHtml(names, selected) {
@@ -464,6 +559,11 @@ function optionsHtml(names, selected) {
 
 function inputHtml(label, name, value, attributes) {
   return `<label><small>${label}</small><input name="${name}" value="${escapeHtml(value)}" ${attributes || ''}></label>`;
+}
+
+function suggestionInputHtml(label, name, value, suggestions) {
+  const listId = 'ip-' + name;
+  return `<label><small>${label}</small><input name="${name}" value="${escapeHtml(value)}" list="${listId}"><datalist id="${listId}">${suggestions.map(suggestion => `<option value="${escapeHtml(suggestion)}">`).join('')}</datalist></label>`;
 }
 
 function selectHtml(label, name, names, selected) {
@@ -490,12 +590,14 @@ function reviewFormHtml(sheet, names, ocrText) {
     ${selectHtml('Classe', 'classe', names.classes, sheet.classe)}
     ${inputHtml('Niveau', 'niveau', sheet.niveau, 'type="number" min="1" max="20"')}
     ${selectHtml('Espèce', 'espece', names.species, sheet.espece)}
-    ${selectHtml('Historique', 'historique', names.backgrounds, sheet.historique)}
+    ${suggestionInputHtml('Sous-classe', 'sousclasse', sheet.sousclasse, sheet.classe ? names.subclassesOf(sheet.classe) : names.allSubclasses)}
+    ${suggestionInputHtml('Historique', 'historique', sheet.historique, names.backgrounds)}
     ${selectHtml('Alignement', 'alignement', ALIGNMENTS.map(alignment => alignment.name), sheet.alignement)}
     ${inputHtml('PV maximum', 'pvmax', sheet.pvmax || '', 'type="number" min="1"')}
     ${inputHtml('Vitesse', 'vitesse', sheet.vitesse)}
     ${inputHtml('Pièces d’or', 'po', sheet.po || '', 'type="number" min="0"')}
     <label class="ipwide"><small>Langues</small><input name="langs" value="${escapeHtml(sheet.langues)}"></label>
+    <label class="ipwide"><small>Dons (séparés par des virgules)</small><input name="dons" value="${escapeHtml(sheet.dons.join(', '))}"></label>
    </div>
    <h4>Caractéristiques et jets de sauvegarde maîtrisés</h4>
    <div class="ipabs">${ABILITIES.map(ability => abilityRowHtml(ability, sheet)).join('')}</div>
@@ -529,11 +631,13 @@ function numberField(form, name) {
   return parseInt(form.elements[name].value, 10) || 0;
 }
 
-function sheetFromReview(form) {
+function sheetFromReview(form, names) {
   const level = clampLevel(numberField(form, 'niveau'));
   const className = form.elements.classe.value;
   const speciesName = form.elements.espece.value;
-  const backgroundName = form.elements.historique.value;
+  const backgroundText = form.elements.historique.value.trim();
+  const backgroundName = names.backgrounds.includes(backgroundText) ? backgroundText : '';
+  const subclassText = form.elements.sousclasse.value.trim();
   const speed = form.elements.vitesse.value.trim();
   const maximumHitPoints = numberField(form, 'pvmax');
   const sheet = { nom: form.elements.nom.value.trim(), niveau: String(level), alignement: form.elements.alignement.value, langs: form.elements.langs.value.trim() };
@@ -549,15 +653,31 @@ function sheetFromReview(form) {
   if (className) addClass(sheet, className, level);
   if (maximumHitPoints) sheet.pv = sheet.pvmax = String(maximumHitPoints);
   if (speciesName) Object.assign(sheet, { race: speciesName, espece: speciesName, sespece: '' });
-  if (backgroundName) Object.assign(sheet, { historique: backgroundName, bgsel: backgroundName });
+  if (backgroundText) sheet.historique = backgroundText;
+  if (backgroundName) sheet.bgsel = backgroundName;
+  if (subclassText) addSubclass(sheet, subclassText, names.subclassesOf(className));
   if (speed) sheet.vitesse = speed;
   if (numberField(form, 'po')) sheet.po = String(numberField(form, 'po'));
   sheet.extras = {
     sp: { k: speciesName, ch: {}, auto: speed },
     bg: { k: backgroundName, ch: {} },
-    dons: [], spl: [], auto: {}, mal: [], oh: {}
+    dons: takenFeats(form.elements.dons.value, names.feats), spl: [], auto: {}, mal: [], oh: {}
   };
   return sheet;
+}
+
+const randomFeatInstanceId = () => Math.random().toString(36).slice(2, 8);
+
+function takenFeats(featText, feats) {
+  return featText.split(',').map(name => normalizeText(name)).filter(Boolean)
+    .map(name => feats.find(feat => normalizeText(feat.name) === name))
+    .filter(Boolean)
+    .map(feat => ({ u: randomFeatInstanceId(), id: feat.id, ch: {} }));
+}
+
+function addSubclass(sheet, subclassText, knownSubclasses) {
+  sheet.sousclasse = subclassText;
+  if (knownSubclasses.includes(subclassText)) sheet.sclasse = subclassText;
 }
 
 function addClass(sheet, className, level) {
@@ -566,8 +686,8 @@ function addClass(sheet, className, level) {
 }
 
 
-function createCharacterFromReview(form) {
-  const sheet = sheetFromReview(form);
+function createCharacterFromReview(form, names) {
+  const sheet = sheetFromReview(form, names);
   return Persos.add(sheet.nom, { fiche: { version: 5, type: 'fiche-dnd-5e', data: sheet } });
 }
 
@@ -640,9 +760,9 @@ function showProgress(importDialog, fraction, text) {
   progress.querySelector('[data-progress-text]').textContent = text;
 }
 
-function showReview(importDialog, ocrText, data) {
+function showReview(importDialog, ocrText, data, words) {
   const names = knownNames(data);
-  importDialog.body.innerHTML = reviewFormHtml(readCharacterSheet(ocrText, names), names, ocrText);
+  importDialog.body.innerHTML = reviewFormHtml(readCharacterSheet(ocrText, names, words), names, ocrText);
   importDialog.body.querySelector('[data-act="reparse"]').onclick = () => showReview(importDialog, importDialog.form.elements.ocr.value, data);
   importDialog.submitButton.textContent = 'Créer le personnage';
   importDialog.submitButton.disabled = false;
@@ -656,8 +776,8 @@ async function readPhotos(importDialog) {
   showImportError(importDialog, '');
   try {
     const reportProgress = (fraction, text) => showProgress(importDialog, fraction, text);
-    const [data, ocrText] = await Promise.all([loadGameData(), recognizeImages(importDialog.files, reportProgress)]);
-    showReview(importDialog, ocrText, data);
+    const [data, reading] = await Promise.all([loadGameData(), recognizeImages(importDialog.files, reportProgress)]);
+    showReview(importDialog, reading.text, data, reading.words);
   } catch (error) {
     showImportError(importDialog, 'La lecture a échoué. Vérifie ta connexion internet (nécessaire la première fois) et réessaie.');
     setPhotoPickersEnabled(importDialog, true);
@@ -673,7 +793,7 @@ function confirmReview(importDialog) {
     nameField.focus();
     return;
   }
-  const character = createCharacterFromReview(importDialog.form);
+  const character = createCharacterFromReview(importDialog.form, knownNames(gameData));
   closeImportDialog(importDialog);
   if (importDialog.options.onImported) importDialog.options.onImported(character);
 }
